@@ -1,6 +1,6 @@
 # Unentropy Roadmap
 
-## 0.1 - MVP
+## 0.1 - PoC: metrics engine 
 * [x] MVP 3-step process
 * [x] Using GitHub action artifact for storing the metrics database
 * [x] JSX templating
@@ -16,19 +16,23 @@
 * [x] Thresholds
 * [x] Separate GH action for quality gate
 
-## 0.2
+## 0.2 - MVP
 * [ ] Move to a dedicated organization
-* [ ] Properly packaged Github actions
-* [ ] "Main branch"
 * [ ] Scaffolding: `npx unentropy init`, an interactive CLI that creates a basic Unentropy configuration based on the current projects.
-* [ ] Public config schema 
-
-## 0.3
 * [ ] Simplify the config schema when using $ref
+* [ ] Support for @collect command
 * [ ] Polish quality gate comment, introduce some sort of templating
   * It should be less "dry"
-* [ ] Collectors and metrics gallery
+* [ ] Integrate find-artifact action into S3-artifact storage
+* [ ] Properly packaged Github actions
+* [ ] Allow replacing existing build context
+ 
+## 0.3 - MVP+
+* [ ] "Main branch"
 * [ ] Custom collectors and metrics / simple plugins
+* [ ] Public config schema 
+* [ ] Collectors and metrics gallery
+* [ ] Use Drizzle ORM and proper migration system
 
 ## TBD
 * Support for more robust, cloud databases (Postgres, MySQL, ...)
@@ -45,7 +49,6 @@
 * [ ] Use DB transactions when collecting metrics
 * [ ] Make sure to keep the database connection open for as short a time as possible
 * [ ] Proper tests for Storage class
-* [ ] Allow replacing existing build context
 
 ## Spec-kit
 * [ ] Create a contract spec for GH quailty gate comment - how it should look like, what it should contain, etc.
