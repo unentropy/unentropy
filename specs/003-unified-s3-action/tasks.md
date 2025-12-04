@@ -164,7 +164,7 @@ description: "Task list for unified storage action implementation (S3 and GitHub
 - [ ] T038 [P] Add any remaining unit tests for edge cases discovered during implementation in `tests/unit/storage/providers/`
 - [ ] T039 Review credential handling and logging to ensure no secrets are ever logged in `src/actions/track-metrics.ts`
 - [ ] T040 Run quickstart validation using the example workflows and adjust steps as needed in `specs/003-unified-s3-action/quickstart.md`
-- [ ] T064 Remove spec 002 files (`specs/002-find-database-artifact/`) after artifact provider is fully functional
+- [x] T064 Remove spec 002 files (`specs/002-find-database-artifact/`) after artifact provider is fully functional
 - [ ] T065 Update README.md to document the unified storage options (local, artifact, S3)
 
 ---

@@ -10,8 +10,6 @@ This document defines the interface contracts for the two GitHub Actions provide
 1. `collect-metrics` - Collects metrics during CI/CD runs
 2. `generate-report` - Generates HTML reports from collected data
 
-**Note**: The `find-database` action is documented separately in `specs/002-find-database/contracts/action-interface.md`.
-
 ---
 
 ## Action 1: collect-metrics

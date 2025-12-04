@@ -323,8 +323,6 @@ This separation enables:
 
 **Purpose**: Package functionality as GitHub Actions for easy CI/CD integration
 
-**Note**: The find-database action is documented separately in specs/002-find-database/tasks.md.
-
 ### Tests for GitHub Actions
 
 - [x] T083 [P] Write contract test for collect-metrics action inputs in tests/contract/collect-action.test.ts
@@ -390,7 +388,6 @@ This separation enables:
 - **GitHub Actions (Phase 8)**: Depends on User Stories 2 and 3 being complete
   - collect-metrics action: Depends on User Stories 1, 1.5, 2 (config + CLI verification + collection)
   - generate-report action: Depends on User Story 3 (reporting)
-  - find-database action: Documented in specs/002-find-database/
 - **Polish (Phase 9)**: Depends on all phases being complete
 
 ### User Story Dependencies
@@ -443,8 +440,6 @@ Task: "Write contract test for generate-report action inputs in tests/contract/r
 Task: "Write contract test for generate-report action outputs in tests/contract/report-action.test.ts"
 Task: "Write integration test for artifact upload/download in tests/integration/artifacts.test.ts"
 ```
-
-**Note**: The find-database action tests are documented in specs/002-find-database/tasks.md.
 
 ---
 
