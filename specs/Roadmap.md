@@ -26,6 +26,7 @@
 * [x] Integrate find-artifact action into S3-artifact storage
 * [ ] Properly packaged Github actions
 * [ ] Allow replacing existing build context
+* [ ] Review how metric definitions are stored how things like "units" are handled, since they overlap with unentropy.json config. What should be the source of truth?
  
 ## 0.3 - MVP+
 * [ ] Public docs
