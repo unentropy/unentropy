@@ -34,13 +34,13 @@ Create an `unentropy.json` file to define your metrics:
       "$ref": "loc",
       "name": "lines-of-code",
       "description": "Total lines of TypeScript code",
-      "command": "$collect loc ./src --language TypeScript"
+      "command": "@collect loc ./src --language TypeScript"
     },
     {
       "$ref": "coverage",
       "name": "test-coverage",
       "description": "Test coverage",
-      "command": "$collect coverage-lcov coverage/lcov.info"
+      "command": "@collect coverage-lcov coverage/lcov.info"
     }
   ],
   "storage": {

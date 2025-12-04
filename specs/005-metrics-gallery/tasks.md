@@ -61,42 +61,25 @@
 
 ## Phase 2b: @collect Infrastructure (NEW)
 
-**Purpose**: Enable in-process execution of collectors via @collect shortcut
+**Purpose**: Enable simple execution of collectors via @collect shortcut by delegating to existing CLI
 
-- [ ] T007b [NEW] Create collector registry in src/metrics/collectors/index.ts
-  - Define Collector interface: { name: string, execute: (args: string[]) => Promise<CollectorResult> }
-  - Define CollectorResult: { value: number | string }
-  - Create collectors map: Record<string, Collector>
-  - Register: loc, size, coverage-lcov, coverage-json, coverage-xml
+- [x] T007b [NEW] Add @collect transformation to runCommand in src/collector/runner.ts
+  - Detect commands starting with "@collect "
+  - Transform to "bun src/index.ts collect <args>"
+  - Execute transformed command via existing shell infrastructure
+  - Total implementation: 7 lines of code
 
-- [ ] T007c [NEW] Implement parseCollectCommand function in src/metrics/collectors/index.ts
-  - Parse "@collect <collector> <args...>" format
-  - Extract collector name and arguments
-  - Return parsed command or null if not @collect format
-
-- [ ] T007d [NEW] Implement executeCollectCommand function in src/metrics/collectors/index.ts
-  - Look up collector by name
-  - Execute collector with parsed arguments
-  - Return CollectorResult
-  - Throw error for unknown collector with available list
-
-- [ ] T007e [NEW] Add glob expansion support to size collector in src/metrics/collectors/size.ts
+- [x] T007c [NEW] Add glob expansion support to size collector in src/metrics/collectors/size.ts
   - Use Bun.Glob for pattern expansion
   - Sum sizes of all matched files
   - Fail if pattern matches no files
 
-- [ ] T007f [NEW] Update collectMetrics in src/collector/collector.ts
-  - Check if command starts with "@collect"
-  - If yes, call executeCollectCommand directly
-  - If no, execute as shell command (existing behavior)
+- [x] T007d [NEW] Add unit tests for @collect transformation in tests/unit/collector/runner.test.ts
+  - Test @collect loc command transformation
+  - Test @collect size with multiple files
+  - Test @collect with complex arguments (flags, multiple values)
 
-- [ ] T007g [NEW] Add unit tests for @collect parsing in tests/unit/metrics/collectors/index.test.ts
-  - Test parseCollectCommand with valid @collect commands
-  - Test parseCollectCommand returns null for non-@collect commands
-  - Test executeCollectCommand with known collectors
-  - Test executeCollectCommand throws for unknown collector
-
-**Checkpoint**: @collect infrastructure ready - collectors execute in-process
+**Checkpoint**: @collect infrastructure ready - commands delegate to CLI with zero duplication
 
 ---
 

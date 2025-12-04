@@ -389,66 +389,55 @@ interface MetricThresholdConfig {
 
 ## @collect Execution
 
-### Collector Registry
+### Simple CLI Delegation
+
+The @collect shortcut simply delegates to the existing CLI infrastructure:
 
 ```typescript
-interface CollectorResult {
-  value: number | string;
+// In runCommand() - src/collector/runner.ts
+export async function runCommand(command: string, ...): Promise<CommandResult> {
+  // Transform @collect commands to CLI invocations
+  let commandToRun = command;
+  if (command.trim().startsWith("@collect ")) {
+    const collectArgs = command.trim().slice("@collect ".length);
+    commandToRun = `bun src/index.ts collect ${collectArgs}`;
+  }
+  
+  // Execute via shell (existing behavior)
+  const execPromise = exec("sh", ["-c", commandToRun], { ... });
+  // ...
 }
-
-interface Collector {
-  name: string;
-  execute: (args: string[]) => Promise<CollectorResult>;
-}
-
-const collectors: Record<string, Collector> = {
-  'loc': { name: 'loc', execute: executeLocCollector },
-  'size': { name: 'size', execute: executeSizeCollector },
-  'coverage-lcov': { name: 'coverage-lcov', execute: executeLcovCollector },
-  'coverage-json': { name: 'coverage-json', execute: executeJsonCollector },
-  'coverage-xml': { name: 'coverage-xml', execute: executeXmlCollector },
-};
 ```
 
 ### Execution Flow
 
-```typescript
-async function executeCollectCommand(command: string): Promise<CollectorResult> {
-  // 1. Parse command: "@collect loc ./src --language TypeScript"
-  const [, collectorName, ...args] = command.split(/\s+/);
-  
-  // 2. Look up collector
-  const collector = collectors[collectorName];
-  if (!collector) {
-    throw new Error(`Unknown collector: ${collectorName}`);
-  }
-  
-  // 3. Execute collector with parsed args
-  return collector.execute(args);
-}
 ```
+User config:
+  { command: "@collect loc ./src --language TypeScript" }
+       ↓
+runCommand() detects "@collect" prefix
+       ↓
+Transforms to:
+  "bun src/index.ts collect loc ./src --language TypeScript"
+       ↓
+Executes via shell subprocess
+       ↓
+Existing CLI handles all parsing, validation, execution
+       ↓
+Returns result to collector
+```
+
+### Benefits
+
+- **Zero Duplication**: Reuses 100% of existing CLI code
+- **Perfect Consistency**: CLI and @collect are identical
+- **Minimal Code**: Only 7 lines added
+- **Automatic Updates**: CLI changes automatically work in @collect
+- **No New Dependencies**: Uses existing shell execution infrastructure
 
 ### Glob Pattern Support
 
-The `size` collector supports glob patterns:
-
-```typescript
-async function executeSizeCollector(args: string[]): Promise<CollectorResult> {
-  const pattern = args[0];
-  
-  // Expand glob pattern
-  const glob = new Bun.Glob(pattern);
-  const files = await Array.fromAsync(glob.scan());
-  
-  // Sum sizes
-  let totalSize = 0;
-  for (const file of files) {
-    totalSize += await getFileSize(file);
-  }
-  
-  return { value: totalSize };
-}
-```
+The `size` collector (in CLI) already supports glob patterns via Bun.Glob. When called via @collect, it inherits this functionality automatically.
 
 ---
 
