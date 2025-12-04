@@ -19,9 +19,9 @@
 ## 0.2 - MVP
 * [x] Move to a dedicated organization
 * [ ] Scaffolding: `npx unentropy init`, an interactive CLI that creates a basic Unentropy configuration based on the current projects.
-* [ ] Simplify the config schema when using $ref
+* [ ] Simplify the config schema when using $ref. Will likely need to introduce the notion of "id", so that metric can be referenced in a quality gate.
 * [ ] Support for @collect command
-* [ ] Polish quality gate comment, introduce some sort of templating
+* [ ] Polish quality gate comment, introduce some sort of internal templating
   * It should be less "dry"
 * [x] Integrate find-artifact action into S3-artifact storage
 * [ ] Properly packaged Github actions
