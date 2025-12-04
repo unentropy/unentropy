@@ -2,8 +2,8 @@
 
 **Feature**: 004-metrics-quality-gate  
 **File**: `unentropy.json`  
-**Version**: 1.0.0  
-**Last Updated**: 2025-11-19
+**Version**: 2.0.0  
+**Last Updated**: 2025-12-06
 
 ## Overview
 
@@ -13,7 +13,7 @@ This document extends the base configuration schema contract defined in `/specs/
 
 The base configuration schema is defined in the MVP metrics tracking spec and already covers:
 
-- `metrics`: metric definitions and collection commands.
+- `metrics`: metric definitions and collection commands (object keyed by metric id).
 - Optional `storage` configuration for database location and provider.
 
 This feature adds:
@@ -26,9 +26,9 @@ This feature adds:
 
 ```typescript
 interface UnentropyConfig {
-  metrics: MetricConfig[];        // Existing metrics configuration
-  storage?: StorageConfig;        // Existing storage configuration
-  qualityGate?: QualityGateConfig; // NEW: Metrics Quality Gate configuration
+  metrics: Record<string, MetricConfig>; // Existing metrics configuration (keyed by id)
+  storage?: StorageConfig;               // Existing storage configuration
+  qualityGate?: QualityGateConfig;       // NEW: Metrics Quality Gate configuration
 }
 
 interface QualityGateConfig {
@@ -46,7 +46,7 @@ interface BaselineConfig {
 }
 
 interface MetricThresholdConfig {
-  metric: string;                  // Metric name (matches MetricConfig.name)
+  metric: string;                  // Metric key (matches key in metrics object)
   mode: 'no-regression' | 'min' | 'max' | 'delta-max-drop';
   target?: number;                 // Required for 'min' / 'max'
   tolerance?: number;              // Optional, small band for 'no-regression'
@@ -81,7 +81,7 @@ The baseline is always the most recent successful build on the reference branch.
 
 | Field            | Type    | Required | Constraints | Description |
 |------------------|---------|----------|-------------|-------------|
-| `metric`         | string  | Yes      | Must equal a `metrics[].name` value | Name of the metric this threshold applies to. |
+| `metric`         | string  | Yes      | Must match a key in the `metrics` object | Key of the metric this threshold applies to. |
 | `mode`           | enum    | Yes      | `no-regression` \| `min` \| `max` \| `delta-max-drop` | How the threshold is interpreted. |
 | `target`         | number  | Cond.    | Required when `mode` is `min` or `max` | Absolute target threshold value. |
 | `tolerance`      | number  | No       | `>=0`      | Allowed regression band for `no-regression` rules. |
@@ -97,11 +97,20 @@ The baseline is always the most recent successful build on the reference branch.
   "required": ["metrics"],
   "properties": {
     "metrics": {
-      "type": "array"
-      /* unchanged from base spec */
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 50,
+      "propertyNames": {
+        "pattern": "^[a-z0-9-]+$",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "additionalProperties": {
+        "$comment": "See spec 001 for MetricConfig schema"
+      }
     },
     "storage": {
-      /* unchanged from storage extension spec */
+      "$comment": "See spec 003 for storage extension"
     },
     "qualityGate": {
       "type": "object",
@@ -164,9 +173,18 @@ The baseline is always the most recent successful build on the reference branch.
 
 - If `qualityGate` is omitted entirely, the Metrics Quality Gate is disabled and the existing metrics behaviour is unchanged.
 - If `qualityGate.mode` is `hard` and `thresholds` is empty, configuration SHOULD be rejected with a clear error message.
-- Each `thresholds[].metric` MUST correspond to an existing metric name in `metrics[]`.
+- Each `thresholds[].metric` MUST correspond to an existing key in the `metrics` object.
 - Thresholds MUST only be defined for numeric metrics; label metrics MUST be ignored or produce validation errors when used with numeric-only modes.
 - Invalid or contradictory threshold configurations (for example, negative `maxDropPercent`) MUST be rejected early with clear, non-technical error messages for users.
+
+## Versioning
+
+**Version 2.0.0**:
+- Updated to align with spec 001 v2.0.0 (metrics as object instead of array)
+- Threshold `metric` field now references object keys instead of `metrics[].name`
+
+**Version 1.0.0**:
+- Initial quality gate configuration
 
 ## Backward Compatibility
 
@@ -180,20 +198,18 @@ The baseline is always the most recent successful build on the reference branch.
 
 ```json
 {
-  "metrics": [
-    { 
-      "name": "coverage", 
-      "type": "numeric", 
-      "command": "npm run coverage -- --json | jq -r '.total.lines.pct'", 
-      "unit": "%" 
+  "metrics": {
+    "coverage": {
+      "type": "numeric",
+      "command": "npm run coverage -- --json | jq -r '.total.lines.pct'",
+      "unit": "%"
     },
-    { 
-      "name": "bundle-size", 
-      "type": "numeric", 
-      "command": "du -k dist/bundle.js | cut -f1", 
-      "unit": "KB" 
+    "bundle-size": {
+      "type": "numeric",
+      "command": "du -k dist/bundle.js | cut -f1",
+      "unit": "KB"
     }
-  ],
+  },
   "qualityGate": {
     "mode": "soft",
     "enablePullRequestComment": true,
@@ -209,14 +225,13 @@ The baseline is always the most recent successful build on the reference branch.
 
 ```json
 {
-  "metrics": [
-    { 
-      "name": "coverage", 
-      "type": "numeric", 
-      "command": "npm run coverage -- --json | jq -r '.total.lines.pct'", 
-      "unit": "%" 
+  "metrics": {
+    "coverage": {
+      "type": "numeric",
+      "command": "npm run coverage -- --json | jq -r '.total.lines.pct'",
+      "unit": "%"
     }
-  ],
+  },
   "qualityGate": {
     "mode": "hard",
     "baseline": {
@@ -234,13 +249,12 @@ The baseline is always the most recent successful build on the reference branch.
 
 ```json
 {
-  "metrics": [
-    { 
-      "name": "perf-score", 
-      "type": "numeric", 
-      "command": "./scripts/measure-perf-score.sh" 
+  "metrics": {
+    "perf-score": {
+      "type": "numeric",
+      "command": "./scripts/measure-perf-score.sh"
     }
-  ],
+  },
   "qualityGate": {
     "mode": "soft",
     "thresholds": [

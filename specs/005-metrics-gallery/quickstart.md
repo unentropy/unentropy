@@ -2,11 +2,12 @@
 
 **Feature**: 005-metrics-gallery  
 **Audience**: Developers setting up metrics tracking  
-**Time**: 5 minutes
+**Time**: 5 minutes  
+**Updated**: 2025-12-06
 
 ## What is the Metrics Gallery?
 
-The Metrics Gallery provides built-in metrics you can add to your project with a simple reference, instead of writing custom collection commands. Each built-in metric includes:
+The Metrics Gallery provides metric templates you can add to your project with a simple reference, instead of writing custom collection commands. Each metric template includes:
 
 - Default collection command using `@collect` (delegates to CLI for simplicity)
 - Semantic unit type for consistent formatting (`percent`, `bytes`, `duration`, etc.)
@@ -17,34 +18,34 @@ The Metrics Gallery provides built-in metrics you can add to your project with a
 
 ### 1. Ultra-Minimal Configuration
 
-For metrics with default commands, just reference the built-in metric:
+For templates with default commands, just reference the metric template. The object key becomes the metric id:
 
 ```json
 {
-  "metrics": [
-    { "$ref": "loc" },
-    { "$ref": "bundle-size" }
-  ]
+  "metrics": {
+    "loc": { "$ref": "loc" },
+    "bundle-size": { "$ref": "bundle-size" }
+  }
 }
 ```
 
 This automatically:
-- Inherits `id` from the template (e.g., `"loc"`, `"bundle-size"`)
-- Uses the default `@collect` command
+- Uses the object key as the metric id (e.g., `"loc"`, `"bundle-size"`)
+- Uses the default `@collect` command from the template
 - Applies the correct unit type for formatting
 
-**Note**: Some metrics like `coverage` require a command (too technology-specific for defaults).
+**Note**: Some templates like `coverage` require a command (too technology-specific for defaults).
 
-### 2. Custom id for Multiple Uses of Same Metric
+### 2. Multiple Uses of Same Template
 
-When using the same built-in metric multiple times, provide explicit `id` values:
+When using the same metric template multiple times, just use different object keys:
 
 ```json
 {
-  "metrics": [
-    { "id": "src-loc", "$ref": "loc", "command": "@collect loc ./src" },
-    { "id": "test-loc", "$ref": "loc", "command": "@collect loc ./tests" }
-  ]
+  "metrics": {
+    "src-loc": { "$ref": "loc", "command": "@collect loc ./src" },
+    "test-loc": { "$ref": "loc", "command": "@collect loc ./tests" }
+  }
 }
 ```
 
@@ -54,11 +55,11 @@ Customize the collection path or options while keeping other defaults:
 
 ```json
 {
-  "metrics": [
-    { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
-    { "$ref": "coverage", "command": "@collect coverage-lcov ./reports/lcov.info" },
-    { "$ref": "bundle-size", "command": "@collect size ./dist/*.js" }
-  ]
+  "metrics": {
+    "loc": { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
+    "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov ./reports/lcov.info" },
+    "bundle-size": { "$ref": "bundle-size", "command": "@collect size ./dist/*.js" }
+  }
 }
 ```
 
@@ -68,29 +69,28 @@ Add human-readable names for reports and charts:
 
 ```json
 {
-  "metrics": [
-    { 
-      "id": "test-coverage",
-      "$ref": "coverage", 
-      "name": "Test Coverage"
+  "metrics": {
+    "test-coverage": {
+      "$ref": "coverage",
+      "name": "Test Coverage",
+      "command": "@collect coverage-lcov coverage/lcov.info"
     }
-  ]
+  }
 }
 ```
 
-### 5. Mix Built-in and Custom Metrics
+### 5. Mix Metric Templates and Custom Metrics
 
 ```json
 {
-  "metrics": [
-    { "$ref": "coverage" },
-    { "$ref": "loc" },
-    {
-      "id": "custom-score",
+  "metrics": {
+    "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
+    "loc": { "$ref": "loc" },
+    "custom-score": {
       "type": "numeric",
       "command": "./scripts/calculate-score.sh"
     }
-  ]
+  }
 }
 ```
 
@@ -111,22 +111,30 @@ The `@collect` prefix simplifies collector invocation by delegating to the exist
 ### LOC Options
 
 ```json
-{ "$ref": "loc", "command": "@collect loc ./src --language TypeScript" }
-{ "$ref": "loc", "command": "@collect loc . --exclude node_modules dist" }
+{
+  "metrics": {
+    "ts-loc": { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
+    "all-loc": { "$ref": "loc", "command": "@collect loc . --exclude node_modules dist" }
+  }
+}
 ```
 
 ### Glob Patterns for Size
 
 ```json
-{ "$ref": "bundle-size", "command": "@collect size ./dist/*.js" }
-{ "$ref": "bundle-size", "command": "@collect size .github/actions/*/dist/*.js" }
+{
+  "metrics": {
+    "js-bundle": { "$ref": "bundle-size", "command": "@collect size ./dist/*.js" },
+    "actions-bundle": { "$ref": "bundle-size", "command": "@collect size .github/actions/*/dist/*.js" }
+  }
+}
 ```
 
-## Available Metrics
+## Available Metric Templates
 
 ### Unit Types
 
-Each metric has a semantic unit type that determines how values are formatted:
+Each template has a semantic unit type that determines how values are formatted:
 
 | Unit Type | Display Example | Description |
 |-----------|-----------------|-------------|
@@ -136,18 +144,18 @@ Each metric has a semantic unit type that determines how values are formatted:
 | `duration` | `1m 30s` | Auto-scaling time values |
 | `decimal` | `3.14` | Generic floating-point |
 
-### Metrics with Default Commands
+### Templates with Default Commands
 
-These metrics have default `@collect` commands and can be used with minimal configuration:
+These templates have default `@collect` commands and can be used with minimal configuration:
 
 | ID | Default Command | Unit |
 |----|-----------------|------|
 | `loc` | `@collect loc .` | `integer` |
 | `bundle-size` | `@collect size ./dist` | `bytes` |
 
-### Metrics Requiring Custom Commands
+### Templates Requiring Custom Commands
 
-These metrics don't have default commands (too technology/project-specific):
+These templates don't have default commands (too technology/project-specific):
 
 | ID | Unit | Example Command |
 |----|------|-----------------|
@@ -163,10 +171,10 @@ These metrics don't have default commands (too technology/project-specific):
 
 ```json
 {
-  "metrics": [
-    { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
-    { "$ref": "loc" }
-  ]
+  "metrics": {
+    "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
+    "loc": { "$ref": "loc" }
+  }
 }
 ```
 
@@ -174,14 +182,13 @@ These metrics don't have default commands (too technology/project-specific):
 
 ```json
 {
-  "metrics": [
-    { 
-      "id": "build-time", 
+  "metrics": {
+    "build-time": {
       "$ref": "build-time",
       "command": "(time bun run build) 2>&1 | grep real | awk '{print $2}'"
     },
-    { "$ref": "bundle-size" }
-  ]
+    "bundle-size": { "$ref": "bundle-size" }
+  }
 }
 ```
 
@@ -189,24 +196,24 @@ These metrics don't have default commands (too technology/project-specific):
 
 ```json
 {
-  "metrics": [
-    { "id": "src-loc", "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
-    { "id": "test-loc", "$ref": "loc", "command": "@collect loc ./tests --language TypeScript" },
-    { "id": "docs-loc", "$ref": "loc", "command": "@collect loc ./docs --language Markdown" }
-  ]
+  "metrics": {
+    "src-loc": { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
+    "test-loc": { "$ref": "loc", "command": "@collect loc ./tests --language TypeScript" },
+    "docs-loc": { "$ref": "loc", "command": "@collect loc ./docs --language Markdown" }
+  }
 }
 ```
 
 ## With Quality Gates
 
-Combine built-in metrics with quality gate thresholds:
+Combine metric templates with quality gate thresholds:
 
 ```json
 {
-  "metrics": [
-    { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
-    { "$ref": "bundle-size" }
-  ],
+  "metrics": {
+    "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
+    "bundle-size": { "$ref": "bundle-size" }
+  },
   "qualityGate": {
     "mode": "soft",
     "enablePullRequestComment": true,
@@ -226,7 +233,7 @@ Combine built-in metrics with quality gate thresholds:
 }
 ```
 
-**Note**: Threshold `metric` references the resolved `id` (either explicit or inherited from template).
+**Note**: Threshold `metric` references the object key (metric id).
 
 ## Troubleshooting
 
@@ -237,31 +244,38 @@ Combine built-in metrics with quality gate thresholds:
 **Solution**: Check available metric IDs:
 - coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count
 
-### "Duplicate metric id" Error
+### "Invalid metric key" Error
 
-**Problem**: `Duplicate metric id "loc" found`
+**Problem**: `Invalid metric key "My-Metric"`
 
-**Cause**: Using the same `$ref` twice without explicit `id` values.
+**Cause**: Object keys must be lowercase with hyphens only.
 
-**Solution**: Provide unique `id` values:
+**Solution**: Use lowercase keys:
 
 ```json
-{ "id": "src-loc", "$ref": "loc", "command": "@collect loc ./src" }
-{ "id": "test-loc", "$ref": "loc", "command": "@collect loc ./tests" }
+{
+  "metrics": {
+    "my-metric": { "$ref": "loc" }
+  }
+}
 ```
 
 ### "Metric requires a command" Error
 
 **Problem**: `Metric "build-time" requires a command`
 
-**Cause**: Some built-in metrics don't have default commands.
+**Cause**: Some metric templates don't have default commands.
 
 **Solution**: Provide a command:
 
 ```json
-{ 
-  "$ref": "build-time", 
-  "command": "(time bun run build) 2>&1 | grep real | awk '{print $2}'"
+{
+  "metrics": {
+    "build-time": {
+      "$ref": "build-time",
+      "command": "(time bun run build) 2>&1 | grep real | awk '{print $2}'"
+    }
+  }
 }
 ```
 
@@ -277,15 +291,15 @@ Combine built-in metrics with quality gate thresholds:
 
 **Problem**: `Threshold references non-existent metric "loc"`
 
-**Cause**: You provided a custom `id` but threshold still references the template id.
+**Cause**: You used a different object key but threshold still references "loc".
 
-**Solution**: Match the threshold to your `id`:
+**Solution**: Match the threshold to your object key:
 
 ```json
 {
-  "metrics": [
-    { "id": "my-loc", "$ref": "loc" }
-  ],
+  "metrics": {
+    "my-loc": { "$ref": "loc" }
+  },
   "qualityGate": {
     "thresholds": [
       { "metric": "my-loc", "mode": "max", "target": 10000 }
@@ -303,11 +317,11 @@ Combine built-in metrics with quality gate thresholds:
 ## Tips
 
 **Do**:
-- Start with minimal config `{ "$ref": "loc" }` and add overrides as needed
+- Start with minimal config `"loc": { "$ref": "loc" }` and add overrides as needed
 - Use `@collect` commands for faster, more reliable collection
-- Provide explicit `id` when using the same `$ref` multiple times
+- Use different object keys when referencing the same template multiple times
 
 **Don't**:
-- Override `type` - it's inherited from the built-in metric
-- Use the same implicit `id` twice (provide explicit ids)
-- Forget to match threshold `metric` to your resolved `id`
+- Override `type` - it's inherited from the metric template
+- Use uppercase or spaces in object keys
+- Forget to match threshold `metric` to your object key

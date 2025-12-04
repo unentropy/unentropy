@@ -91,7 +91,7 @@ describe("Config Schema Validation", () => {
         ],
       };
 
-      expect(() => validateConfig(config)).toThrow("Duplicate metric name");
+      expect(() => validateConfig(config)).toThrow("Duplicate metric id");
     });
 
     it("should allow different metric names", () => {
@@ -1119,7 +1119,7 @@ describe("Config Schema Validation", () => {
 
   describe("Built-in Metric References ($ref)", () => {
     describe("Pure $ref Usage", () => {
-      it("should reject $ref without command field", () => {
+      it("should accept $ref without command field (validation happens at resolution)", () => {
         const config = {
           metrics: [
             {
@@ -1128,7 +1128,9 @@ describe("Config Schema Validation", () => {
           ],
         };
 
-        expect(() => validateConfig(config)).toThrow();
+        // Schema validation allows this - command requirement is checked during resolution
+        // Templates like 'loc' have default commands, 'coverage' does not
+        expect(() => validateConfig(config)).not.toThrow();
       });
 
       it("should accept valid $ref with command", () => {
@@ -1400,7 +1402,7 @@ describe("Config Schema Validation", () => {
     });
 
     describe("Metric with $ref Missing Required Fields", () => {
-      it("should reject metric with $ref but no command", () => {
+      it("should accept metric with $ref but no command (per v3.0.0 spec)", () => {
         const config = {
           metrics: [
             {
@@ -1409,27 +1411,21 @@ describe("Config Schema Validation", () => {
           ],
         };
 
-        expect(() => validateConfig(config)).toThrow();
+        // Per v3.0.0 spec: schema validation allows $ref without command
+        // Whether command is required depends on the template (checked during resolution)
+        expect(() => validateConfig(config)).not.toThrow();
       });
 
-      it("should provide clear error for $ref without command", () => {
+      it("should accept $ref for templates with default commands", () => {
         const config = {
           metrics: [
             {
-              $ref: "coverage",
+              $ref: "loc", // Has default command in template
             },
           ],
         };
 
-        try {
-          validateConfig(config);
-          expect(true).toBe(false);
-        } catch (error) {
-          expect(error).toBeInstanceOf(Error);
-          const message = (error as Error).message;
-          expect(message.toLowerCase()).toContain("command");
-          expect(message.toLowerCase()).toMatch(/required|must/);
-        }
+        expect(() => validateConfig(config)).not.toThrow();
       });
 
       it("should reject metric without $ref and without name", () => {
