@@ -9,21 +9,22 @@
 
 ### User Story 1 - Configure Storage Backend (Priority: P1)
 
-As a developer, I want to specify my storage backend preference via the `storage` key in my Unentropy configuration, so I can choose between the default `sqlite-artifact` persistence (GitHub Artifacts) or the `sqlite-s3` backend that powers the unified action.
+As a developer, I want to specify my storage backend preference via the `storage` key in my Unentropy configuration, so I can choose between `sqlite-local` (default), `sqlite-artifact` (GitHub Artifacts with automatic persistence), or `sqlite-s3` (S3-compatible storage).
 
-**Why this priority**: This is the foundation for the unified action. The `storage.type` selection determines how the entire workflow operates while keeping existing projects on GitHub Artifacts unless they explicitly opt into S3.
+**Why this priority**: This is the foundation for the unified action. The `storage.type` selection determines how the entire workflow operates, enabling automatic database persistence for both GitHub Artifacts and S3 backends.
 
-**Independent Test**: Can be fully tested by setting `storage.type` in `unentropy.json` (either `sqlite-artifact` or `sqlite-s3`), verifying the system validates the configuration correctly and provides clear error messages for invalid settings, delivering immediate value by validating the storage setup.
+**Independent Test**: Can be fully tested by setting `storage.type` in `unentropy.json` (either `sqlite-local`, `sqlite-artifact`, or `sqlite-s3`), verifying the system validates the configuration correctly and provides clear error messages for invalid settings, delivering immediate value by validating the storage setup.
 
-Only the `type` property exists on `storage` for now; future specs may extend it with backend-specific options. When `storage.type` is `sqlite-local`, the system uses local file storage. When `storage.type` is `sqlite-artifact`, the track-metrics action can still run metric collection and report generation but relies on separate workflow steps to download/upload the SQLite database artifact—automatic persistence is only available with `sqlite-s3`.
+The `storage` block supports backend-specific options. When `storage.type` is `sqlite-local`, the system uses local file storage. When `storage.type` is `sqlite-artifact`, the system automatically searches for and downloads the latest database artifact from previous workflow runs, then uploads the updated database after collection. When `storage.type` is `sqlite-s3`, the system downloads/uploads the database from/to S3-compatible storage.
 
 **Acceptance Scenarios**:
 
-1. **Given** I want to use S3-compatible storage, **When** I set `storage.type` to `sqlite-s3` in my `unentropy.json` and provide S3 credentials as GitHub Action parameters, **Then** the system uses S3 for database storage
-2. **Given** I want to use GitHub Artifacts storage, **When** I set `storage.type` to `sqlite-artifact`, **Then** the system uses GitHub Artifacts for database storage and runs the track-metrics action in its limited mode (collect + report only)
+1. **Given** I want to use S3-compatible storage, **When** I set `storage.type` to `sqlite-s3` in my `unentropy.json` and provide S3 credentials as GitHub Action parameters, **Then** the system uses S3 for database storage with automatic download/upload
+2. **Given** I want to use GitHub Artifacts storage, **When** I set `storage.type` to `sqlite-artifact`, **Then** the system automatically finds and downloads the latest database artifact, runs collection, and uploads the updated database as a new artifact
 3. **Given** I want to use local file storage, **When** I set `storage.type` to `sqlite-local` (or omit the `storage` configuration entirely), **Then** the system uses local file storage for the database
 4. **Given** I have configured `storage.type`, **When** the value is invalid, **Then** the system provides clear error messages and defaults to `sqlite-local` with a warning
-4. **Given** I need to keep S3 credentials secure, **When** I provide credentials as GitHub Action parameters from GitHub Secrets, **Then** the system accepts credentials without exposing them in logs or configuration files
+5. **Given** I need to keep credentials secure, **When** I provide S3 credentials as GitHub Action parameters from GitHub Secrets, **Then** the system accepts credentials without exposing them in logs or configuration files
+6. **Given** I am using `sqlite-artifact` storage, **When** I run the track-metrics action, **Then** the system auto-detects `GITHUB_TOKEN` and `GITHUB_REPOSITORY` from the environment for artifact operations
 
 ---
 
@@ -33,14 +34,16 @@ As a developer, I want to run a single GitHub Action that handles the entire met
 
 **Why this priority**: This is the core value proposition - simplifying the workflow to a single action. It depends on storage configuration being available but delivers the main user benefit of convenience.
 
-**Independent Test**: Can be fully tested by running the unified action in a workflow with S3 configuration, verifying it performs all steps in sequence and produces a report, delivering complete end-to-end value in one action invocation.
+**Independent Test**: Can be fully tested by running the unified action in a workflow with S3 or artifact configuration, verifying it performs all steps in sequence and produces a report, delivering complete end-to-end value in one action invocation.
 
 **Acceptance Scenarios**:
 
 1. **Given** I have S3 storage configured, **When** I run the unified action in my CI pipeline, **Then** the system downloads the existing database from S3 (or creates new if none exists), collects current metrics, uploads the updated database back to S3, and generates an HTML report
-2. **Given** I'm running metrics collection for the first time (no existing database), **When** the unified action executes, **Then** it creates a new database, collects initial metrics, uploads to S3, and generates a report with the first data point
-3. **Given** my metric collection takes time, **When** the unified action runs, **Then** each phase (download, collect, upload, report) completes successfully and I can see progress in the workflow logs
-4. **Given** I run the action on multiple commits, **When** viewing the generated reports over time, **Then** each report shows growing historical data reflecting all previous collections
+2. **Given** I have artifact storage configured, **When** I run the unified action in my CI pipeline, **Then** the system searches for the latest database artifact from previous successful runs, downloads it (or creates new if none exists), collects current metrics, uploads the updated database as a new artifact, and generates an HTML report
+3. **Given** I'm running metrics collection for the first time (no existing database), **When** the unified action executes with S3 or artifact storage, **Then** it creates a new database, collects initial metrics, uploads to storage, and generates a report with the first data point
+4. **Given** my metric collection takes time, **When** the unified action runs, **Then** each phase (download, collect, upload, report) completes successfully and I can see progress in the workflow logs
+5. **Given** I run the action on multiple commits, **When** viewing the generated reports over time, **Then** each report shows growing historical data reflecting all previous collections
+6. **Given** I am using artifact storage, **When** the unified action searches for previous artifacts, **Then** it finds artifacts from successful workflow runs on the specified branch (defaulting to current branch)
 
 ---
 
@@ -74,6 +77,11 @@ As a developer, I want the unified action to handle S3 storage failures graceful
 - What happens when network bandwidth is limited and database transfer times out?
 - What happens when using S3-compatible storage with non-standard authentication mechanisms?
 - What happens when the S3 bucket has versioning enabled and multiple database versions exist?
+- What happens when artifact storage finds multiple artifacts from different workflow runs?
+- What happens when artifact retention policy has expired old artifacts?
+- What happens when GitHub API rate limiting prevents artifact search or download?
+- What happens when `GITHUB_TOKEN` lacks permissions to access artifacts?
+- What happens when running in a forked repository with different artifact access rules?
 
 ## Requirements *(mandatory)*
 
@@ -126,17 +134,30 @@ As a developer, I want the unified action to handle S3 storage failures graceful
 #### Backward Compatibility
 
 - **FR-031**: System MUST maintain support for local file storage whenever `storage.type` is `sqlite-local` or the `storage` block is not specified
-- **FR-032**: System MUST maintain support for GitHub Artifacts storage whenever `storage.type` is `sqlite-artifact`, even if the track-metrics action runs in a limited mode (collect + report only, artifact transfers handled externally)
-- **FR-033**: System MUST automatically detect which storage backend to use based on storage type in unentropy.json and adjust workflow capabilities accordingly (full workflow for `sqlite-s3`, limited workflow for `sqlite-artifact`, local storage for `sqlite-local`)
-- **FR-034**: System MUST provide migration guidance for users transitioning from local or GitHub Artifacts storage to full S3 storage support
+- **FR-032**: System MUST provide full workflow support for GitHub Artifacts storage whenever `storage.type` is `sqlite-artifact`, including automatic search, download, and upload of database artifacts
+- **FR-033**: System MUST automatically detect which storage backend to use based on storage type in unentropy.json and provide full workflow capabilities for all remote storage types (`sqlite-s3` and `sqlite-artifact`)
+- **FR-034**: System MUST provide migration guidance for users transitioning between storage backends
+
+#### GitHub Artifacts Storage
+
+- **FR-040**: System MUST search for the most recent database artifact from successful workflow runs on the specified branch when using `sqlite-artifact` storage
+- **FR-041**: System MUST download and extract the database artifact to a temporary location before opening the database
+- **FR-042**: System MUST upload the updated database as a new artifact after metric collection completes
+- **FR-043**: System MUST handle first-run scenario (no existing artifact) by creating a new database
+- **FR-044**: System MUST auto-detect `GITHUB_TOKEN` from the environment for artifact operations
+- **FR-045**: System MUST auto-detect `GITHUB_REPOSITORY` from the environment for artifact operations
+- **FR-046**: System MUST support configurable artifact name (default: `unentropy-metrics`)
+- **FR-047**: System MUST support configurable branch filter for artifact search (default: current branch from `GITHUB_REF_NAME`)
+- **FR-048**: System MUST verify the downloaded artifact contains a valid SQLite database before proceeding
 
 ### Key Entities
 
 - **Storage Type Configuration**: Represents the `storage` block in `unentropy.json`, with a `type` property with values `sqlite-local`, `sqlite-artifact`, or `sqlite-s3` (as defined in config schema contract)
 - **Storage Provider**: Represents the abstraction layer between workflow logic and storage implementation (uses StorageProvider interface from spec 001)
-- **Action Parameters**: Represents GitHub Action input parameters including S3 credentials (access key, secret key, endpoint, bucket, region) when S3 storage is used
+- **Action Parameters**: Represents GitHub Action input parameters including S3 credentials (access key, secret key, endpoint, bucket, region) when S3 storage is used, or artifact configuration (artifact name, branch filter) when artifact storage is used
 - **Database File**: Represents the SQLite database stored in local filesystem, GitHub Artifacts, or S3, including file path, size, last modified timestamp, and storage-specific metadata
 - **Workflow Phase**: Represents a distinct step in the unified action (download, collect, upload, report), including status, duration, and error information
+- **Artifact Metadata**: Represents information about a GitHub Actions artifact including artifact ID, name, workflow run ID, creation timestamp, and expiration status
 
 ## Success Criteria *(mandatory)*
 
@@ -171,12 +192,15 @@ As a developer, I want the unified action to handle S3 storage failures graceful
 ## Dependencies *(mandatory)*
 
 - GitHub Actions workflow execution environment
-- S3-compatible storage provider account and bucket
-- S3 client support via Buns built-in `S3Client` (no extra dependency)
-- Existing Unentropy metric collection and report generation functionality (from specs 001 and 002)
+- S3-compatible storage provider account and bucket (for `sqlite-s3` storage)
+- S3 client support via Bun's built-in `S3Client` (no extra dependency)
+- GitHub REST API for artifact operations (for `sqlite-artifact` storage)
+- `@actions/github` package for GitHub API client
+- Existing Unentropy metric collection and report generation functionality (from spec 001)
 - Storage Provider interface and implementations from spec 001
 - SQLite support via bun:sqlite for database operations
-- GitHub Secrets for secure credential storage
+- GitHub Secrets for secure credential storage (S3 credentials)
+- GitHub Token for artifact access (auto-detected from environment)
 - Bun runtime for TypeScript execution in GitHub Actions
 
 ## Scope Boundaries *(mandatory)*
@@ -185,16 +209,20 @@ As a developer, I want the unified action to handle S3 storage failures graceful
 
 - Storage type selection (`sqlite-local`/`sqlite-artifact`/`sqlite-s3`) in `unentropy.json` using the StorageProvider interface from spec 001
 - S3 credentials passed as GitHub Action input parameters (not in configuration file)
-- Unified GitHub Action that orchestrates complete workflow when using S3 storage
-- Database download from S3 before metric collection (sqlite-s3 only)
-- Database upload to S3 after metric collection (sqlite-s3 only)
+- Unified GitHub Action that orchestrates complete workflow for both S3 and artifact storage
+- Database download from S3 before metric collection (sqlite-s3)
+- Database upload to S3 after metric collection (sqlite-s3)
+- Automatic artifact search and download before metric collection (sqlite-artifact)
+- Automatic artifact upload after metric collection (sqlite-artifact)
+- Auto-detection of `GITHUB_TOKEN` and `GITHUB_REPOSITORY` for artifact operations
+- Configurable artifact name and branch filter for artifact storage
 - Report generation and output as workflow artifact
 - Error handling for S3 authentication and connectivity issues
+- Error handling for GitHub API and artifact access issues
 - Retry logic for transient failures
 - Support for multiple S3-compatible providers (AWS S3, MinIO, etc.)
 - Backward compatibility with local file storage (sqlite-local)
-- Backward compatibility with GitHub Artifacts storage (limited workflow: collection + reporting, manual artifact transfers)
-- First-run scenario handling (no existing database)
+- First-run scenario handling (no existing database/artifact)
 - Basic concurrency handling (advisory locking or warnings)
 - Configuration validation and error reporting
 
@@ -212,3 +240,7 @@ As a developer, I want the unified action to handle S3 storage failures graceful
 - Automatic credential rotation or IAM role management
 - Bandwidth throttling or transfer rate limiting
 - Custom S3 request signing mechanisms beyond standard SDK support
+- Cross-repository artifact access
+- Artifact cleanup or retention policy management
+- Aggregating data from multiple database artifacts
+- Performance optimization for repositories with thousands of workflow runs

@@ -1,7 +1,8 @@
-# GitHub Action Interface: Track-Metrics S3-Compatible Storage Action
+# GitHub Action Interface: Track-Metrics Unified Storage Action
 
 **Date**: Thu Nov 13 2025  
-**Purpose**: Define the GitHub Action interface for track-metrics workflow
+**Updated**: Thu Dec 04 2025  
+**Purpose**: Define the GitHub Action interface for track-metrics workflow with support for S3 and GitHub Artifacts storage
 
 ## Action Definition
 
@@ -9,7 +10,7 @@
 
 ```yaml
 name: 'Unentropy Track Metrics'
-description: 'Complete metrics workflow with S3-compatible storage support'
+description: 'Complete metrics workflow with S3 and GitHub Artifacts storage support'
 author: 'Unentropy'
 branding:
   icon: 'bar-chart'
@@ -23,7 +24,7 @@ inputs:
   # Storage Configuration
   storage-type:
     description: 'Storage backend type (sqlite-local, sqlite-artifact, or sqlite-s3)'
-    required: true
+    required: false
     default: 'sqlite-local'
   
   # S3 Configuration (overrides unentropy.json, required for credentials)
@@ -43,6 +44,16 @@ inputs:
     description: 'S3 secret access key (from GitHub Secrets, required for S3)'
     required: false
   
+  # Artifact Configuration (for sqlite-artifact storage)
+  artifact-name:
+    description: 'Name of the database artifact to search for and upload'
+    required: false
+    default: 'unentropy-metrics'
+  artifact-branch-filter:
+    description: 'Branch to search for previous artifacts (default: current branch)'
+    required: false
+    default: '${{ github.ref_name }}'
+  
   # Configuration File
   config-file:
     description: 'Path to unentropy.json configuration file'
@@ -59,7 +70,7 @@ inputs:
   report-name:
     description: 'Generated report file name'
     required: false
-    default: 'unentropy-report.html'
+    default: 'index.html'
 ```
 
 ### Output Parameters
@@ -89,6 +100,15 @@ outputs:
   duration:
     description: 'Total workflow duration in milliseconds'
     value: ${{ steps.track-metrics.outputs.duration }}
+  
+  # Artifact-specific outputs (only set when storage-type is sqlite-artifact)
+  source-run-id:
+    description: 'Workflow run ID where the previous database artifact was found (artifact storage only)'
+    value: ${{ steps.track-metrics.outputs.source-run-id }}
+  
+  artifact-id:
+    description: 'ID of the uploaded database artifact (artifact storage only)'
+    value: ${{ steps.track-metrics.outputs.artifact-id }}
 ```
 
 ## Configuration Precedence
@@ -160,14 +180,55 @@ on:
 jobs:
   metrics:
     runs-on: ubuntu-latest
+    # Required permissions for artifact storage
+    permissions:
+      actions: read
+      contents: read
     steps:
       - uses: actions/checkout@v4
       
       - name: Collect Metrics
-      uses: ./actions/track-metrics
-      with:
-        storage-type: 'sqlite-artifact'
-        config-file: 'unentropy.json'
+        uses: ./.github/actions/track-metrics
+        with:
+          storage-type: 'sqlite-artifact'
+      
+      - name: Upload Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-report
+          path: index.html
+```
+
+### GitHub Artifacts with Custom Settings
+
+```yaml
+name: Metrics Collection
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Collect Metrics
+        uses: ./.github/actions/track-metrics
+        with:
+          storage-type: 'sqlite-artifact'
+          artifact-name: 'my-project-metrics'
+          artifact-branch-filter: 'main'
+          report-name: 'metrics-report.html'
+      
+      - name: Upload Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-report
+          path: metrics-report.html
 ```
 
 ### S3 Storage Usage (Hybrid Configuration)
@@ -185,15 +246,21 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Collect Metrics
-      uses: ./actions/track-metrics
-      with:
-        storage-type: 'sqlite-s3'
-           # S3 credentials from secrets (override config file)
+        uses: ./.github/actions/track-metrics
+        with:
+          storage-type: 'sqlite-s3'
+          # S3 credentials from secrets (override config file)
           s3-access-key-id: ${{ secrets.S3_ACCESS_KEY_ID }}
           s3-secret-access-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
           # Optional: Override specific S3 settings from config file
           s3-bucket: ${{ secrets.S3_BUCKET }}
           # endpoint, region come from unentropy.json unless overridden here
+      
+      - name: Upload Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-report
+          path: index.html
 ```
 
 ### Advanced Configuration (Full Override)
@@ -211,9 +278,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-        - name: Collect Metrics
-         uses: ./actions/track-metrics
-         id: metrics
+      - name: Collect Metrics
+        uses: ./.github/actions/track-metrics
+        id: metrics
         with:
           storage-type: 'sqlite-s3'
           # All S3 settings from secrets (complete override)
@@ -224,17 +291,66 @@ jobs:
           s3-secret-access-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
           # Runtime overrides
           database-key: 'production/unentropy.db'
-          report-name: 'metrics-report-${{ github.sha }}.html'
-          timeout: '600'
-          retry-attempts: '5'
-          verbose: 'true'
+          report-name: 'metrics-report.html'
       
       - name: Upload Report
         if: steps.metrics.outputs.success == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: metrics-report
-          path: ${{ steps.metrics.outputs.report-url }}
+          path: metrics-report.html
+```
+
+### Dual Storage Testing (Matrix Strategy)
+
+Run both S3 and artifact storage in parallel for testing:
+
+```yaml
+name: Metrics (Dual Storage Test)
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        storage:
+          - type: sqlite-s3
+            name: s3
+            report: index.html
+            db-artifact: ''
+          - type: sqlite-artifact
+            name: artifact
+            report: report-artifact.html
+            db-artifact: unentropy-metrics-test
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Track Metrics (${{ matrix.storage.name }})
+        uses: ./.github/actions/track-metrics
+        with:
+          storage-type: ${{ matrix.storage.type }}
+          report-name: ${{ matrix.storage.report }}
+          artifact-name: ${{ matrix.storage.db-artifact }}
+          s3-access-key-id: ${{ matrix.storage.type == 'sqlite-s3' && secrets.S3_ACCESS_KEY_ID || '' }}
+          s3-secret-access-key: ${{ matrix.storage.type == 'sqlite-s3' && secrets.S3_SECRET_ACCESS_KEY || '' }}
+          s3-bucket: ${{ matrix.storage.type == 'sqlite-s3' && secrets.S3_BUCKET || '' }}
+          s3-endpoint: ${{ matrix.storage.type == 'sqlite-s3' && secrets.S3_ENDPOINT || '' }}
+          s3-region: ${{ matrix.storage.type == 'sqlite-s3' && secrets.S3_REGION || '' }}
+      
+      - name: Upload Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-report-${{ matrix.storage.name }}
+          path: ${{ matrix.storage.report }}
 ```
 
 ### Environment-Based Configuration
@@ -243,21 +359,32 @@ jobs:
 name: Environment-Based Metrics
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'feature/**' ]
 
 jobs:
   metrics:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     steps:
       - uses: actions/checkout@v4
       
       - name: Collect Metrics
-        uses: ./actions/track-metrics
+        uses: ./.github/actions/track-metrics
         with:
-          # Only provide S3 credentials when using S3
+          # Use S3 on main, artifacts on feature branches
+          storage-type: ${{ github.ref == 'refs/heads/main' && 'sqlite-s3' || 'sqlite-artifact' }}
+          # S3 credentials only needed on main
           s3-access-key-id: ${{ github.ref == 'refs/heads/main' && secrets.S3_ACCESS_KEY_ID || '' }}
           s3-secret-access-key: ${{ github.ref == 'refs/heads/main' && secrets.S3_SECRET_ACCESS_KEY || '' }}
-          # Other settings come from unentropy.json
+          s3-bucket: ${{ github.ref == 'refs/heads/main' && secrets.S3_BUCKET || '' }}
+      
+      - name: Upload Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-report
+          path: index.html
 ```
 
 ## Security Considerations
@@ -268,6 +395,7 @@ jobs:
 - Credentials are never logged or exposed in error messages
 - Input validation prevents credential injection
 - Temporary credential storage in memory only
+- `GITHUB_TOKEN` for artifact operations is auto-detected from the environment (not passed as input)
 
 ### Data Protection
 
@@ -280,7 +408,8 @@ jobs:
 
 - Action respects GitHub repository permissions
 - S3 access is limited to specified bucket and operations
-- No cross-repository data access
+- Artifact access limited to same repository (no cross-repository access)
+- Artifact operations require `actions: read` permission (for download) 
 - Audit logging for storage operations
 
 ## Performance Considerations
@@ -308,19 +437,45 @@ jobs:
 
 ## Migration Support
 
-### Automatic Migration
+### From Local to Artifact Storage
 
-When switching from GitHub Artifacts to S3 storage:
+When switching from local to artifact storage:
 
-1. Action detects S3 configuration
-2. Downloads existing database from Artifacts
-3. Uploads database to S3 storage
-4. Continues workflow with S3 backend
-5. Logs migration completion
+1. Set `storage-type: 'sqlite-artifact'` in action inputs
+2. First run creates new database (no previous artifact exists)
+3. Subsequent runs find and download the latest artifact
+4. Database history starts fresh with artifact storage
+
+### From Artifact to S3 Storage
+
+When switching from artifact to S3 storage:
+
+1. Set `storage-type: 'sqlite-s3'` and provide S3 credentials
+2. First run creates new database in S3 (no automatic migration from artifacts)
+3. To preserve history: manually download last artifact and upload to S3 before switching
+4. Subsequent runs use S3 storage exclusively
 
 ### Migration Validation
 
 - Verify database integrity after migration
-- Confirm S3 upload success
-- Validate S3 download capability
+- Confirm upload success (S3 or artifact)
+- Validate download capability
 - Report migration status in outputs
+
+## Permissions
+
+### Required Permissions for Artifact Storage
+
+```yaml
+permissions:
+  actions: read    # Required: List and download artifacts
+  contents: read   # Required: Checkout repository
+```
+
+### Required Permissions for S3 Storage
+
+```yaml
+permissions:
+  contents: read   # Required: Checkout repository
+  # S3 access controlled via credentials, not GitHub permissions
+```
