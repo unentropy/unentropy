@@ -3,7 +3,7 @@ import { loadConfig } from "../config/loader";
 import { Storage } from "../storage/storage";
 import { collectMetrics } from "../collector/collector";
 import { extractBuildContext } from "../collector/context";
-import { StorageConfig } from "../config/schema";
+
 import type { StorageProviderConfig } from "../storage/providers/interface";
 
 interface ActionInputs {
@@ -11,12 +11,17 @@ interface ActionInputs {
   configFile: string;
   databaseKey: string;
   reportDir: string;
+  // S3 configuration
   s3Endpoint?: string;
   s3Bucket?: string;
   s3Region?: string;
   s3AccessKeyId?: string;
   s3SecretAccessKey?: string;
   s3SessionToken?: string;
+  // Artifact configuration
+  artifactName?: string;
+  artifactBranchFilter?: string;
+  // General options
   timeout?: number;
   retryAttempts?: number;
   verbose?: boolean;
@@ -28,7 +33,11 @@ interface ActionOutputs {
   databaseLocation: string;
   databaseSize?: number;
   metricsCollected?: number;
+  totalBuilds?: number;
   duration: number;
+  // Artifact-specific outputs
+  sourceRunId?: number;
+  // Error outputs
   errorCode?: string;
   errorMessage?: string;
 }
@@ -46,6 +55,11 @@ function parseInputs(): ActionInputs {
   const s3AccessKeyId = core.getInput("s3-access-key-id");
   const s3SecretAccessKey = core.getInput("s3-secret-access-key");
   const s3SessionToken = core.getInput("s3-session-token");
+
+  // Artifact configuration (for sqlite-artifact storage type)
+  const artifactName = core.getInput("artifact-name") || "unentropy-metrics";
+  const artifactBranchFilter =
+    core.getInput("artifact-branch-filter") || process.env.GITHUB_REF_NAME || "main";
 
   // Optional parameters
   const timeoutInput = core.getInput("timeout");
@@ -82,15 +96,20 @@ function parseInputs(): ActionInputs {
     s3AccessKeyId,
     s3SecretAccessKey,
     s3SessionToken,
+    artifactName,
+    artifactBranchFilter,
     timeout,
     retryAttempts,
     verbose,
   };
 }
 
-function createStorageConfig(inputs: ActionInputs, config: StorageConfig): StorageProviderConfig {
+function createStorageConfig(inputs: ActionInputs): StorageProviderConfig {
+  // Use inputs.storageType (from action input) - it determines which provider to use
+  const storageType = inputs.storageType;
+
   // For sqlite-s3, merge S3 configuration from inputs
-  if (config.type === "sqlite-s3") {
+  if (storageType === "sqlite-s3") {
     return {
       type: "sqlite-s3",
       endpoint: inputs.s3Endpoint,
@@ -103,16 +122,19 @@ function createStorageConfig(inputs: ActionInputs, config: StorageConfig): Stora
   }
 
   // For sqlite-local, use database key as path
-  if (config.type === "sqlite-local") {
+  if (storageType === "sqlite-local") {
     return {
       type: "sqlite-local",
       path: inputs.databaseKey,
     };
   }
 
-  // For sqlite-artifact (not yet implemented)
+  // For sqlite-artifact, use artifact configuration
   return {
     type: "sqlite-artifact",
+    artifactName: inputs.artifactName,
+    branchFilter: inputs.artifactBranchFilter,
+    databasePath: inputs.databaseKey,
   };
 }
 
@@ -135,7 +157,7 @@ export async function runTrackMetricsAction(): Promise<void> {
 
   // Phase 1: Initialize storage
   core.info("Initializing storage provider...");
-  const storageConfig = createStorageConfig(inputs, config.storage);
+  const storageConfig = createStorageConfig(inputs);
   const storage = new Storage(storageConfig);
   await storage.ready();
   core.info("Storage provider initialized successfully");
@@ -181,10 +203,33 @@ export async function runTrackMetricsAction(): Promise<void> {
     // Continue anyway - report generation failure shouldn't fail the whole action
   }
 
-  // Phase 4: Persist storage (upload for S3) - only on main branch, not PRs
-  // This closes the database for S3 providers, so must happen after report generation
-  core.info("Uploading database to S3...");
+  // Get total builds count before persisting (while DB is still open)
+  const totalBuilds = repository.getAllBuildContexts().length;
+
+  // Phase 4: Persist storage (upload for S3/artifact)
+  // This closes the database for S3/artifact providers, so must happen after report generation
+  core.info("Persisting database to storage...");
   await storage.persist();
+
+  // Get database size after persist
+  let databaseSize: number | undefined;
+  try {
+    const dbFile = Bun.file(inputs.databaseKey);
+    if (await dbFile.exists()) {
+      databaseSize = dbFile.size;
+    }
+  } catch {
+    // Ignore errors getting file size
+  }
+
+  // Get source run ID for artifact storage
+  let sourceRunId: number | undefined;
+  if (inputs.storageType === "sqlite-artifact") {
+    const provider = storage.getProvider();
+    if ("getSourceRunId" in provider && typeof provider.getSourceRunId === "function") {
+      sourceRunId = provider.getSourceRunId() as number | undefined;
+    }
+  }
 
   const duration = Date.now() - startTime;
 
@@ -193,7 +238,10 @@ export async function runTrackMetricsAction(): Promise<void> {
     success: true,
     storageType: inputs.storageType,
     databaseLocation: `storage://${inputs.storageType}/${inputs.databaseKey}`,
+    databaseSize,
     metricsCollected: collectionResult.successful,
+    totalBuilds,
+    sourceRunId,
     duration,
   };
 
@@ -205,6 +253,12 @@ export async function runTrackMetricsAction(): Promise<void> {
   }
   if (outputs.metricsCollected !== undefined) {
     core.setOutput("metrics-collected", outputs.metricsCollected.toString());
+  }
+  if (outputs.totalBuilds !== undefined) {
+    core.setOutput("total-builds", outputs.totalBuilds.toString());
+  }
+  if (outputs.sourceRunId !== undefined) {
+    core.setOutput("source-run-id", outputs.sourceRunId.toString());
   }
   core.setOutput("duration", outputs.duration.toString());
 

@@ -13,8 +13,20 @@ permissions:
 
 jobs:
   metrics:
-    name: Collect Metrics
+    name: Collect Metrics (${{ matrix.storage.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        storage:
+          - type: sqlite-s3
+            name: S3
+            report-dir: pages
+            artifact-name: ""
+          - type: sqlite-artifact
+            name: Artifact
+            report-dir: artifact-report
+            artifact-name: unentropy-metrics-artifact
 
     steps:
       - name: Checkout repository
@@ -32,7 +44,10 @@ jobs:
         run: bun install
       - name: Build GitHub Actions
         run: bun run build:actions
+
+      # S3-specific setup (only for S3 storage)
       - name: Start Minio container
+        if: matrix.storage.type == 'sqlite-s3'
         run: |
           docker run -d \
           --name minio \
@@ -43,35 +58,83 @@ jobs:
           minio/minio server /data --console-address ":9001" \
           && while ! docker exec minio mc ready local; do sleep 1; done
       - name: Create bucket for tests
+        if: matrix.storage.type == 'sqlite-s3'
         run: docker exec minio mc mb data/unentropy-test
 
       - name: Run tests to generate coverage report
         run: bun run test --coverage --coverage-reporter=lcov
-      - name: Track metrics
-        id: track-metrics
+
+      # Track metrics with S3 storage
+      - name: Track metrics (S3)
+        if: matrix.storage.type == 'sqlite-s3'
+        id: track-metrics-s3
         uses: ./.github/actions/track-metrics
         with:
+          storage-type: sqlite-s3
           s3-endpoint: ${{ secrets.AWS_ENDPOINT_URL }}
           s3-bucket: ${{ secrets.AWS_BUCKET_NAME }}
           s3-region: ${{ secrets.AWS_REGION }}
           s3-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           s3-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           database-key: unentropy-metrics.db
-          report-dir: pages
+          report-dir: ${{ matrix.storage.report-dir }}
+
+      # Track metrics with Artifact storage
+      - name: Track metrics (Artifact)
+        if: matrix.storage.type == 'sqlite-artifact'
+        id: track-metrics-artifact
+        uses: ./.github/actions/track-metrics
+        with:
+          storage-type: sqlite-artifact
+          artifact-name: ${{ matrix.storage.artifact-name }}
+          artifact-branch-filter: ${{ github.ref_name }}
+          database-key: unentropy-metrics.db
+          report-dir: ${{ matrix.storage.report-dir }}
+
+      # Upload S3 report to Pages (only for S3 storage)
       - name: Upload Pages artifact
+        if: matrix.storage.type == 'sqlite-s3'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: pages/
+          path: ${{ matrix.storage.report-dir }}/
+
+      # Upload Artifact report as regular artifact
+      - name: Upload Report Artifact
+        if: matrix.storage.type == 'sqlite-artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-report-artifact
+          path: ${{ matrix.storage.report-dir }}/
+
+      # Upload database artifact (for artifact storage)
+      - name: Upload Database Artifact
+        if: matrix.storage.type == 'sqlite-artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.storage.artifact-name }}
+          path: unentropy-metrics.db
+
       - name: Report summary
         run: |
-          echo "## 📊 Metrics Collection Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Metrics Collection Summary (${{ matrix.storage.name }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Success**: ${{ steps.track-metrics.outputs.success }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Storage Type**: ${{ steps.track-metrics.outputs.storage-type }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Database Location**: ${{ steps.track-metrics.outputs.database-location }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Database Size**: ${{ steps.track-metrics.outputs.database-size }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Metrics Collected**: ${{ steps.track-metrics.outputs.metrics-collected }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Duration**: ${{ steps.track-metrics.outputs.duration }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ matrix.storage.type }}" == "sqlite-s3" ]; then
+            echo "- **Success**: ${{ steps.track-metrics-s3.outputs.success }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Storage Type**: ${{ steps.track-metrics-s3.outputs.storage-type }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Database Location**: ${{ steps.track-metrics-s3.outputs.database-location }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Database Size**: ${{ steps.track-metrics-s3.outputs.database-size }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Metrics Collected**: ${{ steps.track-metrics-s3.outputs.metrics-collected }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Duration**: ${{ steps.track-metrics-s3.outputs.duration }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Success**: ${{ steps.track-metrics-artifact.outputs.success }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Storage Type**: ${{ steps.track-metrics-artifact.outputs.storage-type }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Database Location**: ${{ steps.track-metrics-artifact.outputs.database-location }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Database Size**: ${{ steps.track-metrics-artifact.outputs.database-size }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Metrics Collected**: ${{ steps.track-metrics-artifact.outputs.metrics-collected }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Duration**: ${{ steps.track-metrics-artifact.outputs.duration }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Source Run ID**: ${{ steps.track-metrics-artifact.outputs.source-run-id }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Artifact ID**: ${{ steps.track-metrics-artifact.outputs.artifact-id }}" >> $GITHUB_STEP_SUMMARY
+          fi
 
   deploy:
     name: Deploy to GitHub Pages

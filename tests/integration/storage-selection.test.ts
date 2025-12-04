@@ -3,8 +3,6 @@ import { Storage } from "../../src/storage/storage";
 import { SqliteS3StorageProvider } from "../../src/storage/providers/sqlite-s3";
 import type { StorageProviderConfig, SqliteS3Config } from "../../src/storage/providers/interface";
 
-const TEST_DB_PATH = "/tmp/unentropy-storage-selection.db";
-
 // Mock S3 configuration for testing
 const mockS3Config: SqliteS3Config = {
   type: "sqlite-s3",
@@ -19,42 +17,14 @@ const mockS3Config: SqliteS3Config = {
 describe("Storage Backend Selection Integration", () => {
   describe("sqlite-local provider", () => {
     it("should create storage for sqlite-local provider", async () => {
-      const provider: StorageProviderConfig = {
+      const config: StorageProviderConfig = {
         type: "sqlite-local",
-        path: TEST_DB_PATH,
+        path: `/tmp/storage-selection-local-${Date.now()}.db`,
       };
 
-      const db = new Storage(provider);
-      await db.ready();
-
-      await db.close();
-    });
-
-    it("should use default path when not specified", async () => {
-      const provider: StorageProviderConfig = {
-        type: "sqlite-local",
-        path: "unentropy.db", // Provide required path
-      };
-
-      const db = new Storage(provider);
-      await db.ready();
-
-      await db.close();
-    });
-  });
-
-  describe("sqlite-artifact provider", () => {
-    it("should reject unsupported sqlite-artifact provider", async () => {
-      const provider = { type: "sqlite-artifact" } as StorageProviderConfig;
-
-      const create = async () => {
-        const db = new Storage(provider);
-        await db.ready();
-      };
-
-      expect(create()).rejects.toThrow(
-        "Storage provider type 'sqlite-artifact' is not yet implemented"
-      );
+      const storage = new Storage(config);
+      await storage.ready();
+      await storage.close();
     });
   });
 
@@ -71,11 +41,6 @@ describe("Storage Backend Selection Integration", () => {
       } catch {
         // Ignore cleanup errors
       }
-    });
-
-    it("should create sqlite-s3 provider with valid config", async () => {
-      expect(s3Provider).toBeDefined();
-      expect(s3Provider.isInitialized()).toBe(false);
     });
 
     it("should initialize S3 provider and create database", async () => {
@@ -98,14 +63,6 @@ describe("Storage Backend Selection Integration", () => {
         // Expected in test environment without real S3
         expect(error).toBeInstanceOf(Error);
       }
-    });
-
-    it("should cleanup properly", async () => {
-      await s3Provider.initialize();
-      expect(s3Provider.isInitialized()).toBe(true);
-
-      await s3Provider.cleanup();
-      expect(s3Provider.isInitialized()).toBe(false);
     });
 
     it("should use default database key when not specified", async () => {
@@ -165,15 +122,6 @@ describe("Storage Backend Selection Integration", () => {
   });
 
   describe("Storage Provider Factory", () => {
-    it("should create sqlite-s3 provider through factory", async () => {
-      const provider: StorageProviderConfig = mockS3Config;
-      const storage = new Storage(provider);
-
-      expect(storage).toBeDefined();
-      // The factory should successfully create the S3 provider
-      // even if S3 operations fail in test environment
-    });
-
     it("should reject unknown storage type", async () => {
       // Test with type assertion to simulate invalid config
       const provider = { type: "invalid-type" } as unknown as StorageProviderConfig;

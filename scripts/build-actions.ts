@@ -37,12 +37,6 @@ const main = async () => {
     );
 
     await buildAction(
-      "./src/actions/find-database.ts",
-      "./.github/actions/find-database/dist",
-      "find-database.js"
-    );
-
-    await buildAction(
       "./src/actions/track-metrics.ts",
       "./.github/actions/track-metrics/dist",
       "track-metrics.js"

@@ -105,22 +105,22 @@ description: "Task list for unified storage action implementation (S3 and GitHub
 
 ### Tests for Artifact Storage
 
-- [ ] T050 [P] [US2] Add unit tests for `SqliteArtifactStorageProvider` in `tests/unit/storage/providers/sqlite-artifact.test.ts`
-- [ ] T051 [P] [US2] Add integration tests for artifact storage workflow in `tests/integration/artifact-storage.test.ts`
+- [x] T050 [P] [US2] Add unit tests for `SqliteArtifactStorageProvider` in `tests/unit/storage/providers/sqlite-artifact.test.ts`
+- [x] T051 [P] [US2] Add integration tests for artifact storage workflow in `tests/integration/artifact-storage.test.ts`
 
 ### Implementation for Artifact Storage
 
-- [ ] T052 [US2] Create `SqliteArtifactStorageProvider` class implementing `StorageProvider` interface in `src/storage/providers/sqlite-artifact.ts`
-- [ ] T053 [US2] Migrate artifact search and download logic from `src/actions/find-database.ts` to `SqliteArtifactStorageProvider.initialize()` in `src/storage/providers/sqlite-artifact.ts`
-- [ ] T054 [US2] Implement `persist()` to upload database as new artifact using GitHub API in `src/storage/providers/sqlite-artifact.ts`
-- [ ] T055 [US2] Update factory to instantiate `SqliteArtifactStorageProvider` for `sqlite-artifact` type in `src/storage/providers/factory.ts`
-- [ ] T056 [US2] Update track-metrics action to pass artifact config (name, branchFilter) to storage provider in `src/actions/track-metrics.ts`
-- [ ] T057 [US2] Update `.github/actions/track-metrics/action.yml` to include artifact-specific inputs (`artifact-name`, `artifact-branch-filter`)
-- [ ] T058 [US2] Remove deprecated `src/actions/find-database.ts` and `.github/actions/find-database/` after migration is complete
+- [x] T052 [US2] Create `SqliteArtifactStorageProvider` class implementing `StorageProvider` interface in `src/storage/providers/sqlite-artifact.ts`
+- [x] T053 [US2] Migrate artifact search and download logic from `src/actions/find-database.ts` to `SqliteArtifactStorageProvider.initialize()` in `src/storage/providers/sqlite-artifact.ts`
+- [x] T054 [US2] Implement `persist()` to upload database as new artifact using GitHub API in `src/storage/providers/sqlite-artifact.ts`
+- [x] T055 [US2] Update factory to instantiate `SqliteArtifactStorageProvider` for `sqlite-artifact` type in `src/storage/providers/factory.ts`
+- [x] T056 [US2] Update track-metrics action to pass artifact config (name, branchFilter) to storage provider in `src/actions/track-metrics.ts`
+- [x] T057 [US2] Update `.github/actions/track-metrics/action.yml` to include artifact-specific inputs (`artifact-name`, `artifact-branch-filter`)
+- [x] T058 [US2] Remove deprecated `src/actions/find-database.ts` and `.github/actions/find-database/` after migration is complete
 
 ### Dogfooding Workflow
 
-- [ ] T059 [US2] Create dual storage testing workflow (matrix strategy) in `.github/workflows/metrics.yml` to run both S3 and artifact storage in parallel
+- [x] T059 [US2] Create dual storage testing workflow (matrix strategy) in `.github/workflows/metrics.yml` to run both S3 and artifact storage in parallel
 
 **Checkpoint**: Artifact storage provider is fully functional; both S3 and artifact storage can be tested via the matrix workflow.
 

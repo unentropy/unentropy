@@ -15,6 +15,9 @@ export interface SqliteLocalConfig extends BaseStorageProviderConfig {
 
 export interface SqliteArtifactConfig extends BaseStorageProviderConfig {
   type: "sqlite-artifact";
+  artifactName?: string;
+  branchFilter?: string;
+  databasePath?: string;
 }
 
 export interface SqliteS3Config extends BaseStorageProviderConfig {
