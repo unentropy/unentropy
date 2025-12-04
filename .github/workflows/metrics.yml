@@ -91,19 +91,11 @@ jobs:
           database-key: unentropy-metrics.db
           report-dir: ${{ matrix.storage.report-dir }}
 
-      # Upload S3 report to Pages (only for S3 storage)
-      - name: Upload Pages artifact
-        if: matrix.storage.type == 'sqlite-s3'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ${{ matrix.storage.report-dir }}/
-
-      # Upload Artifact report as regular artifact
+      # Upload reports as artifacts (both storage types)
       - name: Upload Report Artifact
-        if: matrix.storage.type == 'sqlite-artifact'
         uses: actions/upload-artifact@v4
         with:
-          name: metrics-report-artifact
+          name: report-${{ matrix.storage.type }}
           path: ${{ matrix.storage.report-dir }}/
 
       # Upload database artifact (for artifact storage)
@@ -146,6 +138,28 @@ jobs:
     if: github.ref == 'refs/heads/main' && needs.metrics.result == 'success'
 
     steps:
+      - name: Download S3 report
+        uses: actions/download-artifact@v4
+        with:
+          name: report-sqlite-s3
+          path: pages/
+
+      - name: Download Artifact report
+        uses: actions/download-artifact@v4
+        with:
+          name: report-sqlite-artifact
+          path: artifact-temp/
+
+      - name: Combine reports
+        run: |
+          mv artifact-temp/index.html pages/artifact.html
+          rm -rf artifact-temp/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages/
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
