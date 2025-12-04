@@ -9,7 +9,7 @@
   * [x] A single, convenient GH action that does it all - downloads db from S3, runs analysis, uploads results back 
 * [x] Simple GitHub comment
 * [x] Branch comparison: "this PR changes metrics by X% against the main branch"
- [x] Support the notion of "collectors" - plugins/scripts that can parse the output of common tools (e.g. clover coverage report)
+* [x] Support the notion of "collectors" - plugins/scripts that can parse the output of common tools (e.g. clover coverage report)
 * [x] Initial metrics gallery - built-in metrics like LOC, coverage, etc.
 * [x] First-class support for standard metrics (e.g. "size in bytes", "coverage in %"). 
 * [x] Quality gates
@@ -28,6 +28,7 @@
 * [ ] Allow replacing existing build context
  
 ## 0.3 - MVP+
+* [ ] Public docs
 * [ ] "Main branch"
 * [ ] Custom collectors and metrics / simple plugins
 * [ ] Public config schema 

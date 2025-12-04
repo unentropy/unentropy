@@ -8,80 +8,85 @@
 
 The Metrics Gallery provides built-in metrics you can add to your project with a simple reference, instead of writing custom collection commands. Each built-in metric includes:
 
-- Optimized collection command
+- Default collection command using `@collect` (runs in-process, no subprocess)
 - Semantic unit type for consistent formatting (`percent`, `bytes`, `duration`, etc.)
 - Sensible defaults for thresholds
 - Well-tested implementation
 
 ## Basic Usage
 
-### 1. Reference a Built-in Metric
+### 1. Ultra-Minimal Configuration
 
-Instead of writing this:
+For metrics with default commands, just reference the built-in metric:
 
 ```json
 {
   "metrics": [
-    {
-      "name": "coverage",
-      "type": "numeric",
-      "command": "bun test --coverage --coverage-reporter=json | jq -r '.total.lines.pct'",
-      "unit": "percent"
+    { "$ref": "loc" },
+    { "$ref": "bundle-size" }
+  ]
+}
+```
+
+This automatically:
+- Inherits `id` from the template (e.g., `"loc"`, `"bundle-size"`)
+- Uses the default `@collect` command
+- Applies the correct unit type for formatting
+
+**Note**: Some metrics like `coverage` require a command (too technology-specific for defaults).
+
+### 2. Custom id for Multiple Uses of Same Metric
+
+When using the same built-in metric multiple times, provide explicit `id` values:
+
+```json
+{
+  "metrics": [
+    { "id": "src-loc", "$ref": "loc", "command": "@collect loc ./src" },
+    { "id": "test-loc", "$ref": "loc", "command": "@collect loc ./tests" }
+  ]
+}
+```
+
+### 3. Override with @collect Commands
+
+Customize the collection path or options while keeping other defaults:
+
+```json
+{
+  "metrics": [
+    { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
+    { "$ref": "coverage", "command": "@collect coverage-lcov ./reports/lcov.info" },
+    { "$ref": "bundle-size", "command": "@collect size ./dist/*.js" }
+  ]
+}
+```
+
+### 4. Custom Display Names
+
+Add human-readable names for reports and charts:
+
+```json
+{
+  "metrics": [
+    { 
+      "id": "test-coverage",
+      "$ref": "coverage", 
+      "name": "Test Coverage"
     }
   ]
 }
 ```
 
-Simply write this:
+### 5. Mix Built-in and Custom Metrics
 
 ```json
 {
   "metrics": [
-    {"$ref": "coverage"}
-  ]
-}
-```
-
-### 2. Use Multiple Built-in Metrics
-
-```json
-{
-  "metrics": [
-    {"$ref": "coverage"},
-    {"$ref": "bundle-size"},
-    {"$ref": "loc"}
-  ]
-}
-```
-
-### 3. Override Defaults
-
-Customize any property while keeping other defaults:
-
-```json
-{
-  "metrics": [
+    { "$ref": "coverage" },
+    { "$ref": "loc" },
     {
-      "$ref": "coverage",
-      "name": "unit-test-coverage"
-    },
-    {
-      "$ref": "bundle-size",
-      "command": "du -k dist/main.js | cut -f1"
-    }
-  ]
-}
-```
-
-### 4. Mix Built-in and Custom Metrics
-
-```json
-{
-  "metrics": [
-    {"$ref": "coverage"},
-    {"$ref": "loc"},
-    {
-      "name": "custom-score",
+      "id": "custom-score",
       "type": "numeric",
       "command": "./scripts/calculate-score.sh"
     }
@@ -89,66 +94,33 @@ Customize any property while keeping other defaults:
 }
 ```
 
-## Simplified Commands with CLI Helpers
+## @collect Commands
 
-For standard formats, you can use CLI helpers to simplify metric collection commands:
+The `@collect` prefix runs collectors directly in-process (faster than shell commands):
 
-### Coverage Metrics
+### Available Collectors
 
-**Traditional (complex)**:
+| Collector | Syntax | Description |
+|-----------|--------|-------------|
+| `loc` | `@collect loc <path> [options]` | Count lines of code using SCC |
+| `size` | `@collect size <path\|glob>` | Calculate file/directory size (supports globs) |
+| `coverage-lcov` | `@collect coverage-lcov <path>` | Parse LCOV coverage reports |
+| `coverage-json` | `@collect coverage-json <path>` | Parse JSON coverage reports |
+| `coverage-xml` | `@collect coverage-xml <path>` | Parse XML coverage reports |
+
+### LOC Options
+
 ```json
-{
-  "$ref": "coverage",
-  "command": "bun test --coverage --coverage-reporter=json 2>/dev/null | jq -r '.total.lines.pct' 2>/dev/null || echo '0'"
-}
+{ "$ref": "loc", "command": "@collect loc ./src --language TypeScript" }
+{ "$ref": "loc", "command": "@collect loc . --exclude node_modules dist" }
 ```
 
-**CLI Helper (simplified)**:
+### Glob Patterns for Size
+
 ```json
-{
-  "$ref": "coverage",
-  "command": "bun test --coverage && unentropy collect coverage-json ./coverage/coverage.json"
-}
+{ "$ref": "bundle-size", "command": "@collect size ./dist/*.js" }
+{ "$ref": "bundle-size", "command": "@collect size .github/actions/*/dist/*.js" }
 ```
-
-**Available coverage formats**:
-- `coverage-lcov <path>` - Parse LCOV format coverage reports
-- `coverage-json <path>` - Parse JSON format coverage reports  
-- `coverage-xml <path>` - Parse XML format coverage reports
-
-### Bundle Size Metrics
-
-**Traditional (complex)**:
-```json
-{
-  "$ref": "bundle-size",
-  "command": "find dist/ -name '*.js' -type f | xargs wc -c | tail -1 | awk '{print int($1/1024)}'"
-}
-```
-
-**CLI Helper (simplified)**:
-```json
-{
-  "$ref": "bundle-size",
-  "command": "bun run build && unentropy collect size ./dist/"
-}
-```
-
-**File size example**:
-```json
-{
-  "$ref": "bundle-size",
-  "command": "unentropy collect size ./dist/bundle.js"
-}
-```
-
-### CLI Helper Benefits
-
-- **Simple Commands**: Replace complex jq/awk pipelines with readable commands
-- **Standard Formats**: Support industry-standard formats (LCOV, JSON, XML)
-- **Tool Agnostic**: Work with any tool outputting standard formats
-- **Error Handling**: Built-in error handling and sensible defaults
-- **Optional**: You can still use custom commands when needed
 
 ## Available Metrics
 
@@ -164,32 +136,26 @@ Each metric has a semantic unit type that determines how values are formatted:
 | `duration` | `1m 30s` | Auto-scaling time values |
 | `decimal` | `3.14` | Generic floating-point |
 
-### Coverage Metrics
+### Metrics with Default Commands
 
-| ID | Description | Unit | Threshold |
-|----|-------------|------|-----------|
-| `coverage` | Overall test coverage | `percent` | No regression |
-| `function-coverage` | Function coverage | `percent` | No regression |
+These metrics have default `@collect` commands and can be used with minimal configuration:
 
-### Code Size Metrics
+| ID | Default Command | Unit |
+|----|-----------------|------|
+| `loc` | `@collect loc .` | `integer` |
+| `bundle-size` | `@collect size ./dist` | `bytes` |
 
-| ID | Description | Unit | Threshold |
-|----|-------------|------|-----------|
-| `loc` | Lines of code | `integer` | None |
-| `bundle-size` | Production bundle size | `bytes` | Max 5% increase |
+### Metrics Requiring Custom Commands
 
-### Performance Metrics
+These metrics don't have default commands (too technology/project-specific):
 
-| ID | Description | Unit | Threshold |
-|----|-------------|------|-----------|
-| `build-time` | Build duration | `duration` | Max 10% increase |
-| `test-time` | Test suite duration | `duration` | Max 10% increase |
-
-### Dependency Metrics
-
-| ID | Description | Unit | Threshold |
-|----|-------------|------|-----------|
-| `dependencies-count` | Direct dependencies | `integer` | None |
+| ID | Unit | Example Command |
+|----|------|-----------------|
+| `coverage` | `percent` | `@collect coverage-lcov coverage/lcov.info` |
+| `function-coverage` | `percent` | `bun test --coverage \| jq '.total.functions.pct'` |
+| `build-time` | `duration` | `(time bun run build) 2>&1 \| grep real \| ...` |
+| `test-time` | `duration` | `(time bun test) 2>&1 \| grep real \| ...` |
+| `dependencies-count` | `integer` | `jq '.dependencies \| length' package.json` |
 
 ## Common Patterns
 
@@ -198,9 +164,8 @@ Each metric has a semantic unit type that determines how values are formatted:
 ```json
 {
   "metrics": [
-    {"$ref": "coverage"},
-    {"$ref": "loc"},
-    {"$ref": "dependencies-count"}
+    { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
+    { "$ref": "loc" }
   ]
 }
 ```
@@ -210,27 +175,24 @@ Each metric has a semantic unit type that determines how values are formatted:
 ```json
 {
   "metrics": [
-    {"$ref": "build-time"},
-    {"$ref": "test-time"},
-    {"$ref": "bundle-size"}
+    { 
+      "id": "build-time", 
+      "$ref": "build-time",
+      "command": "(time bun run build) 2>&1 | grep real | awk '{print $2}'"
+    },
+    { "$ref": "bundle-size" }
   ]
 }
 ```
 
-### Custom Names for Clarity
+### Multiple Source Directories
 
 ```json
 {
   "metrics": [
-    {
-      "$ref": "coverage",
-      "name": "frontend-coverage"
-    },
-    {
-      "$ref": "coverage",
-      "name": "backend-coverage",
-      "command": "cd backend && bun test --coverage --coverage-reporter=json | jq -r '.total.lines.pct'"
-    }
+    { "id": "src-loc", "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
+    { "id": "test-loc", "$ref": "loc", "command": "@collect loc ./tests --language TypeScript" },
+    { "id": "docs-loc", "$ref": "loc", "command": "@collect loc ./docs --language Markdown" }
   ]
 }
 ```
@@ -242,8 +204,8 @@ Combine built-in metrics with quality gate thresholds:
 ```json
 {
   "metrics": [
-    {"$ref": "coverage"},
-    {"$ref": "bundle-size"}
+    { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
+    { "$ref": "bundle-size" }
   ],
   "qualityGate": {
     "mode": "soft",
@@ -264,71 +226,88 @@ Combine built-in metrics with quality gate thresholds:
 }
 ```
 
+**Note**: Threshold `metric` references the resolved `id` (either explicit or inherited from template).
+
 ## Troubleshooting
 
 ### "Invalid metric reference" Error
 
 **Problem**: `Invalid metric reference: "$ref: unknown-metric"`
 
-**Solution**: Check available metric IDs. Built-in metrics include:
-- coverage
-- function-coverage
-- loc
-- bundle-size
-- build-time
-- test-time
-- dependencies-count
+**Solution**: Check available metric IDs:
+- coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count
 
-### Command Fails in Your Environment
+### "Duplicate metric id" Error
 
-**Problem**: Gallery command doesn't work for your project structure
+**Problem**: `Duplicate metric id "loc" found`
 
-**Solution**: Override the command:
+**Cause**: Using the same `$ref` twice without explicit `id` values.
+
+**Solution**: Provide unique `id` values:
 
 ```json
-{
-  "$ref": "loc",
-  "command": "find lib/ -name '*.js' | xargs wc -l | tail -1 | awk '{print $1}'"
+{ "id": "src-loc", "$ref": "loc", "command": "@collect loc ./src" }
+{ "id": "test-loc", "$ref": "loc", "command": "@collect loc ./tests" }
+```
+
+### "Metric requires a command" Error
+
+**Problem**: `Metric "build-time" requires a command`
+
+**Cause**: Some built-in metrics don't have default commands.
+
+**Solution**: Provide a command:
+
+```json
+{ 
+  "$ref": "build-time", 
+  "command": "(time bun run build) 2>&1 | grep real | awk '{print $2}'"
 }
 ```
 
-### CLI Helper Not Found
+### @collect Command Fails
 
-**Problem**: `unentropy collect coverage-json` command not found
+**Problem**: `@collect loc ./src` fails with "SCC is not installed"
 
-**Solution**: Ensure you're using the latest version of Unentropy that includes CLI helper support. CLI helpers are available for:
-- `coverage-lcov <path>` - LCOV format coverage reports
-- `coverage-json <path>` - JSON format coverage reports
-- `coverage-xml <path>` - XML format coverage reports
-- `size <path>` - File or directory size in KB
+**Solution**: Install SCC:
+- macOS: `brew install scc`
+- Linux: Download from https://github.com/boyter/scc/releases
 
-### Name Conflicts
+### Threshold References Wrong Metric
 
-**Problem**: `Duplicate metric name "coverage" found`
+**Problem**: `Threshold references non-existent metric "loc"`
 
-**Solution**: Override the name to make it unique:
+**Cause**: You provided a custom `id` but threshold still references the template id.
+
+**Solution**: Match the threshold to your `id`:
 
 ```json
 {
-  "$ref": "coverage",
-  "name": "frontend-coverage"
+  "metrics": [
+    { "id": "my-loc", "$ref": "loc" }
+  ],
+  "qualityGate": {
+    "thresholds": [
+      { "metric": "my-loc", "mode": "max", "target": 10000 }
+    ]
+  }
 }
 ```
 
 ## Next Steps
 
 - See [config-schema.md](contracts/config-schema.md) for complete reference
-- See [built-in-metrics.md](contracts/built-in-metrics.md) for detailed metric template definitions
-- Check existing `unentropy.json` examples in the repository
+- See [built-in-metrics.md](contracts/built-in-metrics.md) for detailed metric definitions
+- Check the edge cases section in [spec.md](spec.md)
 
 ## Tips
 
-✅ **Do**: Start with built-in metrics and override only what you need  
-✅ **Do**: Use built-in metrics for common patterns (coverage, size, performance)  
-✅ **Do**: Mix built-in and custom metrics freely  
-✅ **Do**: Use CLI helpers for standard formats to simplify commands  
+**Do**:
+- Start with minimal config `{ "$ref": "loc" }` and add overrides as needed
+- Use `@collect` commands for faster, more reliable collection
+- Provide explicit `id` when using the same `$ref` multiple times
 
-❌ **Don't**: Override `type` - it's inherited from the built-in metric  
-❌ **Don't**: Use uppercase or spaces in custom names  
-❌ **Don't**: Duplicate metric names after resolution  
-❌ **Don't**: Use CLI helpers for non-standard formats - use custom commands instead
+**Don't**:
+- Override `type` - it's inherited from the built-in metric
+- Use the same implicit `id` twice (provide explicit ids)
+- Forget to match threshold `metric` to your resolved `id`

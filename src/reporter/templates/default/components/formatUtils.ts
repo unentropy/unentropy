@@ -14,36 +14,8 @@ export function getTrendColor(direction: "up" | "down" | "stable" | null): strin
   return "text-gray-600 dark:text-gray-400";
 }
 
-export function formatValue(value: number | null, unit: string | null): string {
-  const unitType = parseLegacyUnit(unit);
-  return formatValueWithUnit(value, unitType);
-}
-
-function parseLegacyUnit(unit: string | null): UnitType | null {
-  if (!unit) return null;
-
-  if (
-    unit === "percent" ||
-    unit === "integer" ||
-    unit === "bytes" ||
-    unit === "duration" ||
-    unit === "decimal"
-  ) {
-    return unit as UnitType;
-  }
-
-  const legacyUnitMap: Record<string, UnitType> = {
-    "%": "percent",
-    lines: "integer",
-    KB: "bytes",
-    MB: "bytes",
-    GB: "bytes",
-    seconds: "duration",
-    ms: "duration",
-    count: "integer",
-  };
-
-  return legacyUnitMap[unit] || null;
+export function formatValue(value: number | null, unit: UnitType | null): string {
+  return formatValueWithUnit(value, unit);
 }
 
 export function formatDate(isoString: string): string {

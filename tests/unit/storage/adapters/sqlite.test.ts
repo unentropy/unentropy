@@ -61,14 +61,14 @@ describe("SqliteDatabaseAdapter", () => {
       const metric = adapter.upsertMetricDefinition({
         name: "test-coverage",
         type: "numeric",
-        unit: "%",
+        unit: "percent",
         description: "Code coverage percentage",
       });
 
       expect(metric.id).toBeGreaterThan(0);
       expect(metric.name).toBe("test-coverage");
       expect(metric.type).toBe("numeric");
-      expect(metric.unit).toBe("%");
+      expect(metric.unit).toBe("percent");
       expect(metric.description).toBe("Code coverage percentage");
     });
 
@@ -76,18 +76,18 @@ describe("SqliteDatabaseAdapter", () => {
       const metric1 = adapter.upsertMetricDefinition({
         name: "bundle-size",
         type: "numeric",
-        unit: "KB",
+        unit: "bytes",
       });
 
       const metric2 = adapter.upsertMetricDefinition({
         name: "bundle-size",
         type: "numeric",
-        unit: "MB",
+        unit: "integer",
         description: "Updated description",
       });
 
       expect(metric2.id).toBe(metric1.id);
-      expect(metric2.unit).toBe("MB");
+      expect(metric2.unit).toBe("integer");
       expect(metric2.description).toBe("Updated description");
     });
 

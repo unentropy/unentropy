@@ -1,9 +1,10 @@
 import type { TimeSeriesData, NormalizedDataPoint, LineChartData, BarChartData } from "./types";
+import type { UnitType } from "../metrics/types";
 
 export function buildLineChartData(
   metricId: string,
   metricName: string,
-  unit: string | null,
+  unit: UnitType | null,
   normalizedData: NormalizedDataPoint[]
 ): LineChartData {
   return {
