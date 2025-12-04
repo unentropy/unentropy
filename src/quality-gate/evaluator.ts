@@ -6,45 +6,25 @@ import type {
   QualityGateBaselineInfo,
 } from "./types.js";
 
-export function calculateMedian(values: number[]): number | undefined {
-  if (values.length === 0) {
-    return undefined;
-  }
-
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-
-  if (sorted.length % 2 === 0) {
-    const left = sorted[mid - 1];
-    const right = sorted[mid];
-    if (left === undefined || right === undefined) {
-      return undefined;
-    }
-    return (left + right) / 2;
-  }
-
-  return sorted[mid];
-}
-
 export function evaluateThreshold(
   sample: MetricSample,
   threshold: MetricThresholdConfig,
-  baselineMedian: number | undefined
+  baseline: number | undefined
 ): MetricEvaluationResult {
   const result: MetricEvaluationResult = {
     metric: sample.name,
     unit: sample.unit,
-    baselineMedian,
+    baseline,
     pullRequestValue: sample.pullRequestValue,
     threshold,
     status: "unknown",
     isBlocking: threshold.severity !== "warning",
   };
 
-  if (baselineMedian !== undefined && sample.pullRequestValue !== undefined) {
-    result.absoluteDelta = sample.pullRequestValue - baselineMedian;
-    if (baselineMedian !== 0) {
-      result.relativeDeltaPercent = (result.absoluteDelta / baselineMedian) * 100;
+  if (baseline !== undefined && sample.pullRequestValue !== undefined) {
+    result.absoluteDelta = sample.pullRequestValue - baseline;
+    if (baseline !== 0) {
+      result.relativeDeltaPercent = (result.absoluteDelta / baseline) * 100;
     }
   }
 
@@ -54,7 +34,7 @@ export function evaluateThreshold(
     return result;
   }
 
-  if (baselineMedian === undefined) {
+  if (baseline === undefined) {
     result.status = "unknown";
     result.message = "Baseline data not available";
     return result;
@@ -91,11 +71,11 @@ export function evaluateThreshold(
 
     case "no-regression": {
       const tolerance = threshold.tolerance ?? 0.5;
-      if (sample.pullRequestValue >= baselineMedian - tolerance) {
+      if (sample.pullRequestValue >= baseline - tolerance) {
         result.status = "pass";
       } else {
         result.status = "fail";
-        result.message = `${sample.name} regressed beyond tolerance (${sample.pullRequestValue} vs baseline ${baselineMedian}, tolerance: ${tolerance})`;
+        result.message = `${sample.name} regressed beyond tolerance (${sample.pullRequestValue} vs baseline ${baseline}, tolerance: ${tolerance})`;
       }
       break;
     }
@@ -107,13 +87,13 @@ export function evaluateThreshold(
         break;
       }
 
-      if (baselineMedian === 0) {
+      if (baseline === 0) {
         result.status = "unknown";
         result.message = "Cannot calculate percentage drop from zero baseline";
         break;
       }
 
-      const dropPercent = ((baselineMedian - sample.pullRequestValue) / baselineMedian) * 100;
+      const dropPercent = ((baseline - sample.pullRequestValue) / baseline) * 100;
 
       if (dropPercent <= threshold.maxDropPercent) {
         result.status = "pass";
@@ -162,23 +142,23 @@ export function evaluateQualityGate(
 
   for (const sample of samples) {
     const threshold = thresholdMap.get(sample.name);
+    const baseline = sample.baselineValue;
 
     if (!threshold) {
-      const baselineMedian = calculateMedian(sample.baselineValues);
       const result: MetricEvaluationResult = {
         metric: sample.name,
         unit: sample.unit,
-        baselineMedian,
+        baseline,
         pullRequestValue: sample.pullRequestValue,
         status: "unknown",
         message: "No threshold configured for this metric",
         isBlocking: false,
       };
 
-      if (baselineMedian !== undefined && sample.pullRequestValue !== undefined) {
-        result.absoluteDelta = sample.pullRequestValue - baselineMedian;
-        if (baselineMedian !== 0) {
-          result.relativeDeltaPercent = (result.absoluteDelta / baselineMedian) * 100;
+      if (baseline !== undefined && sample.pullRequestValue !== undefined) {
+        result.absoluteDelta = sample.pullRequestValue - baseline;
+        if (baseline !== 0) {
+          result.relativeDeltaPercent = (result.absoluteDelta / baseline) * 100;
         }
       }
 
@@ -186,8 +166,7 @@ export function evaluateQualityGate(
       continue;
     }
 
-    const baselineMedian = calculateMedian(sample.baselineValues);
-    const result = evaluateThreshold(sample, threshold, baselineMedian);
+    const result = evaluateThreshold(sample, threshold, baseline);
     evaluationResults.push(result);
   }
 

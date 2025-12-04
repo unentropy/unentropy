@@ -1,35 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import {
-  calculateMedian,
-  evaluateThreshold,
-  evaluateQualityGate,
-} from "../../../src/quality-gate/evaluator.js";
+import { evaluateThreshold, evaluateQualityGate } from "../../../src/quality-gate/evaluator.js";
 import type { MetricSample } from "../../../src/quality-gate/types.js";
 import type { MetricThresholdConfig, QualityGateConfig } from "../../../src/config/schema.js";
-
-describe("calculateMedian", () => {
-  it("should return undefined for empty array", () => {
-    expect(calculateMedian([])).toBeUndefined();
-  });
-
-  it("should return the single value for array with one element", () => {
-    expect(calculateMedian([5])).toBe(5);
-  });
-
-  it("should return median for odd-length array", () => {
-    expect(calculateMedian([1, 3, 5])).toBe(3);
-    expect(calculateMedian([7, 2, 9, 1, 5])).toBe(5);
-  });
-
-  it("should return average of middle two for even-length array", () => {
-    expect(calculateMedian([1, 3])).toBe(2);
-    expect(calculateMedian([1, 2, 3, 4])).toBe(2.5);
-  });
-
-  it("should handle unsorted arrays", () => {
-    expect(calculateMedian([9, 1, 5, 3, 7])).toBe(5);
-  });
-});
 
 describe("evaluateThreshold", () => {
   describe("min mode", () => {
@@ -38,7 +10,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 85,
       };
       const threshold: MetricThresholdConfig = {
@@ -55,7 +27,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 75,
       };
       const threshold: MetricThresholdConfig = {
@@ -73,7 +45,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 85,
       };
       const threshold: MetricThresholdConfig = {
@@ -91,7 +63,7 @@ describe("evaluateThreshold", () => {
         name: "bundle-size",
         type: "numeric",
         unit: "bytes",
-        baselineValues: [500],
+        baselineValue: 500,
         pullRequestValue: 450,
       };
       const threshold: MetricThresholdConfig = {
@@ -108,7 +80,7 @@ describe("evaluateThreshold", () => {
         name: "bundle-size",
         type: "numeric",
         unit: "bytes",
-        baselineValues: [500],
+        baselineValue: 500,
         pullRequestValue: 550,
       };
       const threshold: MetricThresholdConfig = {
@@ -128,7 +100,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 79.6,
       };
       const threshold: MetricThresholdConfig = {
@@ -145,7 +117,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 79,
       };
       const threshold: MetricThresholdConfig = {
@@ -163,7 +135,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 79.6,
       };
       const threshold: MetricThresholdConfig = {
@@ -181,7 +153,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 77,
       };
       const threshold: MetricThresholdConfig = {
@@ -198,7 +170,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 72,
       };
       const threshold: MetricThresholdConfig = {
@@ -216,7 +188,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 77,
       };
       const threshold: MetricThresholdConfig = {
@@ -232,7 +204,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [0],
+        baselineValue: 0,
         pullRequestValue: 5,
       };
       const threshold: MetricThresholdConfig = {
@@ -252,7 +224,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: undefined,
       };
       const threshold: MetricThresholdConfig = {
@@ -270,7 +242,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [],
+        baselineValue: undefined,
         pullRequestValue: 85,
       };
       const threshold: MetricThresholdConfig = {
@@ -290,7 +262,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 75,
       };
       const threshold: MetricThresholdConfig = {
@@ -308,7 +280,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 75,
       };
       const threshold: MetricThresholdConfig = {
@@ -328,7 +300,7 @@ describe("evaluateThreshold", () => {
         name: "coverage",
         type: "numeric",
         unit: "percent",
-        baselineValues: [80],
+        baselineValue: 80,
         pullRequestValue: 85,
       };
       const threshold: MetricThresholdConfig = {
@@ -346,8 +318,6 @@ describe("evaluateThreshold", () => {
 describe("evaluateQualityGate", () => {
   const baselineInfo = {
     referenceBranch: "main",
-    buildsConsidered: 10,
-    maxBuilds: 20,
     maxAgeDays: 90,
   };
 
@@ -358,7 +328,7 @@ describe("evaluateQualityGate", () => {
           name: "coverage",
           type: "numeric",
           unit: "percent",
-          baselineValues: [80],
+          baselineValue: 80,
           pullRequestValue: 85,
         },
       ];
@@ -380,7 +350,7 @@ describe("evaluateQualityGate", () => {
           name: "coverage",
           type: "numeric",
           unit: "percent",
-          baselineValues: [80],
+          baselineValue: 80,
           pullRequestValue: 85,
         },
       ];
@@ -399,7 +369,7 @@ describe("evaluateQualityGate", () => {
           name: "coverage",
           type: "numeric",
           unit: "percent",
-          baselineValues: [80],
+          baselineValue: 80,
           pullRequestValue: 85,
         },
       ];
@@ -420,7 +390,7 @@ describe("evaluateQualityGate", () => {
           name: "coverage",
           type: "numeric",
           unit: "percent",
-          baselineValues: [80],
+          baselineValue: 80,
           pullRequestValue: 85,
         },
       ];
@@ -447,7 +417,7 @@ describe("evaluateQualityGate", () => {
           name: "coverage",
           type: "numeric",
           unit: "percent",
-          baselineValues: [80],
+          baselineValue: 80,
           pullRequestValue: 75,
         },
       ];
@@ -475,7 +445,7 @@ describe("evaluateQualityGate", () => {
           name: "coverage",
           type: "numeric",
           unit: "percent",
-          baselineValues: [80],
+          baselineValue: 80,
           pullRequestValue: 75,
         },
       ];
@@ -503,14 +473,14 @@ describe("evaluateQualityGate", () => {
           name: "coverage",
           type: "numeric",
           unit: "percent",
-          baselineValues: [80],
+          baselineValue: 80,
           pullRequestValue: 85,
         },
         {
           name: "bundle-size",
           type: "numeric",
           unit: "bytes",
-          baselineValues: [500],
+          baselineValue: 500,
           pullRequestValue: 550,
         },
       ];
@@ -541,14 +511,14 @@ describe("evaluateQualityGate", () => {
           name: "coverage",
           type: "numeric",
           unit: "percent",
-          baselineValues: [80],
+          baselineValue: 80,
           pullRequestValue: 85,
         },
         {
           name: "loc",
           type: "numeric",
           unit: "lines",
-          baselineValues: [1000],
+          baselineValue: 1000,
           pullRequestValue: 1100,
         },
       ];
@@ -577,21 +547,21 @@ describe("evaluateQualityGate", () => {
           name: "coverage",
           type: "numeric",
           unit: "percent",
-          baselineValues: [80],
+          baselineValue: 80,
           pullRequestValue: 85,
         },
         {
           name: "bundle-size",
           type: "numeric",
           unit: "bytes",
-          baselineValues: [500],
+          baselineValue: 500,
           pullRequestValue: 550,
         },
         {
           name: "loc",
           type: "numeric",
           unit: "lines",
-          baselineValues: [],
+          baselineValue: undefined,
           pullRequestValue: 1100,
         },
       ];

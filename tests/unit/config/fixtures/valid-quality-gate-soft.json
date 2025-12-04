@@ -20,9 +20,7 @@
     "maxCommentCharacters": 8000,
     "baseline": {
       "referenceBranch": "main",
-      "maxBuilds": 20,
-      "maxAgeDays": 90,
-      "aggregate": "median"
+      "maxAgeDays": 90
     },
     "thresholds": [
       {

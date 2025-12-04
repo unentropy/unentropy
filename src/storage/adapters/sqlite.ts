@@ -197,13 +197,12 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
     return stmt.all();
   }
 
-  getBaselineMetricValues(
+  getBaselineMetricValue(
     metricName: string,
     referenceBranch: string,
-    maxBuilds = 20,
     maxAgeDays = 90
-  ): { value_numeric: number }[] {
-    const stmt = this.db.query<{ value_numeric: number }, [string, string, number, number]>(`
+  ): number | undefined {
+    const stmt = this.db.query<{ value_numeric: number }, [string, string, number]>(`
       SELECT mv.value_numeric
       FROM metric_values mv
       JOIN metric_definitions md ON mv.metric_id = md.id
@@ -214,10 +213,11 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
         AND bc.timestamp >= datetime('now', '-' || ? || ' days')
         AND mv.value_numeric IS NOT NULL
       ORDER BY bc.timestamp DESC
-      LIMIT ?
+      LIMIT 1
     `);
 
-    return stmt.all(metricName, referenceBranch, maxAgeDays, maxBuilds);
+    const result = stmt.get(metricName, referenceBranch, maxAgeDays);
+    return result?.value_numeric;
   }
 
   getPullRequestMetricValue(

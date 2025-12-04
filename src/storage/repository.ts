@@ -80,12 +80,11 @@ export class MetricsRepository {
     return this.adapter.getMetricTimeSeries(metricName);
   }
 
-  getBaselineMetricValues(
+  getBaselineMetricValue(
     metricName: string,
     referenceBranch: string,
-    maxBuilds?: number,
     maxAgeDays?: number
-  ): { value_numeric: number }[] {
-    return this.adapter.getBaselineMetricValues(metricName, referenceBranch, maxBuilds, maxAgeDays);
+  ): number | undefined {
+    return this.adapter.getBaselineMetricValue(metricName, referenceBranch, maxAgeDays);
   }
 }

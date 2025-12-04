@@ -110,13 +110,7 @@ export const MetricThresholdConfigSchema = z
 export const BaselineConfigSchema = z
   .object({
     referenceBranch: z.string().optional(),
-    maxBuilds: z.number().int().min(5).max(200).optional(),
     maxAgeDays: z.number().int().positive().optional(),
-    aggregate: z
-      .enum(["median"], {
-        message: "aggregate must be 'median'",
-      })
-      .optional(),
   })
   .strict();
 

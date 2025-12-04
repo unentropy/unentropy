@@ -296,11 +296,9 @@ describe("SqliteDatabaseAdapter", () => {
         collected_at: new Date().toISOString(),
       });
 
-      const baselineValues = adapter.getBaselineMetricValues("test-metric", "main");
+      const baselineValue = adapter.getBaselineMetricValue("test-metric", "main");
 
-      expect(baselineValues).toHaveLength(2);
-      expect(baselineValues[0]?.value_numeric).toBe(87.2); // Most recent first
-      expect(baselineValues[1]?.value_numeric).toBe(85.5);
+      expect(baselineValue).toBe(87.2); // Most recent value
     });
 
     it("filters by reference branch", () => {
@@ -341,10 +339,9 @@ describe("SqliteDatabaseAdapter", () => {
         collected_at: new Date().toISOString(),
       });
 
-      const baselineValues = adapter.getBaselineMetricValues("branch-test", "main");
+      const baselineValue = adapter.getBaselineMetricValue("branch-test", "main");
 
-      expect(baselineValues).toHaveLength(1);
-      expect(baselineValues[0]?.value_numeric).toBe(100);
+      expect(baselineValue).toBe(100);
     });
 
     it("excludes non-push events and old builds", () => {
@@ -385,39 +382,9 @@ describe("SqliteDatabaseAdapter", () => {
         collected_at: new Date().toISOString(),
       });
 
-      const baselineValues = adapter.getBaselineMetricValues("filter-test", "main", 20, 90);
+      const baselineValue = adapter.getBaselineMetricValue("filter-test", "main", 90);
 
-      expect(baselineValues).toHaveLength(0); // Both filtered out
-    });
-
-    it("respects maxBuilds limit", () => {
-      const metric = adapter.upsertMetricDefinition({
-        name: "limit-test",
-        type: "numeric",
-      });
-
-      // Create 5 builds on main branch
-      for (let i = 0; i < 5; i++) {
-        const buildId = adapter.insertBuildContext({
-          commit_sha: `build${i}${"x".repeat(34)}`,
-          branch: "main",
-          run_id: `build${i}`,
-          run_number: i + 1,
-          event_name: "push",
-          timestamp: new Date().toISOString(),
-        });
-
-        adapter.insertMetricValue({
-          metric_id: metric.id,
-          build_id: buildId,
-          value_numeric: i * 10,
-          collected_at: new Date().toISOString(),
-        });
-      }
-
-      const baselineValues = adapter.getBaselineMetricValues("limit-test", "main", 3, 90);
-
-      expect(baselineValues).toHaveLength(3); // Limited to 3
+      expect(baselineValue).toBeUndefined(); // Both filtered out
     });
   });
 

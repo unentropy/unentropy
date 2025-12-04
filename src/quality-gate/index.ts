@@ -9,4 +9,4 @@ export type {
 
 export { evaluateQualityGate } from "./evaluator.js";
 
-export { buildMetricSamples, calculateBuildsConsidered } from "./samples.js";
+export { buildMetricSamples } from "./samples.js";
