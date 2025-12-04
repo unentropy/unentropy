@@ -23,19 +23,6 @@ const buildAction = async (entrypoint: string, outdir: string, outfile: string):
 
 const main = async () => {
   try {
-    // Build for composite actions (legacy)
-    await buildAction(
-      "./src/actions/collect.ts",
-      "./.github/actions/collect-metrics/dist",
-      "collect.js"
-    );
-
-    await buildAction(
-      "./src/actions/report.ts",
-      "./.github/actions/generate-report/dist",
-      "report.js"
-    );
-
     await buildAction(
       "./src/actions/track-metrics.ts",
       "./.github/actions/track-metrics/dist",

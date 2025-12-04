@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-mvp-metrics-tracking`  
 **Created**: Thu Oct 16 2025  
-**Status**: Draft  
+**Status**: Outdated  
 **Input**: User description: "build the specification for the mvp phase. We need our sqlite database, action to collect data, and a simple html generator that will create reports based on it. As the Unentropy user, I would like to have a configuration file (e.g. unentropy.json), where I can define what metrics/labels I want to track."
 
 ## User Scenarios & Testing *(mandatory)*
