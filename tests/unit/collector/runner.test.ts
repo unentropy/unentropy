@@ -140,4 +140,30 @@ describe("runCommand", () => {
     expect(result.success).toBe(true);
     expect(result.stdout.split("\n").length).toBeGreaterThan(1000);
   });
+
+  test("transforms @collect commands to CLI invocations", async () => {
+    const result = await runCommand("@collect loc ./src", {}, 60000, true);
+
+    expect(result.success).toBe(true);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toMatch(/^\d+$/);
+    expect(parseInt(result.stdout.trim())).toBeGreaterThan(0);
+  });
+
+  test("transforms @collect with multiple arguments", async () => {
+    const result = await runCommand("@collect size package.json", {}, 60000, true);
+
+    expect(result.success).toBe(true);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toMatch(/^\d+$/);
+    expect(parseInt(result.stdout.trim())).toBeGreaterThan(0);
+  });
+
+  test("passes @collect arguments correctly", async () => {
+    const result = await runCommand("@collect loc ./src --exclude node_modules", {}, 60000, true);
+
+    expect(result.success).toBe(true);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toMatch(/^\d+$/);
+  });
 });

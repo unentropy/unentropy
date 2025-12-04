@@ -8,7 +8,7 @@
 
 The Metrics Gallery provides built-in metrics you can add to your project with a simple reference, instead of writing custom collection commands. Each built-in metric includes:
 
-- Default collection command using `@collect` (runs in-process, no subprocess)
+- Default collection command using `@collect` (delegates to CLI for simplicity)
 - Semantic unit type for consistent formatting (`percent`, `bytes`, `duration`, etc.)
 - Sensible defaults for thresholds
 - Well-tested implementation
@@ -96,7 +96,7 @@ Add human-readable names for reports and charts:
 
 ## @collect Commands
 
-The `@collect` prefix runs collectors directly in-process (faster than shell commands):
+The `@collect` prefix simplifies collector invocation by delegating to the existing CLI:
 
 ### Available Collectors
 

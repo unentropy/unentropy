@@ -4,31 +4,31 @@
       "$ref": "loc",
       "name": "lines-of-code",
       "description": "total lines of typescript/tsx code in src/ directory",
-      "command": "bun src/index.ts collect loc ./src --language TypeScript"
+      "command": "@collect loc ./src --language TypeScript"
     },
     {
       "$ref": "loc",
       "name": "lines-of-test-code",
       "description": "Total lines of TypeScript/TSX code in tests/ directory",
-      "command": "bun src/index.ts collect loc ./tests --language TypeScript"
+      "command": "@collect loc ./tests --language TypeScript"
     },
     {
       "$ref": "coverage",
       "name": "test-coverage",
       "description": "Test coverage percentage for the codebase",
-      "command": "bun src/index.ts collect coverage-lcov coverage/lcov.info"
+      "command": "@collect coverage-lcov coverage/lcov.info"
     },
     {
       "$ref": "bundle-size",
       "name": "total-bundle-size",
       "description": "Total size of all compiled GitHub Actions",
-      "command": "bun src/index.ts collect size .github/actions/*/dist/*.js"
+      "command": "@collect size .github/actions/*/dist/*.js"
     },
     {
       "$ref": "loc",
       "name": "specs-size",
       "description": "Total lines of specification documentation",
-      "command": "bun src/index.ts collect loc ./specs --language Markdown"
+      "command": "@collect loc ./specs --language Markdown"
     }
   ],
   "storage": {

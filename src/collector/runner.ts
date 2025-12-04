@@ -19,6 +19,13 @@ export async function runCommand(
   let stdout = "";
   let stderr = "";
 
+  // Transform @collect commands to CLI invocations
+  let commandToRun = command;
+  if (command.trim().startsWith("@collect ")) {
+    const collectArgs = command.trim().slice("@collect ".length);
+    commandToRun = `bun src/index.ts collect ${collectArgs}`;
+  }
+
   try {
     // Create a timeout promise
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -26,7 +33,7 @@ export async function runCommand(
     });
 
     // Create the execution promise
-    const execPromise = exec("sh", ["-c", command], {
+    const execPromise = exec("sh", ["-c", commandToRun], {
       env: { ...(process.env as Record<string, string>), ...env },
       ignoreReturnCode: true,
       silent,
