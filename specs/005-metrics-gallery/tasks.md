@@ -18,12 +18,12 @@
 
 ## Key Spec Changes (v3.0.0)
 
-- **Optional `id`**: When `$ref` is provided, `id` is inherited from template if not specified
-- **Optional `command`**: When `$ref` has `defaultCommand`, user command is optional
+- **Optional `id`**: When `$ref` is provided, `id` is optional and inherits from template if not specified
+- **Optional `command`**: When `$ref` has `command`, user command is optional
 - **`@collect` shortcut**: In-process execution of collectors (no subprocess)
 - **Glob support**: `@collect size` supports glob patterns
 - **No coverage default**: Coverage metrics require explicit command (too technology-specific)
-- **MetricTemplate**: Includes `id`, `name`, `description`, `type`, `unit`, `defaultCommand`
+- **MetricTemplate**: Includes `id`, `name`, `description`, `type`, `unit`, `command`
 
 ---
 
@@ -46,8 +46,8 @@
 - [x] T004 Create MetricTemplate interface in src/metrics/types.ts
   - Define UnitType in src/metrics/types.ts
   - Define unit field as: unit?: UnitType (semantic type, not string)
-  - Include fields: id, name, description, type, unit?, defaultCommand?
-- [x] T005 Create built-in metrics registry structure in src/metrics/registry.ts
+  - Include fields: id, name, description, type, unit?, command?
+- [x] T005 Create metric templates registry structure in src/metrics/registry.ts
 - [x] T006 Create resolver module skeleton in src/metrics/resolver.ts
 - [x] T007 Extend MetricConfig schema to support optional $ref in src/config/schema.ts
 - [ ] T007a [NEW] Update MetricConfig schema to make id optional when $ref provided in src/config/schema.ts
@@ -175,58 +175,61 @@
   - Test invalid unit fails with clear error message
   - Test missing unit is allowed (optional)
 
-**Checkpoint**: Unit types infrastructure complete - built-in metrics can now use semantic units
+**Checkpoint**: Unit types infrastructure complete - metric templates can now use semantic units
 
 ---
 
 ## Phase 4a: User Story 1 - Ultra-minimal setup (Priority: P1) [NEW]
 
-**Goal**: Enable developers to use built-in metrics with absolute minimal configuration: `{ "$ref": "loc" }`. The id is inherited from the template, and metrics with defaultCommand need no user command.
+**Goal**: Enable developers to use metric templates with absolute minimal configuration: `{ "$ref": "loc" }`. The id is inherited from the template, and templates with command need no user command.
 
 **Independent Test**: Add `{ "$ref": "loc" }` to unentropy.json, run metrics collection, verify LOC is collected using inherited id and default command.
 
-### Implementation for User Story 0
+### Implementation for User Story 1
 
-- [ ] T024a [NEW] [US1] Update MetricTemplate to include defaultCommand field in src/metrics/types.ts
-  - Optional field: defaultCommand?: string
+- [x] T024a [NEW] [US1] Update MetricTemplate to include command field in src/metrics/types.ts
+  - Optional field: command?: string
   - Used when user doesn't provide command
 
-- [ ] T024b [NEW] [US1] Add defaultCommand to loc metric in src/metrics/registry.ts
-  - defaultCommand: "@collect loc ."
+- [x] T024b [NEW] [US1] Add command to loc metric in src/metrics/registry.ts
+  - command: "@collect loc ."
 
-- [ ] T024c [NEW] [US1] Add defaultCommand to bundle-size metric in src/metrics/registry.ts
-  - defaultCommand: "@collect size ./dist"
+- [x] T024c [NEW] [US1] Add command to bundle-size metric in src/metrics/registry.ts
+  - command: "@collect size ./dist"
 
-- [ ] T024d [NEW] [US1] Verify coverage metrics have NO defaultCommand in src/metrics/registry.ts
-  - coverage: no defaultCommand (too technology-specific)
-  - function-coverage: no defaultCommand (too technology-specific)
+- [x] T024d [NEW] [US1] Verify coverage metrics have NO command in src/metrics/registry.ts
+  - coverage: no command (too technology-specific)
+  - function-coverage: no command (too technology-specific)
 
-- [ ] T024e [NEW] [US1] Update resolver to inherit id from template in src/metrics/resolver.ts
+- [x] T024e [NEW] [US1] Update resolver to inherit id from template in src/metrics/resolver.ts
   - If $ref provided and id not provided, use template.id
   - Validate id uniqueness after resolution
+  - Error message format: "Duplicate metric id \"{id}\" found.\nWhen using the same $ref multiple times, provide explicit id values."
 
-- [ ] T024f [NEW] [US1] Update resolver to use defaultCommand in src/metrics/resolver.ts
-  - If $ref provided and command not provided, use template.defaultCommand
-  - If no command and no defaultCommand, fail validation
+- [ ] T024f [NEW] [US1] Update resolver to use command in src/metrics/resolver.ts
+  - If $ref provided and command not provided, use template.command
+  - If no command and no template.command, fail validation
+  - Error message format: "Metric \"{id}\" requires a command.\nThe metric template \"{$ref}\" does not have a default command.\nYou must provide a command appropriate for your project."
 
 - [ ] T024g [NEW] [US1] Update resolver to inherit name from template in src/metrics/resolver.ts
   - If $ref provided and name not provided, use template.name
   - If no $ref and name not provided, default to id
+  - No error messages (name has sensible defaults)
 
 - [ ] T024h [NEW] [US1] Add unit tests for id inheritance in tests/unit/metrics/resolver.test.ts
   - Test { "$ref": "loc" } resolves to id: "loc"
   - Test { "id": "custom", "$ref": "loc" } uses explicit id
-  - Test duplicate implicit ids fail validation
+  - Test duplicate implicit ids fail validation with error: "Duplicate metric id \"loc\" found.\nWhen using the same $ref multiple times, provide explicit id values."
 
 - [ ] T024i [NEW] [US1] Add unit tests for command inheritance in tests/unit/metrics/resolver.test.ts
-  - Test { "$ref": "loc" } uses defaultCommand
-  - Test { "$ref": "coverage" } fails (no defaultCommand)
+  - Test { "$ref": "loc" } uses template command
+  - Test { "$ref": "coverage" } fails with error: "Metric \"coverage\" requires a command.\nThe metric template \"coverage\" does not have a default command.\nYou must provide a command appropriate for your project."
   - Test { "$ref": "coverage", "command": "..." } succeeds
 
 - [ ] T024j [NEW] [US1] Add edge case tests in tests/unit/metrics/resolver.test.ts
-  - Test duplicate implicit ids: [{ "$ref": "loc" }, { "$ref": "loc" }] fails
-  - Test explicit id conflicts with implicit: [{ "$ref": "loc" }, { "id": "loc", "$ref": "coverage" }] fails
-  - Test custom metric without id fails
+  - Test duplicate implicit ids: [{ "$ref": "loc" }, { "$ref": "loc" }] fails with duplicate id error
+  - Test explicit id conflicts with implicit: [{ "$ref": "loc" }, { "id": "loc", "$ref": "coverage" }] fails with error: "Duplicate metric id \"loc\" found.\nMetric ids must be unique within the configuration."
+  - Test custom metric without id fails with error: "Custom metrics (without $ref) require an \"id\" field."
 
 **Checkpoint**: Ultra-minimal configs like `{ "$ref": "loc" }` work. Users can track LOC with one line. (User Story 1 complete)
 
@@ -234,52 +237,52 @@
 
 ## Phase 4b: User Story 2 - Quick setup with pre-defined metrics (Priority: P2)
 
-**Goal**: Enable developers to reference built-in metrics by ID (e.g., `{"$ref": "coverage", "command": "@collect coverage-lcov ..."}`) with automatic expansion to full metric definitions including units and types.
+**Goal**: Enable developers to reference metric templates by ID (e.g., `{"$ref": "coverage", "command": "@collect coverage-lcov ..."}`) with automatic expansion to full metric definitions including units and types.
 
 **Independent Test**: Add `{"$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info"}` to unentropy.json, run metrics collection, verify coverage is collected with percent unit.
 
 ### Implementation for User Story 1
 
-- [x] T024 [P] [US2] Define coverage built-in metric in src/metrics/registry.ts
+- [x] T024 [P] [US2] Define coverage metric template in src/metrics/registry.ts
   - unit: "percent" (UnitType)
-  - NO defaultCommand (too technology-specific)
-- [x] T025 [P] [US2] Define function-coverage built-in metric in src/metrics/registry.ts
+  - NO command (too technology-specific)
+- [x] T025 [P] [US2] Define function-coverage metric template in src/metrics/registry.ts
   - unit: "percent" (UnitType)
-  - NO defaultCommand (too technology-specific)
-- [x] T026 [P] [US2] Define loc built-in metric in src/metrics/registry.ts
+  - NO command (too technology-specific)
+- [x] T026 [P] [US2] Define loc metric template in src/metrics/registry.ts
   - unit: "integer" (UnitType)
-  - defaultCommand: "@collect loc ."
-- [x] T027 [P] [US2] Define bundle-size built-in metric in src/metrics/registry.ts
+  - command: "@collect loc ."
+- [x] T027 [P] [US2] Define bundle-size metric template in src/metrics/registry.ts
   - unit: "bytes" (UnitType)
-  - defaultCommand: "@collect size ./dist"
-- [x] T028 [P] [US2] Define build-time built-in metric in src/metrics/registry.ts
+  - command: "@collect size ./dist"
+- [x] T028 [P] [US2] Define build-time metric template in src/metrics/registry.ts
   - unit: "duration" (UnitType)
-  - NO defaultCommand (too project-specific)
-- [x] T029 [P] [US2] Define test-time built-in metric in src/metrics/registry.ts
+  - NO command (too project-specific)
+- [x] T029 [P] [US2] Define test-time metric template in src/metrics/registry.ts
   - unit: "duration" (UnitType)
-  - NO defaultCommand (too project-specific)
-- [x] T030 [P] [US2] Define dependencies-count built-in metric in src/metrics/registry.ts
+  - NO command (too project-specific)
+- [x] T030 [P] [US2] Define dependencies-count metric template in src/metrics/registry.ts
   - unit: "integer" (UnitType)
-  - NO defaultCommand (varies by package manager)
+  - NO command (varies by package manager)
 - [x] T031 [US2] Implement getBuiltInMetric lookup function in src/metrics/registry.ts
 - [x] T032 [US2] Implement listAvailableMetricIds function in src/metrics/registry.ts
 - [x] T033 [US2] Implement resolveMetricReference function in src/metrics/resolver.ts
 - [x] T034 [US2] Implement validateBuiltInReference function in src/metrics/resolver.ts
 - [x] T035 [US2] Add resolution step to loadConfig function in src/config/loader.ts
 - [ ] T036 [US2] Add resolution step validation in src/config/loader.ts
-- [x] T037 [P] [US2] Add unit test for built-in metrics registry in tests/unit/metrics/registry.test.ts
+- [x] T037 [P] [US2] Add unit test for metric templates registry in tests/unit/metrics/registry.test.ts
 - [x] T038 [P] [US2] Add unit test for resolver with valid references in tests/unit/metrics/resolver.test.ts
 - [x] T039 [P] [US2] Add unit test for resolver with invalid references in tests/unit/metrics/resolver.test.ts
 
-**Checkpoint**: At this point, User Story 2 should be fully functional and testable independently. Users can reference all 7 built-in metrics by ID.
+**Checkpoint**: At this point, User Story 2 should be fully functional and testable independently. Users can reference all 7 metric templates by ID.
 
 ---
 
-## Phase 5: User Story 3 - Override built-in metric defaults (Priority: P3)
+## Phase 5: User Story 3 - Override metric template defaults (Priority: P3)
 
-**Goal**: Enable developers to customize specific properties of built-in metrics (name, unit, etc.) while keeping other defaults, supporting flexible adaptation to project-specific requirements.
+**Goal**: Enable developers to customize specific properties of metric templates (name, unit, etc.) while keeping other defaults, supporting flexible adaptation to project-specific requirements.
 
-**Independent Test**: Reference `{"$ref": "coverage", "name": "custom-coverage", "command": "..."}` in config, verify custom name is used while other properties (unit, type) are preserved from built-in defaults.
+**Independent Test**: Reference `{"$ref": "coverage", "name": "custom-coverage", "command": "..."}` in config, verify custom name is used while other properties (unit, type) are preserved from template defaults.
 
 ### Implementation for User Story 2
 
@@ -294,10 +297,10 @@
   - Test overriding unit with invalid value fails validation
 - [ ] T047 [P] [US3] Add unit test for multiple property overrides in tests/unit/metrics/resolver.test.ts
 - [ ] T048 [P] [US3] Add unit test for invalid override validation in tests/unit/metrics/resolver.test.ts
-- [ ] T049 [US3] Add integration test for mixing built-in refs with overrides in tests/integration/gallery-config.test.ts
+- [ ] T049 [US3] Add integration test for mixing template refs with overrides in tests/integration/gallery-config.test.ts
 - [ ] T050 [US3] Add contract test for override property validation in tests/contract/gallery-schema.test.ts
 
-**Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently. Users can reference built-in metrics with or without overrides.
+**Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently. Users can reference metric templates with or without overrides.
 
 ---
 
@@ -396,7 +399,7 @@
   - Test output is reasonable (> 100 for unentropy repo)
   - Test output integrates with metric collection
   - Test value persists in storage
-- [ ] T066 [CLI] Update loc metric in src/metrics/registry.ts with SCC command reference
+- [ ] T066 [CLI] Update loc metric template in src/metrics/registry.ts with SCC command reference
   - Update description to: "Total lines of code in the codebase (excluding blanks and comments)"
   - Update command example to: "unentropy collect loc ./src/"
   - Add comment explaining SCC-based collection
@@ -472,14 +475,14 @@
 
 - [ ] T075 [P] Add JSDoc documentation to all public functions in src/metrics/unit-formatter.ts
 - [ ] T076 [P] Add JSDoc documentation to all public functions in src/metrics/
-- [ ] T077 [P] Add error message improvements with available metric IDs in src/metrics/resolver.ts
-- [ ] T078 [P] Update root-level unentropy.json to use built-in metric reference as example
+- [ ] T077 [P] Add error message improvements with available template IDs in src/metrics/resolver.ts
+- [ ] T078 [P] Update root-level unentropy.json to use metric template reference as example
 - [ ] T079 Run build and typecheck to ensure no type errors
 - [ ] T080 Run all tests to ensure full suite passes
-- [ ] T081 Run quickstart.md validation with built-in metric examples
+- [ ] T081 Run quickstart.md validation with metric template examples
 - [ ] T082 [US2] Enhance validateBuiltInReference with available IDs list in src/metrics/resolver.ts
 - [ ] T083 [US2] Add error message tests for invalid reference scenarios in tests/unit/metrics/resolver.test.ts
-- [ ] T084 [P] [US2] Organize built-in metrics by categories in src/metrics/registry.ts
+- [ ] T084 [P] [US2] Organize metric templates by categories in src/metrics/registry.ts
 - [ ] T085 [US2] Add getCategory function for metric organization in src/metrics/registry.ts
 
 ---
@@ -491,7 +494,7 @@
 - **Setup (Phase 1)**: No dependencies - can start immediately
 - **Foundational (Phase 2)**: Depends on Setup completion
 - **@collect Infrastructure (Phase 2b)**: Depends on Phase 2, can run parallel with Phase 3
-- **Unit Types (Phase 3)**: Depends on Setup completion - BLOCKS built-in metric definitions
+- **Unit Types (Phase 3)**: Depends on Setup completion - BLOCKS metric template definitions
 - **User Story 1 (Phase 4a)**: Depends on Phase 2, 2b, and 3 - id/command inheritance
 - **User Story 2 (Phase 4b)**: Depends on User Story 1 completion
 - **User Story 3 (Phase 5)**: Depends on User Story 2 completion
@@ -556,17 +559,17 @@ Task: "Add unit tests for null handling"
 ## Parallel Example: User Story 2 (Phase 4b)
 
 ```bash
-# Launch all built-in metric definitions together:
-Task: "Define coverage built-in metric in src/metrics/registry.ts"
-Task: "Define function-coverage built-in metric in src/metrics/registry.ts"
-Task: "Define loc built-in metric in src/metrics/registry.ts"
-Task: "Define bundle-size built-in metric in src/metrics/registry.ts"
-Task: "Define build-time built-in metric in src/metrics/registry.ts"
-Task: "Define test-time built-in metric in src/metrics/registry.ts"
-Task: "Define dependencies-count built-in metric in src/metrics/registry.ts"
+# Launch all metric template definitions together:
+Task: "Define coverage metric template in src/metrics/registry.ts"
+Task: "Define function-coverage metric template in src/metrics/registry.ts"
+Task: "Define loc metric template in src/metrics/registry.ts"
+Task: "Define bundle-size metric template in src/metrics/registry.ts"
+Task: "Define build-time metric template in src/metrics/registry.ts"
+Task: "Define test-time metric template in src/metrics/registry.ts"
+Task: "Define dependencies-count metric template in src/metrics/registry.ts"
 
 # Launch all unit tests for User Story 2 together:
-Task: "Add unit test for built-in metrics registry in tests/unit/metrics/registry.test.ts"
+Task: "Add unit test for metric templates registry in tests/unit/metrics/registry.test.ts"
 Task: "Add unit test for resolver with valid references in tests/unit/metrics/resolver.test.ts"
 Task: "Add unit test for resolver with invalid references in tests/unit/metrics/resolver.test.ts"
 ```
@@ -660,13 +663,13 @@ With multiple developers:
 - Each user story should be independently completable and testable
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
-- Built-in metric commands follow contract specifications in contracts/built-in-metrics.md
-- Built-in metrics use UnitType for semantic unit definitions (percent, integer, bytes, duration, decimal)
+- Metric template commands follow contract specifications in contracts/built-in-metrics.md
+- Metric templates use UnitType for semantic unit definitions (percent, integer, bytes, duration, decimal)
 - LOC collector uses SCC as implementation detail (not exposed in naming or API)
 - LOC collector supports directory exclusion (--exclude) and language filtering (--language)
 - CLI helpers support standard formats (LCOV, JSON, XML, size, LOC) as documented in quickstart.md
 - Schema extensions maintain backward compatibility with existing custom metrics
 - Resolution happens during config loading before validation
-- Error messages include available metric IDs for invalid references
+- Error messages include available template IDs for invalid references
 - LOC is prioritized as primary "out of box" metric for maximum user value
 - Unit type validation is strict - invalid unit values fail configuration validation

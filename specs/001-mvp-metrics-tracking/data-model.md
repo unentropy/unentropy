@@ -1,7 +1,8 @@
 # Data Model: MVP Metrics Tracking
 
-**Feature**: 003-mvp-metrics-tracking  
+**Feature**: 001-mvp-metrics-tracking  
 **Date**: Thu Oct 16 2025  
+**Updated**: 2025-12-06  
 **Status**: Complete
 
 ## Overview
@@ -137,11 +138,11 @@ BuildContext (1) ──────────────< (N) MetricValue
 **Structure**:
 ```typescript
 {
-  metrics: MetricConfig[]
+  metrics: Record<string, MetricConfig>
 }
 
 MetricConfig {
-  name: string,              // Maps to MetricDefinition.name
+  name?: string,             // Optional display name (defaults to key)
   type: 'numeric' | 'label', // Maps to MetricDefinition.type
   description?: string,      // Maps to MetricDefinition.description
   command: string,           // Shell command to execute (not stored)
@@ -149,13 +150,16 @@ MetricConfig {
 }
 ```
 
+**Note**: The object key serves as the metric identifier and maps to `MetricDefinition.name` in the database.
+
 **Validation Rules** (enforced by Zod schema):
-- `metrics`: Array with at least 1 item, max 50 items
-- `metrics[].name`: Same rules as MetricDefinition.name
-- `metrics[].type`: Must be 'numeric' or 'label'
-- `metrics[].command`: Non-empty string, max 1024 characters
-- `metrics[].unit`: Max 10 characters if provided
-- `metrics[].description`: Max 256 characters if provided
+- `metrics`: Object with at least 1 property, max 50 properties
+- Object keys: Must match pattern `^[a-z0-9-]+$`, length 1-64 characters
+- `metrics[key].type`: Must be 'numeric' or 'label'
+- `metrics[key].command`: Non-empty string, max 1024 characters
+- `metrics[key].unit`: Max 10 characters if provided
+- `metrics[key].description`: Max 256 characters if provided
+- `metrics[key].name`: Max 256 characters if provided (optional display name)
 
 ---
 

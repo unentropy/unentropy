@@ -10,9 +10,9 @@ This document captures research findings and design decisions for implementing t
 
 ## Key Design Decisions
 
-### 1. Configuration Syntax for Built-in Metric References
+### 1. Configuration Syntax for Metric Template References
 
-**Decision**: Use `$ref` property with metric ID for built-in metric references
+**Decision**: Use `$ref` property with metric ID for metric template references
 
 **Rationale**:
 - `$ref` is a well-established convention from JSON Schema and OpenAPI specs
@@ -60,13 +60,13 @@ This document captures research findings and design decisions for implementing t
 
 ### 3. Command Implementation Strategy
 
-**Decision**: Built-in metrics provide metadata only; users always provide commands (can use CLI helpers)
+**Decision**: Metric templates provide metadata only; users always provide commands (can use CLI helpers)
 
 **Rationale**:
 - Commands are technology-specific and cannot be standardized
 - CLI helpers provide format parsing while maintaining tool agnosticism
 - Users know their project structure and tooling best
-- Keeps built-in metrics focused on metadata (name, type, unit, description)
+- Keeps metric templates focused on metadata (name, type, unit, description)
 
 **Implementation**:
 ```typescript
@@ -144,13 +144,13 @@ const MetricConfigSchema = z.object({
 - Keeps gallery feature independent of quality gate feature
 
 **Implementation**:
-- Built-in metrics include threshold recommendations in comments/docs
+- Metric templates include threshold recommendations in comments/docs
 - Users explicitly configure quality gate thresholds if they want them
-- Built-in metrics only provide command, unit, type - not threshold config
+- Metric templates only provide command, unit, type - not threshold config
 
 ### 7. Error Messages for Invalid References
 
-**Decision**: List available built-in metric IDs in error message
+**Decision**: List available metric template IDs in error message
 
 **Rationale**:
 - Helps users discover valid options
@@ -160,7 +160,7 @@ const MetricConfigSchema = z.object({
 **Example Error**:
 ```
 Invalid metric reference: "$ref: unknown-metric"
-Available built-in metrics: coverage, function-coverage, loc, bundle-size, 
+Available metric templates: coverage, function-coverage, loc, bundle-size, 
 build-time, test-time, dependencies-count
 ```
 
@@ -323,7 +323,7 @@ unentropy collect <format-type> <source-path> [options]
 
 ### 9. SCC Implementation for LOC Collector
 
-**Decision**: Use SCC (Sloc Cloc and Code) as the implementation for the `loc` built-in metric, with CLI helper support for path exclusions and language filtering.
+**Decision**: Use SCC (Sloc Cloc and Code) as the implementation for the `loc` metric template, with CLI helper support for path exclusions and language filtering.
 
 **Rationale**:
 - SCC is much faster than shell-based `find + wc -l` approach
@@ -382,7 +382,7 @@ unentropy collect loc <path> [--exclude <patterns>] [--language <language>]
 **Backward Compatibility**:
 - Existing shell-based LOC commands continue to work (no breaking changes)
 - SCC is optional - users can use traditional `find + wc -l` if preferred
-- `loc` metric definition remains unchanged (users control commands via `$ref`)
+- `loc` metric template remains unchanged (users control commands via `$ref`)
 
 **Installation Requirements**:
 - SCC must be available in PATH for LOC CLI helper to work

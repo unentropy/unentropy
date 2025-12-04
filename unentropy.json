@@ -2,20 +2,20 @@
   "metrics": [
     {
       "$ref": "loc",
+      "id": "lines-of-code",
       "name": "lines-of-code",
       "description": "total lines of typescript/tsx code in src/ directory",
       "command": "@collect loc ./src --language TypeScript"
     },
     {
       "$ref": "loc",
+      "id": "lines-of-test-code",
       "name": "lines-of-test-code",
       "description": "Total lines of TypeScript/TSX code in tests/ directory",
       "command": "@collect loc ./tests --language TypeScript"
     },
     {
       "$ref": "coverage",
-      "name": "test-coverage",
-      "description": "Test coverage percentage for the codebase",
       "command": "@collect coverage-lcov coverage/lcov.info"
     },
     {
@@ -26,6 +26,7 @@
     },
     {
       "$ref": "loc",
+      "id": "specs-size",
       "name": "specs-size",
       "description": "Total lines of specification documentation",
       "command": "@collect loc ./specs --language Markdown"
@@ -38,7 +39,7 @@
     "mode": "soft",
     "thresholds": [
       {
-        "metric": "test-coverage",
+        "metric": "coverage",
         "mode": "min",
         "target": 80,
         "severity": "blocker"

@@ -7,10 +7,10 @@
 
 ## Summary
 
-The Metrics Gallery feature provides a curated collection of 7 built-in metrics that users can reference by ID (e.g., `{"$ref": "coverage"}`) with minimal configuration. Key simplifications:
+The Metrics Gallery feature provides a curated collection of 7 metric templates that users can reference by ID (e.g., `{"$ref": "coverage"}`) with minimal configuration. Key simplifications:
 
 - **Optional `id`**: When using `$ref`, the `id` is inherited from the template (e.g., `{"$ref": "loc"}` resolves to `id: "loc"`)
-- **Optional `command`**: Built-in metrics with `defaultCommand` don't require user-provided commands
+- **Optional `command`**: Metric templates with `command` don't require user-provided commands
 - **`@collect` shortcut**: In-process execution of collectors (no subprocess overhead)
 - **Glob support**: The `@collect size` command supports glob patterns
 
@@ -26,14 +26,14 @@ Users can override any property while keeping other defaults. The feature reduce
 **Project Type**: Single project (CLI tool with library components)  
 **Performance Goals**: Configuration resolution <10ms, no impact on metric collection performance  
 **Constraints**: Must maintain backward compatibility with existing custom metric configs, must work within GitHub Actions environment  
-**Scale/Scope**: Initial collection of 7 built-in metrics, support for mixing built-in and custom metrics in same config
+**Scale/Scope**: Initial collection of 7 metric templates, support for mixing templates and custom metrics in same config
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 ### I. Serverless Architecture
-✅ **PASS** - Feature operates entirely within existing GitHub Actions workflow, no external servers required. Built-in metrics are resolved at configuration load time.
+✅ **PASS** - Feature operates entirely within existing GitHub Actions workflow, no external servers required. Metric templates are resolved at configuration load time.
 
 ### II. Technology Stack Consistency
 ✅ **PASS** - Uses Bun runtime with TypeScript (existing stack), extends existing configuration system, no new technology introduced.
@@ -124,7 +124,7 @@ No constitution violations to justify. All gates pass without exceptions.
 - Configuration syntax: Use `$ref` property (JSON Schema convention)
 - `id` field: Optional when `$ref` provided (inherits from template), required for custom metrics
 - `name` field: Optional display name (inherits from template or defaults to `id`)
-- `command` field: Optional when `$ref` provides `defaultCommand`
+- `command` field: Optional when `$ref` provides `command`
 - `@collect` shortcut: In-process collector execution (no subprocess)
 - Override behavior: Shallow merge with user precedence
 - Schema validation: Single MetricConfig interface with optional `$ref` property
@@ -144,18 +144,18 @@ No constitution violations to justify. All gates pass without exceptions.
 **Outputs**:
 - [data-model.md](data-model.md) - Core entities and resolution process
 - [contracts/config-schema.md](contracts/config-schema.md) - Extended configuration schema v2.0.0
-- [contracts/built-in-metrics.md](contracts/built-in-metrics.md) - Built-in metric definitions
+- [contracts/built-in-metrics.md](contracts/built-in-metrics.md) - Metric template definitions
 - [quickstart.md](quickstart.md) - User guide with examples
 
 **Key Entities**:
-- `MetricTemplate`: Built-in metric template definition (id, name, description, type, unit, defaultCommand)
-- `MetricConfig`: Extended with optional `$ref` and `id` properties (single interface for both custom and built-in metrics)
+- `MetricTemplate`: Metric template definition (id, name, description, type, unit, command)
+- `MetricConfig`: Extended with optional `$ref` and `id` properties (single interface for both custom and template metrics)
 - `ResolvedMetricConfig`: Fully resolved configuration after inheriting from template
 - `BuiltInMetricsRegistry`: Record<string, MetricTemplate> for lookups
 
 **Contracts Defined**:
 - Configuration schema extension (backward compatible)
-- 7 built-in metrics with commands
+- 7 metric templates with commands
 - Override behavior and merge strategy
 - Validation rules and error messages
 

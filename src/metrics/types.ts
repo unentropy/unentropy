@@ -3,11 +3,11 @@ export interface MetricTemplate {
   name: string;
   description: string;
   type: "numeric" | "label";
-  command: string;
+  command?: string;
   unit?: UnitType;
 }
 
-export type BuiltInMetricsRegistry = Record<string, MetricTemplate>;
+export type MetricTemplateRegistry = Record<string, MetricTemplate>;
 
 /**
  * Semantic unit types for consistent value formatting across reports and PR comments.

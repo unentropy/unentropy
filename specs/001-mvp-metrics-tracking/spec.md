@@ -166,20 +166,18 @@ The Unentropy project will include a reference `unentropy.json` configuration th
 
 ```json
 {
-  "metrics": [
-    {
-      "name": "test_coverage",
+  "metrics": {
+    "test-coverage": {
       "type": "percentage",
       "description": "Test coverage percentage for the codebase",
       "command": "bun test --coverage | grep 'Lines' | awk '{print $2}' | sed 's/%//'"
     },
-    {
-      "name": "lines_of_code", 
+    "lines-of-code": {
       "type": "numeric",
       "description": "Total lines of code in src/ directory",
       "command": "find src/ -name '*.ts' -not -path '*/node_modules/*' | xargs wc -l | tail -1 | awk '{print $1}'"
     }
-  ]
+  }
 }
 ```
 

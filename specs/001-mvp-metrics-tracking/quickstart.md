@@ -81,7 +81,7 @@ await cli.parse(hideBin(process.argv));
 import { z } from 'zod';
 
 export const MetricConfigSchema = z.object({
-  name: z.string().regex(/^[a-z0-9-]+$/).min(1).max(64),
+  name: z.string().max(256).optional(),  // Optional display name
   type: z.enum(['numeric', 'label']),
   description: z.string().max(256).optional(),
   command: z.string().min(1).max(1024),
@@ -89,7 +89,13 @@ export const MetricConfigSchema = z.object({
 });
 
 export const UnentropyConfigSchema = z.object({
-  metrics: z.array(MetricConfigSchema).min(1).max(50),
+  metrics: z.record(
+    z.string().regex(/^[a-z0-9-]+$/).min(1).max(64),  // Key validation
+    MetricConfigSchema
+  ).refine(
+    obj => Object.keys(obj).length >= 1 && Object.keys(obj).length <= 50,
+    { message: "metrics must contain 1-50 entries" }
+  ),
 });
 
 // 5. Export inferred types in src/config/types.ts
@@ -106,8 +112,8 @@ export async function loadConfig(configPath = "unentropy.json"): Promise<Unentro
     throw new Error(`Invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
   
-  if (!parsedJson.metrics || !Array.isArray(parsedJson.metrics)) {
-    throw new Error("Configuration must contain a 'metrics' array");
+  if (!parsedJson.metrics || typeof parsedJson.metrics !== 'object' || Array.isArray(parsedJson.metrics)) {
+    throw new Error("Configuration must contain a 'metrics' object");
   }
   
   const validated = validateConfig(configWithResolvedMetrics);
@@ -117,8 +123,7 @@ export async function loadConfig(configPath = "unentropy.json"): Promise<Unentro
 
 **Tests** (`tests/unit/config/`):
 - Valid config parses successfully
-- Invalid metric names rejected
-- Duplicate metric names rejected
+- Invalid metric keys rejected
 - Type mismatches caught
 - Clear error messages
 
@@ -163,15 +168,15 @@ $ unentropy verify invalid.json
 ✗ Configuration file invalid.json is invalid:
   Invalid JSON: Unexpected token } in JSON at position 123
 
-# Missing metrics array
+# Missing metrics object
 $ unentropy verify empty.json
 ✗ Configuration file empty.json is invalid:
-  Configuration must contain a 'metrics' array
+  Configuration must contain a 'metrics' object
 
-# Invalid metric name
-$ unentropy verify bad-name.json
-✗ Configuration file bad-name.json is invalid:
-  name must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)
+# Invalid metric key
+$ unentropy verify bad-key.json
+✗ Configuration file bad-key.json is invalid:
+  Invalid metric key "Test-Coverage": must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)
 ```
 
 **Acceptance**: User Story 1.5 (CLI Validation)
@@ -1071,7 +1076,7 @@ After MVP implementation:
 | Error | Cause | Solution |
 |-------|--------|----------|
 | "Invalid JSON: ..." | Malformed JSON syntax | Fix JSON syntax errors |
-| "Configuration must contain a 'metrics' array" | Missing metrics property | Add metrics array to config |
-| "name must be lowercase with hyphens only" | Invalid metric name format | Use lowercase letters, numbers, and hyphens only |
+| "Configuration must contain a 'metrics' object" | Missing or invalid metrics property | Add metrics object to config |
+| "Invalid metric key: must be lowercase with hyphens only" | Invalid metric key format | Use lowercase letters, numbers, and hyphens only for object keys |
 | "type must be either 'numeric' or 'label'" | Invalid metric type | Use 'numeric' or 'label' |
 | "command cannot be empty" | Missing collection command | Add command property to metric definition |

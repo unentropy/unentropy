@@ -2,16 +2,16 @@
 
 **Feature**: 005-metrics-gallery  
 **File**: `unentropy.json`  
-**Version**: 3.0.0  
-**Last Updated**: 2025-12-04
+**Version**: 4.0.0  
+**Last Updated**: 2025-12-06
 
 ## Overview
 
-This document extends the base configuration schema from 001-mvp-metrics-tracking to support simplified built-in metric references. The extension adds:
+This document extends the base configuration schema from 001-mvp-metrics-tracking to support simplified metric template references. The extension adds:
 
-1. **`id` field**: Unique identifier for metrics (optional when `$ref` is provided - inherits from template)
-2. **`name` field**: Optional display name (defaults to template name or id)
-3. **Optional `command`**: When using `$ref`, command can be omitted to use built-in defaults
+1. **Object key as identifier**: The metrics object key serves as the unique metric identifier
+2. **`name` field**: Optional display name (defaults to key or template name)
+3. **Optional `command`**: When using `$ref`, command can be omitted to use template defaults
 4. **`@collect` shortcut**: Direct in-process execution of built-in collectors
 
 ## Schema Changes
@@ -19,23 +19,20 @@ This document extends the base configuration schema from 001-mvp-metrics-trackin
 ### Base Schema Reference
 
 The base configuration schema is defined in `/specs/001-mvp-metrics-tracking/contracts/config-schema.md` and covers:
-- `metrics`: Array of metric definitions
+- `metrics`: Object of metric definitions (keyed by metric id)
 - `storage`: Optional storage configuration (from 003-unified-s3-action)
 - `qualityGate`: Optional quality gate configuration (from 004-metrics-quality-gate)
 
-### Extension: MetricConfig with Optional id and Command
+### Extension: MetricConfig with Optional Command
 
 ```typescript
 type UnitType = 'percent' | 'integer' | 'bytes' | 'duration' | 'decimal';
 
 interface MetricConfig {
-  // Unique identifier - required for custom metrics, optional with $ref (inherits from template)
-  id?: string;
-  
   // Optional reference to built-in metric template
   $ref?: string;
   
-  // Optional display name (defaults to template name or id)
+  // Optional display name (defaults to template name or key)
   name?: string;
   
   // Required when no $ref, optional when $ref provides default
@@ -51,11 +48,11 @@ interface MetricConfig {
 }
 ```
 
-### Metrics Array (Unchanged Interface)
+### Metrics Object
 
 ```typescript
 interface UnentropyConfig {
-  metrics: MetricConfig[];  // Accepts MetricConfig with id and optional $ref
+  metrics: Record<string, MetricConfig>;  // Key is the metric identifier
   storage?: StorageConfig;
   qualityGate?: QualityGateConfig;
 }
@@ -63,33 +60,25 @@ interface UnentropyConfig {
 
 ## Field Specifications
 
-### id (Conditionally Required)
+### Object Key (Metric Identifier)
 
 | Field | Type | Required | Constraints | Description |
 |-------|------|----------|-------------|-------------|
-| `id` | string | Conditional | Pattern: `^[a-z0-9-]+$`, Length: 1-64 chars | Unique identifier for this metric, used in thresholds, database storage, and internal references |
-
-**Requirement Rules**:
-- **Required** when no `$ref` is provided (custom metrics)
-- **Optional** when `$ref` is provided - inherits `id` from the built-in template
+| *(key)* | string | Yes | Pattern: `^[a-z0-9-]+$`, Length: 1-64 chars | Object key serves as the unique metric identifier, used in thresholds, database storage, and internal references |
 
 **Validation Rules**:
 - Must be lowercase with hyphens only
-- Must be unique across all metrics after resolution
+- Object keys are inherently unique (JSON requirement)
 - Used as the primary key for quality gate thresholds
 - Stored as `name` in database for backward compatibility
-
-**Inheritance Behavior**:
-- When `$ref` is provided and `id` is omitted, the template's `id` is used
-- Example: `{ "$ref": "loc" }` resolves to `id: "loc"`
 
 ### $ref (Optional)
 
 | Field | Type | Required | Constraints | Description |
 |-------|------|----------|-------------|-------------|
-| `$ref` | string | No | Must match a built-in metric template ID | References a built-in metric template |
+| `$ref` | string | No | Must match a metric template ID | References a metric template |
 
-**Available Built-in Metric IDs** (v3.0.0):
+**Available Metric Template IDs** (v4.0.0):
 - `coverage` - Test coverage percentage
 - `function-coverage` - Function coverage percentage
 - `loc` - Lines of code
@@ -106,7 +95,7 @@ interface UnentropyConfig {
 
 **Default Behavior**:
 - If `$ref` is provided and `name` is omitted, inherits from template's `name`
-- If no `$ref` and `name` is omitted, defaults to `id`
+- If no `$ref` and `name` is omitted, defaults to the object key
 - No regex constraint (can contain spaces, capitals, etc.)
 - Used for display purposes only (charts, PR comments)
 
@@ -118,8 +107,8 @@ interface UnentropyConfig {
 
 **Requirement Rules**:
 - **Required** when no `$ref` is provided
-- **Optional** when `$ref` is provided and the built-in has a `defaultCommand`
-- If `$ref` is provided but built-in has no `defaultCommand`, command is required
+- **Optional** when `$ref` is provided and the template has a `command`
+- If `$ref` is provided but template has no `command`, command is required
 
 ### @collect Shortcut
 
@@ -143,8 +132,12 @@ Commands starting with `@collect` are executed directly in-process without spawn
 
 **Example**:
 ```json
-{ "id": "src-loc", "$ref": "loc", "command": "@collect loc ./src --language TypeScript" }
-{ "id": "bundle", "$ref": "bundle-size", "command": "@collect size .github/actions/*/dist/*.js" }
+{
+  "metrics": {
+    "src-loc": { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
+    "bundle": { "$ref": "bundle-size", "command": "@collect size .github/actions/*/dist/*.js" }
+  }
+}
 ```
 
 ### Unit Types
@@ -172,22 +165,21 @@ type UnitType = 'percent' | 'integer' | 'bytes' | 'duration' | 'decimal';
   "required": ["metrics"],
   "properties": {
     "metrics": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 50,
-      "items": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 50,
+      "propertyNames": {
+        "pattern": "^[a-z0-9-]+$",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "additionalProperties": {
         "oneOf": [
           {
             "type": "object",
-            "description": "Built-in metric reference (id optional, inherits from template)",
+            "description": "Built-in metric reference",
             "required": ["$ref"],
             "properties": {
-              "id": {
-                "type": "string",
-                "pattern": "^[a-z0-9-]+$",
-                "minLength": 1,
-                "maxLength": 64
-              },
               "$ref": {
                 "type": "string",
                 "enum": [
@@ -227,15 +219,9 @@ type UnitType = 'percent' | 'integer' | 'bytes' | 'duration' | 'decimal';
           },
           {
             "type": "object",
-            "description": "Custom metric definition (id required)",
-            "required": ["id", "type", "command"],
+            "description": "Custom metric definition",
+            "required": ["type", "command"],
             "properties": {
-              "id": {
-                "type": "string",
-                "pattern": "^[a-z0-9-]+$",
-                "minLength": 1,
-                "maxLength": 64
-              },
               "name": {
                 "type": "string",
                 "maxLength": 256
@@ -280,41 +266,33 @@ type UnitType = 'percent' | 'integer' | 'bytes' | 'duration' | 'decimal';
 
 ## Example Configurations
 
-### 1. Ultra-Minimal Configuration (id Inherited)
+### 1. Ultra-Minimal Configuration
 
 For metrics with default commands (`loc`, `bundle-size`):
 
 ```json
 {
-  "metrics": [
-    { "$ref": "loc" },
-    { "$ref": "bundle-size" }
-  ]
-}
-```
-
-This is equivalent to:
-```json
-{
-  "metrics": [
-    { "id": "loc", "$ref": "loc" },
-    { "id": "bundle-size", "$ref": "bundle-size" }
-  ]
+  "metrics": {
+    "loc": { "$ref": "loc" },
+    "bundle-size": { "$ref": "bundle-size" }
+  }
 }
 ```
 
 **Note**: Metrics like `coverage` require a command (too technology-specific for defaults).
 
+**See [../data-model.md](../data-model.md#example-resolution) for detailed resolution examples with input/output configurations.**
+
 ### 2. Built-in Metrics with @collect Commands
 
 ```json
 {
-  "metrics": [
-    { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
-    { "id": "src-loc", "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
-    { "id": "test-loc", "$ref": "loc", "command": "@collect loc ./tests --language TypeScript" },
-    { "id": "bundle", "$ref": "bundle-size", "command": "@collect size ./dist/*.js" }
-  ]
+  "metrics": {
+    "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
+    "src-loc": { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
+    "test-loc": { "$ref": "loc", "command": "@collect loc ./tests --language TypeScript" },
+    "bundle": { "$ref": "bundle-size", "command": "@collect size ./dist/*.js" }
+  }
 }
 ```
 
@@ -322,20 +300,18 @@ This is equivalent to:
 
 ```json
 {
-  "metrics": [
-    { 
-      "id": "test-coverage", 
-      "$ref": "coverage", 
+  "metrics": {
+    "test-coverage": {
+      "$ref": "coverage",
       "name": "Test Coverage",
       "command": "@collect coverage-lcov coverage/lcov.info"
     },
-    { 
-      "id": "src-size", 
-      "$ref": "loc", 
+    "src-size": {
+      "$ref": "loc",
       "name": "Source Lines of Code",
       "command": "@collect loc ./src"
     }
-  ]
+  }
 }
 ```
 
@@ -343,16 +319,15 @@ This is equivalent to:
 
 ```json
 {
-  "metrics": [
-    { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
-    { "$ref": "loc" },
-    { 
-      "id": "custom-score", 
-      "type": "numeric", 
+  "metrics": {
+    "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
+    "loc": { "$ref": "loc" },
+    "custom-score": {
+      "type": "numeric",
       "command": "./scripts/calculate-score.sh",
       "unit": "decimal"
     }
-  ]
+  }
 }
 ```
 
@@ -360,10 +335,10 @@ This is equivalent to:
 
 ```json
 {
-  "metrics": [
-    { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
-    { "$ref": "bundle-size" }
-  ],
+  "metrics": {
+    "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
+    "bundle-size": { "$ref": "bundle-size" }
+  },
   "storage": {
     "type": "sqlite-s3"
   },
@@ -389,165 +364,124 @@ This is equivalent to:
 
 ```json
 {
-  "metrics": [
-    { 
-      "id": "actions-bundle", 
-      "$ref": "bundle-size", 
+  "metrics": {
+    "actions-bundle": {
+      "$ref": "bundle-size",
       "command": "@collect size .github/actions/*/dist/*.js"
     }
-  ]
+  }
 }
 ```
 
 ## Validation Rules
 
-### id Validation
+### Key Validation
 
-1. **Conditionally Required**: Required when no `$ref`, optional when `$ref` provided
-2. **Inheritance**: When `$ref` provided and `id` omitted, inherits from template
-3. **Unique**: No duplicate `id` values allowed after resolution
-4. **Format**: Must match `^[a-z0-9-]+$` (lowercase, numbers, hyphens)
-5. **Length**: 1-64 characters
+1. **Required**: Every metric must have an object key
+2. **Format**: Must match `^[a-z0-9-]+$` (lowercase, numbers, hyphens)
+3. **Length**: 1-64 characters
+4. **Unique**: Object keys are inherently unique (JSON requirement)
 
 ### Reference Validation
 
-1. **Valid $ref**: Must match one of the built-in metric IDs (case-sensitive)
-2. **Command resolution**: If `$ref` has no `defaultCommand` and no user `command`, fail validation
-3. **No type override**: Type is inherited from built-in metric and cannot be overridden
+1. **Valid $ref**: Must match one of the metric template IDs (case-sensitive)
+2. **Command resolution**: If `$ref` has no `command` and no user `command`, fail validation
+3. **No type override**: Type is inherited from metric template and cannot be overridden
 
 ### Custom Metric Validation
 
-1. **Required fields**: `id`, `type`, and `command` are all required when no `$ref`
+1. **Required fields**: `type` and `command` are required when no `$ref`
 2. **Type values**: Must be either `'numeric'` or `'label'`
 
 ### Quality Gate Threshold Validation
 
-1. **Metric reference**: Threshold `metric` field must match a metric's resolved `id`
+1. **Metric reference**: Threshold `metric` field must match a key in the `metrics` object
 2. **Existence check**: Referenced metric must exist in configuration
 
 ## Edge Cases
 
-### 1. Duplicate Implicit IDs
+### 1. Same Key Used Twice
 
-**Configuration**:
-```json
-{ "$ref": "loc" }
-{ "$ref": "loc" }
-```
+Not possible in valid JSON - object keys are inherently unique. JSON parsers will use the last value for duplicate keys, but this is considered invalid configuration.
 
-**Behavior**: Both inherit `id: "loc"` -> duplicate error.
-
-**Error Message**:
-```
-Duplicate metric id "loc" found.
-When using the same $ref multiple times, provide explicit id values.
-```
-
-**Solution**:
-```json
-{ "id": "src-loc", "$ref": "loc", "command": "@collect loc ./src" }
-{ "id": "test-loc", "$ref": "loc", "command": "@collect loc ./tests" }
-```
-
-### 2. Explicit ID Matches Another's Implicit ID
-
-**Configuration**:
-```json
-{ "$ref": "loc" }
-{ "id": "loc", "$ref": "coverage" }
-```
-
-**Behavior**: First inherits `id: "loc"`, second explicitly sets `id: "loc"` -> duplicate error.
-
-**Error Message**:
-```
-Duplicate metric id "loc" found.
-Metric ids must be unique within the configuration.
-```
-
-### 3. Explicit ID Matches Template ID (Valid)
-
-**Configuration**:
-```json
-{ "id": "loc", "$ref": "loc" }
-```
-
-**Behavior**: Valid. Explicit id matches what would be inherited - no conflict.
-
-### 4. Custom Metric Without ID
-
-**Configuration**:
-```json
-{ "type": "numeric", "command": "echo 42" }
-```
-
-**Behavior**: No `$ref` to inherit from -> error.
-
-**Error Message**:
-```
-Custom metrics (without $ref) require an "id" field.
-```
-
-### 5. Quality Gate References Inherited ID
+### 2. Key Matches Template ID (Valid)
 
 **Configuration**:
 ```json
 {
-  "metrics": [{ "$ref": "loc" }],
+  "metrics": {
+    "loc": { "$ref": "loc" }
+  }
+}
+```
+
+**Behavior**: Valid. Key matches the template id - this is the intended minimal usage.
+
+### 3. Custom Metric
+
+**Configuration**:
+```json
+{
+  "metrics": {
+    "my-metric": { "type": "numeric", "command": "echo 42" }
+  }
+}
+```
+
+**Behavior**: Valid. Object key `"my-metric"` serves as the metric identifier.
+
+### 4. Quality Gate References Key
+
+**Configuration**:
+```json
+{
+  "metrics": {
+    "src-loc": { "$ref": "loc" }
+  },
+  "qualityGate": {
+    "thresholds": [{ "metric": "src-loc", "mode": "max", "target": 10000 }]
+  }
+}
+```
+
+**Behavior**: Valid. Threshold references `"src-loc"` which matches the object key.
+
+### 5. Quality Gate References Wrong Key
+
+**Configuration**:
+```json
+{
+  "metrics": {
+    "my-loc": { "$ref": "loc" }
+  },
   "qualityGate": {
     "thresholds": [{ "metric": "loc", "mode": "max", "target": 10000 }]
   }
 }
 ```
 
-**Behavior**: Valid. Threshold references `"loc"` which matches the inherited id.
-
-### 6. Quality Gate References Template ID When Overridden
-
-**Configuration**:
-```json
-{
-  "metrics": [{ "id": "my-loc", "$ref": "loc" }],
-  "qualityGate": {
-    "thresholds": [{ "metric": "loc", "mode": "max", "target": 10000 }]
-  }
-}
-```
-
-**Behavior**: Error. User overrode id to `"my-loc"`, but threshold references `"loc"`.
+**Behavior**: Error. Threshold references `"loc"` but the object key is `"my-loc"`.
 
 **Error Message**:
 ```
 Threshold references non-existent metric "loc".
-Metric must be defined in the metrics array with a matching id.
-```
-
-**Solution**: Match threshold to the actual id:
-```json
-"thresholds": [{ "metric": "my-loc", "mode": "max", "target": 10000 }]
+Available metrics: my-loc
 ```
 
 ## Error Messages
 
-### Missing id Field (Custom Metric)
+### Invalid Key Format
 
 ```
-Error: Custom metrics (without $ref) require an "id" field
-Each metric requires a unique identifier for quality gate thresholds and database storage.
-```
-
-### Duplicate id
-
-```
-Error: Duplicate metric id "loc" found
-When using the same $ref multiple times, provide explicit id values.
+Error: Invalid metric key "My-Metric"
+Keys must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)
 ```
 
 ### Invalid $ref
 
 ```
 Error: Invalid metric reference "$ref: unknown-metric"
-Available built-in metrics: coverage, function-coverage, loc, bundle-size, 
+Available metric templates: coverage, function-coverage, loc, bundle-size, 
 build-time, test-time, dependencies-count
 ```
 
@@ -555,7 +489,7 @@ build-time, test-time, dependencies-count
 
 ```
 Error: Metric "build-time" requires a command
-The built-in metric "build-time" does not have a default command.
+The metric template "build-time" does not have a default command.
 You must provide a command appropriate for your project.
 ```
 
@@ -570,7 +504,14 @@ Available collectors: loc, size, coverage-lcov, coverage-json, coverage-xml
 
 ```
 Error: Threshold references non-existent metric "typo-coverage"
-Metric must be defined in the metrics array with a matching id.
+Available metrics: coverage, bundle-size
+```
+
+### Missing Required Fields (Custom Metric)
+
+```
+Error: Metric "my-metric" requires "type" and "command" fields
+Custom metrics (without $ref) must specify both type and command.
 ```
 
 ## Data Flow
@@ -581,7 +522,7 @@ unentropy.json (User Configuration)
          v
 +------------------+
 | MetricConfig     |
-| - id?            |  <- Optional with $ref (inherits from template)
+| - key (id)       |  <- Object key is the identifier
 | - $ref?          |
 | - name?          |
 | - command?       |
@@ -592,9 +533,9 @@ unentropy.json (User Configuration)
          v (Resolver)
 +----------------------+
 | ResolvedMetricConfig |
-| - id                 |  <- Inherited from template if not provided
-| - name (display)     |  <- Inherited from template if not provided
-| - command            |  <- From defaultCommand if not provided
+| - id (from key)      |
+| - name (display)     |  <- From template or defaults to key
+| - command            |  <- From template.command if not provided
 | - type               |
 | - unit               |
 | - description        |
@@ -613,7 +554,7 @@ unentropy.json (User Configuration)
          v
 +----------------------+
 | InsertMetricDef      |
-| - name = id          |<-- id stored as name in DB
+| - name = id (key)    |<-- key stored as name in DB
 | - type               |
 | - unit               |
 | - description        |
@@ -623,82 +564,26 @@ unentropy.json (User Configuration)
 +----------------------+
 | Database             |
 | metric_definitions   |
-| - name (= id)        |
+| - name (= key)       |
 | - type               |
 | - unit               |
 +----------------------+
 ```
 
-## Backward Compatibility
-
-### Breaking Changes from v2.0.0
-
-1. **`id` field**: Now the primary identifier (optional with `$ref`, required for custom metrics)
-2. **`name` repurposed**: `name` is now optional display name, not identifier
-3. **Threshold references**: Quality gate thresholds must reference resolved `id`, not `name`
-
-### Migration Path
-
-**Before (v2.0.0)**:
-```json
-{
-  "metrics": [
-    { "$ref": "coverage", "name": "test-coverage", "command": "..." }
-  ],
-  "qualityGate": {
-    "thresholds": [{ "metric": "test-coverage", "mode": "min", "target": 80 }]
-  }
-}
-```
-
-**After (v3.0.0)** - Option A (explicit id):
-```json
-{
-  "metrics": [
-    { "id": "test-coverage", "$ref": "coverage", "command": "..." }
-  ],
-  "qualityGate": {
-    "thresholds": [{ "metric": "test-coverage", "mode": "min", "target": 80 }]
-  }
-}
-```
-
-**After (v3.0.0)** - Option B (inherited id, minimal):
-```json
-{
-  "metrics": [
-    { "$ref": "coverage" }
-  ],
-  "qualityGate": {
-    "thresholds": [{ "metric": "coverage", "mode": "min", "target": 80 }]
-  }
-}
-```
-
-### Database Compatibility
-
-- The database `metric_definitions.name` column stores the `id` value
-- Existing databases will have metrics stored under old `name` values
-- New runs will store metrics under `id` values
-- No automatic migration; metrics with new `id` values appear as new metrics
-
 ## Versioning
 
-**Version**: 3.0.0 (major version bump for breaking changes)
+**Version 4.0.0**:
+- Changed `metrics` from array to object (key-based)
+- Object key serves as metric identifier (replaces `id` field)
+- Removed `id` field from MetricConfig
+- Aligned with spec 001 v2.0.0
 
-**Breaking Changes**:
-- `id` field is now the primary identifier (replaces `name` for references)
-- `name` repurposed as optional display name
-- Quality gate thresholds reference `id` instead of `name`
-
-**New Features**:
+**Version 3.0.0**:
+- `id` field as primary identifier
 - `@collect` shortcut for in-process collector execution
-- Glob pattern support in `@collect size`
-- Optional `command` when `$ref` provides default
 - Optional `id` when `$ref` provided (inherits from template)
-- Ultra-minimal configuration: `{ "$ref": "loc" }`
 
 **Future Compatibility**:
-- New built-in metrics may be added in minor versions
+- New metric templates may be added in minor versions
 - New collectors may be added in minor versions
 - Schema structure will remain stable

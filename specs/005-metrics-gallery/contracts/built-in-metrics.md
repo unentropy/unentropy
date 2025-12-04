@@ -1,14 +1,14 @@
 # Built-in Metrics Registry Contract
 
 **Feature**: 005-metrics-gallery  
-**Version**: 2.0.0  
-**Last Updated**: 2025-12-04
+**Version**: 4.0.0  
+**Last Updated**: 2025-12-06
 
 ## Overview
 
-This contract defines the built-in metrics available in the Metrics Gallery. Each metric provides metadata (description, type, unit) and optionally a default command using the `@collect` shortcut. Users can override the command or use custom commands as needed.
+This contract defines the metric templates available in the Metrics Gallery. Each template provides metadata (description, type, unit) and optionally a default command using the `@collect` shortcut. Users can reference these templates and override any property as needed.
 
-## Registry Structure
+## Metric Template Structure
 
 ```typescript
 interface MetricTemplate {
@@ -28,10 +28,8 @@ interface MetricTemplate {
   unit?: UnitType;
   
   // Optional default command using @collect syntax
-  defaultCommand?: string;
+  command?: string;
 }
-
-type BuiltInMetricsRegistry = Record<string, MetricTemplate>;
 ```
 
 **Note**: The `id` field is the key used with `$ref` in user configuration. The `name` field provides a default display name that users can override.
@@ -93,7 +91,18 @@ When displaying changes between values, the same unit rules apply with sign pref
 
 ## @collect Shortcut
 
-The `@collect` prefix indicates a command that runs directly in-process without spawning a subprocess. This provides faster execution and consistent behavior across environments.
+Commands starting with `@collect` are transformed into CLI invocations:
+
+```
+@collect loc ./src
+  ↓ becomes ↓
+bun src/index.ts collect loc ./src
+```
+
+This provides:
+- Consistent behavior with standalone CLI usage
+- All CLI features automatically available
+- No code duplication
 
 ### Available Collectors
 
@@ -115,16 +124,24 @@ The `@collect` prefix indicates a command that runs directly in-process without 
 - Supports glob patterns (e.g., `./dist/*.js`, `.github/actions/*/dist/*.js`)
 - `--followSymlinks` - Follow symbolic links
 
-### Execution Flow
+**Note:** When a collector fails (missing files, parse errors), execution stops with an error rather than returning a fallback value.
 
-When a command starts with `@collect`:
-1. Command is parsed to extract collector name and arguments
-2. Collector function is invoked directly (no subprocess)
-3. Glob patterns are expanded (for `size` collector)
-4. Result is returned as numeric or string value
-5. If collector fails, execution stops with error (no fallback)
+## Command Strategy
 
-## Built-in Metrics
+Metric templates fall into two categories:
+
+**With default commands:**
+- `loc`: `@collect loc .` - sensible default for entire project
+- `bundle-size`: `@collect size ./dist` - common convention
+
+**Without default commands** (require user configuration):
+- `coverage`: Technology-specific (Jest, Vitest, c8, etc.)
+- `function-coverage`: Technology-specific
+- `build-time`: Project-specific timing approach
+- `test-time`: Project-specific timing approach  
+- `dependencies-count`: Package manager-specific (npm, bun, pnpm, yarn)
+
+## Metric Templates
 
 ### Coverage Metrics
 
@@ -137,7 +154,7 @@ When a command starts with `@collect`:
   description: 'Overall test coverage percentage across the codebase',
   type: 'numeric',
   unit: 'percent'
-  // No defaultCommand - too technology-specific
+  // command: not provided (technology-specific)
 }
 ```
 
@@ -146,14 +163,18 @@ When a command starts with `@collect`:
 **Configuration Examples**:
 
 ```json
-// LCOV format (common with Jest, Vitest, c8)
-{ "$ref": "coverage", "command": "@collect coverage-lcov ./coverage/lcov.info" }
+{
+  "metrics": {
+    // LCOV format (common with Jest, Vitest, c8)
+    "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov ./coverage/lcov.info" },
 
-// JSON format
-{ "$ref": "coverage", "command": "@collect coverage-json ./coverage/coverage.json" }
+    // JSON format
+    "coverage": { "$ref": "coverage", "command": "@collect coverage-json ./coverage/coverage.json" },
 
-// With custom id and display name
-{ "id": "test-coverage", "$ref": "coverage", "name": "Test Coverage", "command": "@collect coverage-lcov coverage/lcov.info" }
+    // With custom key and display name
+    "test-coverage": { "$ref": "coverage", "name": "Test Coverage", "command": "@collect coverage-lcov coverage/lcov.info" }
+  }
+}
 ```
 
 ---
@@ -167,7 +188,7 @@ When a command starts with `@collect`:
   description: 'Percentage of functions covered by tests',
   type: 'numeric',
   unit: 'percent'
-  // No defaultCommand - requires specific setup
+  // command: not provided (technology-specific)
 }
 ```
 
@@ -176,11 +197,14 @@ When a command starts with `@collect`:
 **Configuration Examples**:
 
 ```json
-// Custom command required (no default)
-{ 
-  "id": "fn-coverage", 
-  "$ref": "function-coverage", 
-  "command": "bun test --coverage --coverage-reporter=json | jq -r '.total.functions.pct'"
+{
+  "metrics": {
+    // Custom command required (no default)
+    "fn-coverage": { 
+      "$ref": "function-coverage", 
+      "command": "bun test --coverage --coverage-reporter=json | jq -r '.total.functions.pct'"
+    }
+  }
 }
 ```
 
@@ -197,7 +221,7 @@ When a command starts with `@collect`:
   description: 'Total lines of code in the codebase',
   type: 'numeric',
   unit: 'integer',
-  defaultCommand: '@collect loc .'
+  command: '@collect loc .'
 }
 ```
 
@@ -206,24 +230,25 @@ When a command starts with `@collect`:
 **Configuration Examples**:
 
 ```json
-// Ultra-minimal (counts all code in project)
-{ "$ref": "loc" }
+{
+  "metrics": {
+    // Ultra-minimal (counts all code in project)
+    "loc": { "$ref": "loc" },
 
-// Specific directory (explicit id since we're customizing)
-{ "id": "src-loc", "$ref": "loc", "command": "@collect loc ./src" }
+    // Specific directory
+    "src-loc": { "$ref": "loc", "command": "@collect loc ./src" },
 
-// TypeScript only
-{ "id": "ts-loc", "$ref": "loc", "command": "@collect loc ./src --language TypeScript" }
+    // TypeScript only
+    "ts-loc": { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
 
-// With exclusions
-{ "id": "app-loc", "$ref": "loc", "command": "@collect loc . --exclude node_modules dist .git" }
+    // With exclusions
+    "app-loc": { "$ref": "loc", "command": "@collect loc . --exclude node_modules dist .git" },
 
-// Multiple metrics from same built-in (explicit ids required)
-[
-  { "id": "src-loc", "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
-  { "id": "test-loc", "$ref": "loc", "command": "@collect loc ./tests --language TypeScript" },
-  { "id": "specs-loc", "$ref": "loc", "command": "@collect loc ./specs --language Markdown" }
-]
+    // Multiple metrics from same built-in (use different keys)
+    "test-loc": { "$ref": "loc", "command": "@collect loc ./tests --language TypeScript" },
+    "specs-loc": { "$ref": "loc", "command": "@collect loc ./specs --language Markdown" }
+  }
+}
 ```
 
 **SCC Requirement**: The `loc` collector uses SCC (Sloc Cloc and Code). Install with:
@@ -241,7 +266,7 @@ When a command starts with `@collect`:
   description: 'Total size of production build artifacts',
   type: 'numeric',
   unit: 'bytes',
-  defaultCommand: '@collect size ./dist'
+  command: '@collect size ./dist'
 }
 ```
 
@@ -250,17 +275,21 @@ When a command starts with `@collect`:
 **Configuration Examples**:
 
 ```json
-// Ultra-minimal (measures ./dist directory)
-{ "$ref": "bundle-size" }
+{
+  "metrics": {
+    // Ultra-minimal (measures ./dist directory)
+    "bundle-size": { "$ref": "bundle-size" },
 
-// Specific file
-{ "id": "main-bundle", "$ref": "bundle-size", "command": "@collect size ./dist/main.js" }
+    // Specific file
+    "main-bundle": { "$ref": "bundle-size", "command": "@collect size ./dist/main.js" },
 
-// Glob pattern
-{ "id": "js-bundles", "$ref": "bundle-size", "command": "@collect size ./dist/*.js" }
+    // Glob pattern
+    "js-bundles": { "$ref": "bundle-size", "command": "@collect size ./dist/*.js" },
 
-// Multiple directories with glob
-{ "id": "actions-bundle", "$ref": "bundle-size", "command": "@collect size .github/actions/*/dist/*.js" }
+    // Multiple directories with glob
+    "actions-bundle": { "$ref": "bundle-size", "command": "@collect size .github/actions/*/dist/*.js" }
+  }
+}
 ```
 
 ---
@@ -276,7 +305,7 @@ When a command starts with `@collect`:
   description: 'Time taken to complete the build',
   type: 'numeric',
   unit: 'duration'
-  // No defaultCommand - too project-specific
+  // command: not provided (project-specific)
 }
 ```
 
@@ -285,11 +314,14 @@ When a command starts with `@collect`:
 **Configuration Examples**:
 
 ```json
-// Custom command required (no default)
-{ 
-  "id": "build-time", 
-  "$ref": "build-time", 
-  "command": "(time bun run build) 2>&1 | grep real | awk '{print $2}' | sed 's/[^0-9.]//g'"
+{
+  "metrics": {
+    // Custom command required (no default)
+    "build-time": { 
+      "$ref": "build-time", 
+      "command": "(time bun run build) 2>&1 | grep real | awk '{print $2}' | sed 's/[^0-9.]//g'"
+    }
+  }
 }
 ```
 
@@ -304,7 +336,7 @@ When a command starts with `@collect`:
   description: 'Time taken to run all tests',
   type: 'numeric',
   unit: 'duration'
-  // No defaultCommand - too project-specific
+  // command: not provided (project-specific)
 }
 ```
 
@@ -313,11 +345,14 @@ When a command starts with `@collect`:
 **Configuration Examples**:
 
 ```json
-// Custom command required (no default)
-{ 
-  "id": "test-time", 
-  "$ref": "test-time", 
-  "command": "(time bun test) 2>&1 | grep real | awk '{print $2}' | sed 's/[^0-9.]//g'"
+{
+  "metrics": {
+    // Custom command required (no default)
+    "test-time": { 
+      "$ref": "test-time", 
+      "command": "(time bun test) 2>&1 | grep real | awk '{print $2}' | sed 's/[^0-9.]//g'"
+    }
+  }
 }
 ```
 
@@ -334,7 +369,7 @@ When a command starts with `@collect`:
   description: 'Total number of direct dependencies',
   type: 'numeric',
   unit: 'integer'
-  // No defaultCommand - varies by package manager
+  // command: not provided (package manager-specific)
 }
 ```
 
@@ -343,51 +378,41 @@ When a command starts with `@collect`:
 **Configuration Examples**:
 
 ```json
-// Node.js
-{ 
-  "id": "deps-count", 
-  "$ref": "dependencies-count", 
-  "command": "cat package.json | jq '.dependencies | length'"
-}
+{
+  "metrics": {
+    // Node.js
+    "deps-count": { 
+      "$ref": "dependencies-count", 
+      "command": "cat package.json | jq '.dependencies | length'"
+    },
 
-// With dev dependencies
-{ 
-  "id": "all-deps", 
-  "$ref": "dependencies-count", 
-  "command": "cat package.json | jq '(.dependencies | length) + (.devDependencies | length)'"
+    // With dev dependencies
+    "all-deps": { 
+      "$ref": "dependencies-count", 
+      "command": "cat package.json | jq '(.dependencies | length) + (.devDependencies | length)'"
+    }
+  }
 }
 ```
 
 ---
 
-## Metrics Summary
-
-| ID | Default Command | Unit | Requires Custom Command |
-|----|-----------------|------|------------------------|
-| `coverage` | - | percent | Yes (technology-specific) |
-| `function-coverage` | - | percent | Yes (technology-specific) |
-| `loc` | `@collect loc .` | integer | No |
-| `bundle-size` | `@collect size ./dist` | bytes | No |
-| `build-time` | - | duration | Yes (project-specific) |
-| `test-time` | - | duration | Yes (project-specific) |
-| `dependencies-count` | - | integer | Yes (package manager-specific) |
-
 ## Validation Requirements
 
-### Metric Definition Validation
+### Metric Template Validation
 
-Built-in metric templates must:
+Metric templates must:
 1. Include a clear `description` explaining what the metric measures
 2. Specify correct `type` (numeric or label)
 3. Include appropriate `unit` (must be a valid `UnitType`)
-4. If providing `defaultCommand`, it must use `@collect` syntax
+4. If providing `command`, it must use `@collect` syntax
 
 ### User Configuration Validation
 
-When users reference built-in metrics:
-1. The `$ref` must match an existing built-in metric ID
-2. An `id` field must be provided (unique identifier)
-3. If built-in has no `defaultCommand`, user must provide `command`
+When users reference metric templates:
+1. The `$ref` must match an existing template ID
+2. The object key serves as the unique metric identifier
+3. If template has no `command`, user must provide `command`
 4. Command output must match the metric type (numeric value for numeric metrics)
 5. All standard MetricConfig validation rules apply
 
@@ -401,16 +426,16 @@ When `@collect` commands fail:
 
 ## Extensibility
 
-### Future Metrics
+### Future Metric Templates
 
-New built-in metrics may be added following these guidelines:
+New metric templates may be added following these guidelines:
 
 1. **ID Convention**: lowercase-with-hyphens
 2. **Category Grouping**: coverage, size, quality, security, performance, dependencies
 3. **Clear Description**: Explain what the metric measures and why it's useful
 4. **Default Command**: Provide `@collect` command if a sensible default exists
 5. **Documentation**: Include recommended thresholds and configuration examples
-6. **Backward Compatibility**: New metrics don't affect existing IDs
+6. **Backward Compatibility**: New templates don't affect existing IDs
 
 ### Future Collectors
 
@@ -423,15 +448,23 @@ New `@collect` collectors may be added:
 
 ## Version History
 
+**3.0.0** (2025-12-04):
+- Renamed `defaultCommand` to `command` in MetricTemplate for simplicity
+- Standardized terminology on "metric templates"
+- Streamlined @collect documentation
+- Added Command Strategy section
+- Removed redundant Metrics Summary table
+- Updated all examples and references
+
 **2.0.0** (2025-12-04):
 - Updated MetricTemplate to include `id` and `name` fields
-- Added `defaultCommand` field for built-in defaults (replaces `command`)
+- Added `command` field for template defaults
 - Added `@collect` shortcut documentation
 - Added glob pattern support for `size` collector
 - Updated all examples to use new `id` field syntax in user config
 
 **1.0.0** (2025-11-22):
-- Initial registry with 7 built-in metrics
+- Initial registry with 7 metric templates
 - Coverage: coverage, function-coverage
 - Size: loc, bundle-size
 - Performance: build-time, test-time

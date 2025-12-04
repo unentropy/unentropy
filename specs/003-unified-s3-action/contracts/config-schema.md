@@ -2,8 +2,8 @@
 
 **Feature**: 003-unified-s3-action  
 **File**: `unentropy.json`  
-**Version**: 1.1.0  
-**Last Updated**: Sat Nov 15 2025
+**Version**: 2.0.0  
+**Last Updated**: 2025-12-06
 
 ## Overview
 
@@ -23,8 +23,8 @@ The base configuration schema is fully defined in `/specs/001-mvp-metrics-tracki
 
 ```typescript
 interface UnentropyConfig {
-  metrics: MetricConfig[];  // From spec 001
-  storage?: StorageConfig;   // NEW: Optional storage configuration
+  metrics: Record<string, MetricConfig>;  // From spec 001
+  storage?: StorageConfig;                 // NEW: Optional storage configuration
 }
 ```
 
@@ -92,7 +92,17 @@ This extends the base JSON schema from spec 001 with the storage block:
       }
     },
     "metrics": {
-      // ... unchanged from spec 001
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 50,
+      "propertyNames": {
+        "pattern": "^[a-z0-9-]+$",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "additionalProperties": {
+        "$comment": "See spec 001 for MetricConfig schema"
+      }
     }
   }
 }
@@ -105,15 +115,14 @@ Same as spec 001 - no storage block needed:
 
 ```json
 {
-  "metrics": [
-    {
-      "name": "test-coverage",
+  "metrics": {
+    "test-coverage": {
       "type": "numeric",
       "description": "Percentage of code covered by tests",
       "command": "npm run test:coverage -- --json | jq -r '.total.lines.pct'",
       "unit": "%"
     }
-  ]
+  }
 }
 ```
 
@@ -124,14 +133,13 @@ Same as spec 001 - no storage block needed:
   "storage": {
     "type": "sqlite-artifact"
   },
-  "metrics": [
-    {
-      "name": "test-coverage",
+  "metrics": {
+    "test-coverage": {
       "type": "numeric",
       "command": "npm run test:coverage -- --json | jq -r '.total.lines.pct'",
       "unit": "%"
     }
-  ]
+  }
 }
 ```
 
@@ -146,14 +154,13 @@ Same as spec 001 - no storage block needed:
       "branchFilter": "main"
     }
   },
-  "metrics": [
-    {
-      "name": "test-coverage",
+  "metrics": {
+    "test-coverage": {
       "type": "numeric",
       "command": "npm run test:coverage -- --json | jq -r '.total.lines.pct'",
       "unit": "%"
     }
-  ]
+  }
 }
 ```
 
@@ -164,22 +171,20 @@ Same as spec 001 - no storage block needed:
   "storage": {
     "type": "sqlite-s3"
   },
-  "metrics": [
-    {
-      "name": "test-coverage",
+  "metrics": {
+    "test-coverage": {
       "type": "numeric",
       "description": "Percentage of code covered by tests",
       "command": "npm run test:coverage -- --json | jq -r '.total.lines.pct'",
       "unit": "%"
     },
-    {
-      "name": "bundle-size",
+    "bundle-size": {
       "type": "numeric",
       "description": "Production bundle size in kilobytes",
       "command": "du -k dist/bundle.js | cut -f1",
       "unit": "KB"
     }
-  ]
+  }
 }
 ```
 
@@ -217,29 +222,21 @@ Same as spec 001 - no storage block needed:
 
 ### Metric Configuration (UNCHANGED)
 All validation rules from spec 001 apply unchanged:
-- `name` must be lowercase alphanumeric with hyphens only
-- `name` must be unique across all metrics in the config
+- Object keys must be lowercase alphanumeric with hyphens only
+- Object keys are inherently unique (JSON requirement)
 - `type` affects how `command` output is parsed
 - `command` is executed in shell environment with build context variables
 - `unit` is only meaningful for `numeric` type
 
-## Backward Compatibility
+## Versioning
 
-**Version 1.0.0 (spec 001)**:
-- Original schema with only `metrics` array
-- Defaults to `sqlite-local` storage (implicit)
+**Version 2.0.0**:
+- Updated to align with spec 001 v2.0.0 (metrics as object instead of array)
+- Storage configuration unchanged
 
 **Version 1.1.0 (spec 003)**:
-- Adds optional `storage` configuration block
-- Maintains backward compatibility - existing configs without `storage` continue to work
+- Added optional `storage` configuration block
 - Default behavior unchanged (`sqlite-local`)
-- Makes implicit storage choice explicit
-
-**Future Versions**:
-- New optional storage provider fields may be added
-- Required fields will never be removed
-- Type changes will be avoided (new fields added instead)
-- Deprecated fields will be supported for at least 2 major versions
 
 ## Migration Path
 
@@ -250,7 +247,7 @@ All validation rules from spec 001 apply unchanged:
      "storage": {
        "type": "sqlite-artifact"
      },
-     "metrics": [...]
+     "metrics": { ... }
    }
    ```
 2. Ensure workflow has `actions: read` and `actions: write` permissions
@@ -263,7 +260,7 @@ All validation rules from spec 001 apply unchanged:
      "storage": {
        "type": "sqlite-s3"
      },
-     "metrics": [...]
+     "metrics": { ... }
    }
    ```
 2. Configure S3 credentials in GitHub Action parameters

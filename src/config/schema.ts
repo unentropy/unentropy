@@ -5,6 +5,14 @@ export const UnitTypeSchema = z.enum(["percent", "integer", "bytes", "duration",
 });
 
 export const ResolvedMetricConfigSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9-]+$/, {
+      message: "id must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)",
+    })
+    .optional(),
   name: z
     .string()
     .min(1)
@@ -24,6 +32,14 @@ export const ResolvedMetricConfigSchema = z.object({
 export const MetricConfigSchema = z
   .object({
     $ref: z.string().optional(),
+    id: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[a-z0-9-]+$/, {
+        message: "id must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)",
+      })
+      .optional(),
     name: z
       .string()
       .min(1)
@@ -38,25 +54,30 @@ export const MetricConfigSchema = z
       })
       .optional(),
     description: z.string().max(256).optional(),
-    command: z.string().min(1, { message: "command cannot be empty" }).max(1024, {
-      message: "command must be 1024 characters or less",
-    }),
+    command: z
+      .string()
+      .min(1, { message: "command cannot be empty" })
+      .max(1024, {
+        message: "command must be 1024 characters or less",
+      })
+      .optional(),
     unit: UnitTypeSchema.optional(),
     timeout: z.number().int().positive().max(300000).optional(),
   })
   .strict()
   .refine(
     (data) => {
-      // command is always required (enforced by schema above)
-      // If using $ref, only command is required
+      // If using $ref, id may be optional (inherits from template)
       if (data.$ref) {
         return true;
       }
-      // If not using $ref, name, type, and command are all required
-      return data.name && data.type && data.command;
+      // If not using $ref (custom metric), either id or name is required (id preferred)
+      // Also type and command are required
+      const hasIdentifier = data.id || data.name;
+      return hasIdentifier && data.type && data.command;
     },
     {
-      message: "Metric must either have $ref with command, or provide name, type, and command",
+      message: 'Custom metrics (without $ref) require an "id" field.',
     }
   );
 
@@ -168,23 +189,24 @@ export function validateConfig(config: unknown): UnentropyConfig {
     throw new Error(errorMessage);
   }
 
-  const metricNames = new Set<string>();
+  const metricIds = new Set<string>();
   for (const metric of result.data.metrics) {
-    if (metric.name) {
-      if (metricNames.has(metric.name)) {
+    const metricId = metric.id ?? metric.name;
+    if (metricId) {
+      if (metricIds.has(metricId)) {
         throw new Error(
-          `Duplicate metric name "${metric.name}" found. Metric names must be unique within the configuration`
+          `Duplicate metric id "${metricId}" found.\nMetric ids must be unique within the configuration.`
         );
       }
-      metricNames.add(metric.name);
+      metricIds.add(metricId);
     }
   }
 
   if (result.data.qualityGate?.thresholds) {
     for (const threshold of result.data.qualityGate.thresholds) {
-      if (!metricNames.has(threshold.metric)) {
+      if (!metricIds.has(threshold.metric)) {
         throw new Error(
-          `Threshold references non-existent metric "${threshold.metric}". Metric must be defined in the metrics array.`
+          `Threshold references non-existent metric "${threshold.metric}".\nMetric must be defined in the metrics array with a matching id.`
         );
       }
     }
