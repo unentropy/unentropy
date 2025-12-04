@@ -1,9 +1,10 @@
 import type { SummaryStats } from "../../../types";
+import type { UnitType } from "../../../../metrics/types";
 import { formatTrendArrow, getTrendColor, formatValue } from "./formatUtils";
 
 interface StatsGridProps {
   stats: SummaryStats;
-  unit: string | null;
+  unit: UnitType | null;
 }
 
 export function StatsGrid({ stats, unit }: StatsGridProps) {

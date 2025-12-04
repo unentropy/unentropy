@@ -7,7 +7,7 @@ import type { UnitType } from "./types.js";
  *
  * IMPORTANT: When updating this function, also update:
  * - src/reporter/templates/default/scripts/charts.js (browser-compatible version)
- * - src/reporter/templates/default/components/formatUtils.ts (legacy unit parsing wrapper)
+ * - src/reporter/templates/default/components/formatUtils.ts (re-exports this function)
  *
  * @param value - The numeric value to format
  * @param unit - The semantic unit type (percent, integer, bytes, duration, decimal)

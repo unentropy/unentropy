@@ -1,13 +1,20 @@
 # Implementation Plan: Metrics Gallery
 
-**Branch**: `005-metrics-gallery` | **Date**: 2025-11-22 | **Spec**: [spec.md](spec.md)
+**Branch**: `005-metrics-gallery` | **Date**: 2025-11-22 | **Updated**: 2025-12-04 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/005-metrics-gallery/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-The Metrics Gallery feature provides a curated collection of 7 built-in metrics that users can reference by ID (e.g., `{"$ref": "coverage"}`) instead of writing custom collection commands. Each built-in metric includes sensible defaults for units, collection commands, and threshold behaviors. Users can override any property while keeping other defaults. The feature reduces configuration friction and promotes best practices for common metrics tracking scenarios.
+The Metrics Gallery feature provides a curated collection of 7 built-in metrics that users can reference by ID (e.g., `{"$ref": "coverage"}`) with minimal configuration. Key simplifications:
+
+- **Optional `id`**: When using `$ref`, the `id` is inherited from the template (e.g., `{"$ref": "loc"}` resolves to `id: "loc"`)
+- **Optional `command`**: Built-in metrics with `defaultCommand` don't require user-provided commands
+- **`@collect` shortcut**: In-process execution of collectors (no subprocess overhead)
+- **Glob support**: The `@collect size` command supports glob patterns
+
+Users can override any property while keeping other defaults. The feature reduces configuration friction and promotes best practices for common metrics tracking scenarios.
 
 ## Technical Context
 
@@ -115,12 +122,15 @@ No constitution violations to justify. All gates pass without exceptions.
 
 **Key Decisions**:
 - Configuration syntax: Use `$ref` property (JSON Schema convention)
+- `id` field: Optional when `$ref` provided (inherits from template), required for custom metrics
+- `name` field: Optional display name (inherits from template or defaults to `id`)
+- `command` field: Optional when `$ref` provides `defaultCommand`
+- `@collect` shortcut: In-process collector execution (no subprocess)
 - Override behavior: Shallow merge with user precedence
-- Command storage: String-based in registry (simple, maintainable)
 - Schema validation: Single MetricConfig interface with optional `$ref` property
 - Resolution timing: During config loading, before validation
 - Threshold behavior: Documented recommendations, not auto-applied
-- Error messages: List available IDs on invalid reference
+- Error messages: List available IDs on invalid reference, clear duplicate id errors
 
 **Technologies Researched**:
 - Zod schema validation patterns for discriminated unions
@@ -138,8 +148,9 @@ No constitution violations to justify. All gates pass without exceptions.
 - [quickstart.md](quickstart.md) - User guide with examples
 
 **Key Entities**:
-- `MetricTemplate`: Built-in metric template definition (id, name, description, type, command, unit)
-- `MetricConfig`: Extended with optional `$ref` property (single interface for both custom and built-in metrics)
+- `MetricTemplate`: Built-in metric template definition (id, name, description, type, unit, defaultCommand)
+- `MetricConfig`: Extended with optional `$ref` and `id` properties (single interface for both custom and built-in metrics)
+- `ResolvedMetricConfig`: Fully resolved configuration after inheriting from template
 - `BuiltInMetricsRegistry`: Record<string, MetricTemplate> for lookups
 
 **Contracts Defined**:

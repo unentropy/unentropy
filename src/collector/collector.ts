@@ -1,5 +1,6 @@
 import { runCommand } from "./runner";
 import type { ResolvedMetricConfig } from "../config/schema";
+import type { UnitType } from "../metrics/types";
 
 export interface ParseResult {
   success: boolean;
@@ -64,7 +65,7 @@ export async function collectMetrics(metrics: ResolvedMetricConfig[]): Promise<
       definition: {
         name: string;
         type: "numeric" | "label";
-        unit?: string;
+        unit?: UnitType;
         description?: string;
       };
       value_numeric?: number;
@@ -79,7 +80,7 @@ export async function collectMetrics(metrics: ResolvedMetricConfig[]): Promise<
       definition: {
         name: string;
         type: "numeric" | "label";
-        unit?: string;
+        unit?: UnitType;
         description?: string;
       };
       value_numeric?: number;

@@ -1,10 +1,12 @@
+import type { UnitType } from "../metrics/types";
+
 export type MetricType = "numeric" | "label";
 
 export interface MetricDefinition {
   id: number;
   name: string;
   type: MetricType;
-  unit: string | null;
+  unit: UnitType | null;
   description: string | null;
   created_at: string;
 }
@@ -50,7 +52,7 @@ export interface InsertBuildContext {
 export interface InsertMetricDefinition {
   name: string;
   type: MetricType;
-  unit?: string | null;
+  unit?: UnitType | null;
   description?: string | null;
 }
 

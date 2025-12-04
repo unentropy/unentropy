@@ -1,4 +1,5 @@
 import type { MetricType } from "../storage/types";
+import type { UnitType } from "../metrics/types";
 
 export interface TimeSeriesDataPoint {
   timestamp: string;
@@ -19,7 +20,7 @@ export interface NormalizedDataPoint {
 export interface TimeSeriesData {
   metricName: string;
   metricType: MetricType;
-  unit: string | null;
+  unit: UnitType | null;
   description: string | null;
   dataPoints: TimeSeriesDataPoint[];
 }
@@ -47,7 +48,7 @@ export interface MetricReportData {
   id: string;
   name: string;
   description: string | null;
-  unit: string | null;
+  unit: UnitType | null;
   stats: SummaryStats;
   chartType: "line" | "bar";
   sparse: boolean;
@@ -62,14 +63,14 @@ export interface MetadataPoint {
 export interface LineChartData {
   id: string;
   name: string;
-  unit: string | null;
+  unit: UnitType | null;
   values: (number | null)[];
 }
 
 export interface BarChartData {
   id: string;
   name: string;
-  unit: string | null;
+  unit: UnitType | null;
   labels: string[];
   counts: number[];
 }

@@ -56,7 +56,7 @@ describe("getMetricTimeSeries", () => {
     const coverageMetric = adapter.upsertMetricDefinition({
       name: "test-coverage",
       type: "numeric",
-      unit: "%",
+      unit: "percent",
       description: "Test coverage percentage",
     });
 
@@ -217,7 +217,7 @@ describe("getMetricTimeSeries", () => {
     expect(data).toBeDefined();
     expect(data.metricName).toBe("test-coverage");
     expect(data.metricType).toBe("numeric");
-    expect(data.unit).toBe("%");
+    expect(data.unit).toBe("percent");
     expect(data.description).toBe("Test coverage percentage");
     expect(data.dataPoints).toHaveLength(3);
     expect(data.dataPoints[0]?.valueNumeric).toBe(85.2);
@@ -269,10 +269,10 @@ describe("getMetricTimeSeries", () => {
 
 describe("calculateSummaryStats", () => {
   test("calculates summary statistics for numeric metric", () => {
-    const data = {
+    const data: TimeSeriesData = {
       metricName: "test-coverage",
       metricType: "numeric" as const,
-      unit: "%",
+      unit: "percent",
       description: "Test coverage",
       dataPoints: [
         {
@@ -341,10 +341,10 @@ describe("calculateSummaryStats", () => {
   });
 
   test("returns null values for empty data points", () => {
-    const data = {
+    const data: TimeSeriesData = {
       metricName: "test-coverage",
       metricType: "numeric" as const,
-      unit: "%",
+      unit: "percent",
       description: "Test coverage",
       dataPoints: [],
     };
@@ -360,10 +360,10 @@ describe("calculateSummaryStats", () => {
   });
 
   test("detects downward trend", () => {
-    const data = {
+    const data: TimeSeriesData = {
       metricName: "bundle-size",
       metricType: "numeric" as const,
-      unit: "KB",
+      unit: "bytes",
       description: "Bundle size",
       dataPoints: [
         {
@@ -512,7 +512,7 @@ describe("normalizeMetricToBuilds", () => {
   ): TimeSeriesData => ({
     metricName: "test-metric",
     metricType: "numeric",
-    unit: "%",
+    unit: "percent",
     description: "Test metric",
     dataPoints: dataPoints.map((dp) => ({
       timestamp: dp.timestamp,

@@ -22,14 +22,14 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     const coverageMetric = adapter.upsertMetricDefinition({
       name: "test-coverage",
       type: "numeric",
-      unit: "%",
+      unit: "percent",
       description: "Code coverage percentage",
     });
 
     const bundleSizeMetric = adapter.upsertMetricDefinition({
       name: "bundle-size",
       type: "numeric",
-      unit: "KB",
+      unit: "bytes",
       description: "Total bundle size",
     });
 
