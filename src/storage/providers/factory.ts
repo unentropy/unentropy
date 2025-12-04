@@ -1,6 +1,7 @@
 import type { StorageProvider, StorageProviderConfig } from "./interface";
 import { SqliteLocalStorageProvider } from "./sqlite-local";
 import { SqliteS3StorageProvider } from "./sqlite-s3";
+import { SqliteArtifactStorageProvider } from "./sqlite-artifact";
 
 export function createStorageProvider(config: StorageProviderConfig): StorageProvider {
   const { type } = config;
@@ -16,11 +17,7 @@ export function createStorageProvider(config: StorageProviderConfig): StoragePro
   }
 
   if (type === "sqlite-artifact") {
-    throw new Error(
-      `Storage provider type '${type}' is not yet implemented. ` +
-        `Artifact storage support is planned for future implementation. ` +
-        `Currently supported: 'sqlite-local', 'sqlite-s3'`
-    );
+    return new SqliteArtifactStorageProvider(config);
   }
 
   if (type === "sqlite-s3") {
@@ -29,6 +26,6 @@ export function createStorageProvider(config: StorageProviderConfig): StoragePro
 
   throw new Error(
     `Storage provider type '${type}' is not yet implemented. ` +
-      `Currently supported: 'sqlite-local', 'sqlite-s3'`
+      `Currently supported: 'sqlite-local', 'sqlite-artifact', 'sqlite-s3'`
   );
 }

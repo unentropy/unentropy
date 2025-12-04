@@ -49,4 +49,18 @@ export class Storage {
   async close(): Promise<void> {
     await this.provider.cleanup();
   }
+
+  /**
+   * Get the storage provider for provider-specific operations.
+   */
+  getProvider(): StorageProvider {
+    return this.provider;
+  }
+
+  /**
+   * Get the storage configuration.
+   */
+  getConfig(): StorageProviderConfig {
+    return this.config;
+  }
 }
