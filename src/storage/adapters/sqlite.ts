@@ -183,7 +183,15 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
     return stmt.all(metricName);
   }
 
-  getAllBuildContexts(): BuildContext[] {
+  getAllBuildContexts(options?: { onlyWithMetrics?: boolean }): BuildContext[] {
+    if (options?.onlyWithMetrics) {
+      const stmt = this.db.query<BuildContext, []>(`
+        SELECT bc.* FROM build_contexts bc
+        WHERE EXISTS (SELECT 1 FROM metric_values mv WHERE mv.build_id = bc.id)
+        ORDER BY bc.timestamp
+      `);
+      return stmt.all();
+    }
     const stmt = this.db.query<BuildContext, []>("SELECT * FROM build_contexts ORDER BY timestamp");
     return stmt.all();
   }

@@ -147,7 +147,7 @@ export function normalizeMetricToBuilds(
 }
 
 function getReportMetadata(db: Storage, repository: string): ReportMetadata {
-  const allBuilds = db.getRepository().getAllBuildContexts();
+  const allBuilds = db.getRepository().getAllBuildContexts({ onlyWithMetrics: true });
 
   if (allBuilds.length === 0) {
     const now = new Date().toISOString();
@@ -194,7 +194,7 @@ export function generateReport(db: Storage, options: GenerateReportOptions = {})
   const repository = options.repository || "unknown/repository";
 
   const allMetrics = db.getRepository().getAllMetricDefinitions();
-  const allBuilds = db.getRepository().getAllBuildContexts();
+  const allBuilds = db.getRepository().getAllBuildContexts({ onlyWithMetrics: true });
 
   // If config is provided, only show metrics that are configured
   let metricNames: string[];

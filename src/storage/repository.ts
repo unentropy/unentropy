@@ -54,8 +54,8 @@ export class MetricsRepository {
     return this.adapter.getAllMetricDefinitions();
   }
 
-  getAllBuildContexts(): BuildContext[] {
-    return this.adapter.getAllBuildContexts();
+  getAllBuildContexts(options?: { onlyWithMetrics?: boolean }): BuildContext[] {
+    return this.adapter.getAllBuildContexts(options);
   }
 
   getAllMetricValues(): (MetricValue & { metric_name: string })[] {

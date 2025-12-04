@@ -29,7 +29,7 @@ export interface DatabaseAdapter {
   getMetricValuesByBuildId(buildId: number): (MetricValue & { metric_name: string })[];
   getAllMetricDefinitions(): MetricDefinition[];
   getAllMetricValues(): (MetricValue & { metric_name: string })[];
-  getAllBuildContexts(): BuildContext[];
+  getAllBuildContexts(options?: { onlyWithMetrics?: boolean }): BuildContext[];
 
   // Time series queries
   getMetricTimeSeries(metricName: string): (MetricValue & {

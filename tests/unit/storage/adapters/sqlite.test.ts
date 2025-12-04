@@ -421,6 +421,118 @@ describe("SqliteDatabaseAdapter", () => {
     });
   });
 
+  describe("getAllBuildContexts", () => {
+    it("returns all builds when no options provided", () => {
+      adapter.insertBuildContext({
+        commit_sha: "a".repeat(40),
+        branch: "main",
+        run_id: "1",
+        run_number: 1,
+        timestamp: new Date().toISOString(),
+      });
+
+      adapter.insertBuildContext({
+        commit_sha: "b".repeat(40),
+        branch: "main",
+        run_id: "2",
+        run_number: 2,
+        timestamp: new Date().toISOString(),
+      });
+
+      const builds = adapter.getAllBuildContexts();
+      expect(builds).toHaveLength(2);
+    });
+
+    it("returns only builds with metrics when onlyWithMetrics is true", () => {
+      const buildWithMetrics = adapter.insertBuildContext({
+        commit_sha: "a".repeat(40),
+        branch: "main",
+        run_id: "1",
+        run_number: 1,
+        timestamp: new Date(Date.now() - 1000).toISOString(),
+      });
+
+      adapter.insertBuildContext({
+        commit_sha: "b".repeat(40),
+        branch: "main",
+        run_id: "2",
+        run_number: 2,
+        timestamp: new Date().toISOString(),
+      });
+
+      const metric = adapter.upsertMetricDefinition({
+        name: "test-metric",
+        type: "numeric",
+      });
+
+      adapter.insertMetricValue({
+        metric_id: metric.id,
+        build_id: buildWithMetrics,
+        value_numeric: 42,
+        collected_at: new Date().toISOString(),
+      });
+
+      const builds = adapter.getAllBuildContexts({ onlyWithMetrics: true });
+      expect(builds).toHaveLength(1);
+      expect(builds[0]?.commit_sha).toBe("a".repeat(40));
+    });
+
+    it("returns empty array when no builds have metrics", () => {
+      adapter.insertBuildContext({
+        commit_sha: "a".repeat(40),
+        branch: "main",
+        run_id: "1",
+        run_number: 1,
+        timestamp: new Date().toISOString(),
+      });
+
+      const builds = adapter.getAllBuildContexts({ onlyWithMetrics: true });
+      expect(builds).toHaveLength(0);
+    });
+
+    it("preserves timestamp ordering with onlyWithMetrics", () => {
+      const olderBuild = adapter.insertBuildContext({
+        commit_sha: "a".repeat(40),
+        branch: "main",
+        run_id: "1",
+        run_number: 1,
+        timestamp: "2024-01-01T00:00:00.000Z",
+      });
+
+      const newerBuild = adapter.insertBuildContext({
+        commit_sha: "b".repeat(40),
+        branch: "main",
+        run_id: "2",
+        run_number: 2,
+        timestamp: "2024-01-02T00:00:00.000Z",
+      });
+
+      const metric = adapter.upsertMetricDefinition({
+        name: "test-metric",
+        type: "numeric",
+      });
+
+      adapter.insertMetricValue({
+        metric_id: metric.id,
+        build_id: newerBuild,
+        value_numeric: 100,
+        collected_at: new Date().toISOString(),
+      });
+
+      adapter.insertMetricValue({
+        metric_id: metric.id,
+        build_id: olderBuild,
+        value_numeric: 50,
+        collected_at: new Date().toISOString(),
+      });
+
+      const builds = adapter.getAllBuildContexts({ onlyWithMetrics: true });
+      expect(builds).toHaveLength(2);
+      expect(builds[0]?.commit_sha).toBe("a".repeat(40));
+      expect(builds[1]?.commit_sha).toBe("b".repeat(40));
+    });
+  });
+
   describe("getPullRequestMetricValue", () => {
     it("returns metric value for specific PR build", () => {
       const prBuild = adapter.insertBuildContext({
