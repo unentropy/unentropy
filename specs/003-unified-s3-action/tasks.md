@@ -1,9 +1,9 @@
 ---
 
-description: "Task list for unified S3-compatible storage action implementation"
+description: "Task list for unified storage action implementation (S3 and GitHub Artifacts)"
 ---
 
-# Tasks: Unified S3-Compatible Storage Action
+# Tasks: Unified Storage Action (S3 and GitHub Artifacts)
 
 **Input**: Design documents from `/specs/003-unified-s3-action/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
@@ -74,9 +74,9 @@ description: "Task list for unified S3-compatible storage action implementation"
 
 ## Phase 4: User Story 2 - Run Complete Metrics Workflow with Single Action (Priority: P2)
 
-**Goal**: Provide a unified GitHub Action that downloads the database from S3 (or creates it if missing), runs metric collection, uploads the updated database, and generates the HTML report in a single workflow step.
+**Goal**: Provide a unified GitHub Action that downloads the database from S3 or GitHub Artifacts (or creates it if missing), runs metric collection, uploads the updated database, and generates the HTML report in a single workflow step.
 
-**Independent Test**: Configure S3 storage, run the unified `track-metrics` action in a workflow, and verify that it performs download (or create), collect, upload, and report phases in order, producing an updated database in S3 and a generated HTML report artifact.
+**Independent Test**: Configure S3 or artifact storage, run the unified `track-metrics` action in a workflow, and verify that it performs download (or create), collect, upload, and report phases in order, producing an updated database and a generated HTML report artifact.
 
 ### Tests for User Story 2
 
@@ -97,16 +97,47 @@ description: "Task list for unified S3-compatible storage action implementation"
 
 ---
 
-## Phase 5: User Story 3 - Handle S3 Storage Failures Gracefully (Priority: P3)
+## Phase 4.5: GitHub Artifacts Storage Provider Implementation
 
-**Goal**: Make S3-related failures (authentication, missing bucket, network issues, corruption) produce clear, actionable errors while preserving data and distinguishing recoverable vs permanent failures.
+**Goal**: Implement `SqliteArtifactStorageProvider` by migrating logic from `src/actions/find-database.ts`, providing full workflow support for GitHub Artifacts storage (search, download, collect, upload, report).
 
-**Independent Test**: Simulate invalid credentials, missing bucket, network interruptions, and corrupted database files, then verify that the action retries transient failures, produces clear error messages and codes, and preserves the database even if report generation fails.
+**Independent Test**: Configure artifact storage, run the unified `track-metrics` action in a workflow, and verify that it searches for the latest artifact from previous runs, downloads it (or creates new if first run), runs collection, uploads updated database as new artifact, and generates report.
+
+### Tests for Artifact Storage
+
+- [ ] T050 [P] [US2] Add unit tests for `SqliteArtifactStorageProvider` in `tests/unit/storage/providers/sqlite-artifact.test.ts`
+- [ ] T051 [P] [US2] Add integration tests for artifact storage workflow in `tests/integration/artifact-storage.test.ts`
+
+### Implementation for Artifact Storage
+
+- [ ] T052 [US2] Create `SqliteArtifactStorageProvider` class implementing `StorageProvider` interface in `src/storage/providers/sqlite-artifact.ts`
+- [ ] T053 [US2] Migrate artifact search and download logic from `src/actions/find-database.ts` to `SqliteArtifactStorageProvider.initialize()` in `src/storage/providers/sqlite-artifact.ts`
+- [ ] T054 [US2] Implement `persist()` to upload database as new artifact using GitHub API in `src/storage/providers/sqlite-artifact.ts`
+- [ ] T055 [US2] Update factory to instantiate `SqliteArtifactStorageProvider` for `sqlite-artifact` type in `src/storage/providers/factory.ts`
+- [ ] T056 [US2] Update track-metrics action to pass artifact config (name, branchFilter) to storage provider in `src/actions/track-metrics.ts`
+- [ ] T057 [US2] Update `.github/actions/track-metrics/action.yml` to include artifact-specific inputs (`artifact-name`, `artifact-branch-filter`)
+- [ ] T058 [US2] Remove deprecated `src/actions/find-database.ts` and `.github/actions/find-database/` after migration is complete
+
+### Dogfooding Workflow
+
+- [ ] T059 [US2] Create dual storage testing workflow (matrix strategy) in `.github/workflows/metrics.yml` to run both S3 and artifact storage in parallel
+
+**Checkpoint**: Artifact storage provider is fully functional; both S3 and artifact storage can be tested via the matrix workflow.
+
+---
+
+## Phase 5: User Story 3 - Handle Storage Failures Gracefully (Priority: P3)
+
+**Goal**: Make storage-related failures (S3 authentication, missing bucket, artifact access, network issues, corruption) produce clear, actionable errors while preserving data and distinguishing recoverable vs permanent failures.
+
+**Independent Test**: Simulate invalid credentials, missing bucket/artifacts, network interruptions, and corrupted database files, then verify that the action retries transient failures, produces clear error messages and codes, and preserves the database even if report generation fails.
 
 ### Tests for User Story 3
 
 - [ ] T027 [P] [US3] Add unit tests for S3 failure scenarios (authentication, missing bucket, permission errors) in `tests/unit/storage/providers/sqlite-s3.test.ts`
 - [ ] T028 [P] [US3] Add integration tests for retry logic and error reporting under transient S3 failures in `tests/integration/s3-storage.test.ts`
+- [ ] T060 [P] [US3] Add unit tests for artifact failure scenarios (missing token, API errors, permission errors) in `tests/unit/storage/providers/sqlite-artifact.test.ts`
+- [ ] T061 [P] [US3] Add integration tests for artifact error handling in `tests/integration/artifact-storage.test.ts`
 
 ### Implementation for User Story 3
 
@@ -115,9 +146,11 @@ description: "Task list for unified S3-compatible storage action implementation"
 - [ ] T031 [US3] Implement corrupted database detection and automatic recreation or recovery path in `src/storage/providers/sqlite-s3.ts`
 - [ ] T032 [US3] Ensure the track-metrics action always prioritizes uploading a valid database even if report generation fails in `src/actions/track-metrics.ts`
 - [ ] T033 [US3] Update action outputs to surface high-level error codes and sanitized messages without exposing secrets in `.github/actions/track-metrics/action.yml`
-- [ ] T034 [US3] Update troubleshooting guidance for S3 failures (auth, network, corruption) in `specs/003-unified-s3-action/quickstart.md`
+- [ ] T034 [US3] Update troubleshooting guidance for storage failures (S3 auth, artifact access, network, corruption) in `specs/003-unified-s3-action/quickstart.md`
+- [ ] T062 [US3] Implement retry logic for transient GitHub API failures in `src/storage/providers/sqlite-artifact.ts`
+- [ ] T063 [US3] Handle artifact expiration and missing artifact scenarios gracefully in `src/storage/providers/sqlite-artifact.ts`
 
-**Checkpoint**: All three user stories are independently functional, with robust failure handling and clear error reporting for S3 operations.
+**Checkpoint**: All user stories are independently functional, with robust failure handling and clear error reporting for both S3 and artifact storage operations.
 
 ---
 
@@ -126,11 +159,13 @@ description: "Task list for unified S3-compatible storage action implementation"
 **Purpose**: Cross-story improvements, documentation, and hardening once core stories are complete.
 
 - [ ] T035 [P] Refresh unified action documentation to reflect final behavior and configuration in `specs/003-unified-s3-action/spec.md`
-- [ ] T036 [P] Expand migration walkthrough from sqlite-artifact to sqlite-s3 storage in `specs/003-unified-s3-action/quickstart.md`
-- [ ] T037 Perform code cleanup and refactoring for `SqliteS3StorageProvider` and workflow orchestration in `src/storage/providers/sqlite-s3.ts`
-- [ ] T038 [P] Add any remaining unit tests for edge cases discovered during implementation in `tests/unit/storage/providers/sqlite-s3.test.ts`
+- [ ] T036 [P] Expand migration walkthrough between storage types in `specs/003-unified-s3-action/quickstart.md`
+- [ ] T037 Perform code cleanup and refactoring for storage providers and workflow orchestration in `src/storage/providers/`
+- [ ] T038 [P] Add any remaining unit tests for edge cases discovered during implementation in `tests/unit/storage/providers/`
 - [ ] T039 Review credential handling and logging to ensure no secrets are ever logged in `src/actions/track-metrics.ts`
 - [ ] T040 Run quickstart validation using the example workflows and adjust steps as needed in `specs/003-unified-s3-action/quickstart.md`
+- [ ] T064 Remove spec 002 files (`specs/002-find-database-artifact/`) after artifact provider is fully functional
+- [ ] T065 Update README.md to document the unified storage options (local, artifact, S3)
 
 ---
 
@@ -143,14 +178,16 @@ description: "Task list for unified S3-compatible storage action implementation"
 - **User Stories (Phases 3–5)**: All depend on Foundational phase completion.
   - **User Story 1 (P1)**: Configuration and storage selection; should be completed first to establish storage behavior.
   - **User Story 2 (P2)**: Unified workflow orchestration; depends on US1 configuration semantics.
-  - **User Story 3 (P3)**: Error handling and resilience; depends on US2 workflow behavior.
+  - **Phase 4.5 (Artifact Storage)**: Depends on US2 for workflow patterns; implements artifact-specific storage provider.
+  - **User Story 3 (P3)**: Error handling and resilience; depends on US2 and Phase 4.5 for storage providers.
 - **Polish (Phase 6)**: Depends on all desired user stories being complete.
 
 ### User Story Dependencies
 
 - **User Story 1 (P1)**: Can start after Phase 2; no dependencies on other stories.
 - **User Story 2 (P2)**: Depends on US1 for `storage.type` semantics and storage selection being stable.
-- **User Story 3 (P3)**: Depends on US2 for the full workflow pipeline; adds robustness and error handling.
+- **Phase 4.5 (Artifact Storage)**: Depends on US2 for workflow patterns; can run in parallel with remaining US2 tasks.
+- **User Story 3 (P3)**: Depends on US2 and Phase 4.5 for the full workflow pipeline; adds robustness and error handling for both S3 and artifact storage.
 
 ### Within Each User Story
 
@@ -171,11 +208,16 @@ description: "Task list for unified S3-compatible storage action implementation"
 - Within **User Story 2**:
   - T015, T016, and T017 can run in parallel (separate test files).
   - T018 and T021 can start in parallel after T005–T006, coordinating on final signatures.
-  - T025 and T026 can run in parallel after core implementation.
+  - T023 and T024 can run in parallel after core implementation.
+- Within **Phase 4.5 (Artifact Storage)**:
+  - T050 and T051 can run in parallel (unit vs integration tests).
+  - T052, T053, T054 are sequential (building the provider incrementally).
+  - T057 and T059 can run in parallel after provider implementation.
 - Within **User Story 3**:
-  - T027 and T028 can run in parallel (unit vs integration tests).
+  - T027, T028, T060, T061 can run in parallel (separate test files for S3 vs artifact).
   - T030 and T031 touch different aspects of S3 failure handling and can be developed in parallel once T029 is defined.
-- Across stories, teams can split work once Phase 2 is complete, respecting the dependency chain US1 → US2 → US3 where behavior depends on earlier stories.
+  - T062 and T063 can run in parallel (different artifact error scenarios).
+- Across stories, teams can split work once Phase 2 is complete, respecting the dependency chain US1 → US2 → Phase 4.5 → US3 where behavior depends on earlier stories.
 
 ---
 
@@ -210,18 +252,39 @@ Task: "T026 [P] [US2] track-metrics action unit tests in tests/unit/actions/trac
 
 ---
 
+## Parallel Example: Phase 4.5 (Artifact Storage)
+
+```bash
+# Parallel test tasks for Artifact Storage
+Task: "T050 [P] [US2] Unit tests in tests/unit/storage/providers/sqlite-artifact.test.ts"
+Task: "T051 [P] [US2] Integration tests in tests/integration/artifact-storage.test.ts"
+
+# Sequential implementation tasks (building provider incrementally)
+Task: "T052 [US2] Create SqliteArtifactStorageProvider class in src/storage/providers/sqlite-artifact.ts"
+Task: "T053 [US2] Migrate search/download logic from find-database.ts"
+Task: "T054 [US2] Implement persist() for artifact upload"
+
+# Parallel tasks after provider implementation
+Task: "T057 [US2] Update action.yml with artifact inputs"
+Task: "T059 [US2] Create dual storage testing workflow"
+```
+
+---
+
 ## Parallel Example: User Story 3
 
 ```bash
-# Parallel test tasks for User Story 3
+# Parallel test tasks for User Story 3 (S3 and Artifact)
 Task: "T027 [P] [US3] S3 failure unit tests in tests/unit/storage/providers/sqlite-s3.test.ts"
-Task: "T028 [P] [US3] Retry and error reporting integration tests in tests/integration/s3-storage.test.ts"
+Task: "T028 [P] [US3] S3 retry integration tests in tests/integration/s3-storage.test.ts"
+Task: "T060 [P] [US3] Artifact failure unit tests in tests/unit/storage/providers/sqlite-artifact.test.ts"
+Task: "T061 [P] [US3] Artifact error handling integration tests in tests/integration/artifact-storage.test.ts"
 
-# Parallel implementation tasks for User Story 3 (after US2 behavior is stable)
-Task: "T030 [US3] Implement exponential backoff in src/storage/providers/sqlite-s3.ts"
-Task: "T031 [US3] Implement corruption handling in src/storage/providers/sqlite-s3.ts"
-Task: "T032 [US3] Ensure data preservation on report failure in src/actions/track-metrics.ts"
-Task: "T033 [US3] Update error outputs in .github/actions/track-metrics/action.yml"
+# Parallel implementation tasks for User Story 3 (after Phase 4.5 is stable)
+Task: "T030 [US3] Implement S3 exponential backoff in src/storage/providers/sqlite-s3.ts"
+Task: "T031 [US3] Implement S3 corruption handling in src/storage/providers/sqlite-s3.ts"
+Task: "T062 [US3] Implement artifact retry logic in src/storage/providers/sqlite-artifact.ts"
+Task: "T063 [US3] Handle artifact expiration in src/storage/providers/sqlite-artifact.ts"
 ```
 
 ---
@@ -241,8 +304,9 @@ Task: "T033 [US3] Update error outputs in .github/actions/track-metrics/action.y
 1. Complete Setup + Foundational → Foundation ready.
 2. Add User Story 1 → Test independently → Demo configuration-only behavior.
 3. Add User Story 2 → Test end-to-end S3 workflow → Demo single-action metrics run.
-4. Add User Story 3 → Test failure handling and resilience → Demo robust error reporting.
-5. Each story adds value without breaking previous stories; roll out progressively.
+4. Add Phase 4.5 → Test artifact storage workflow → Demo dual storage with matrix workflow.
+5. Add User Story 3 → Test failure handling and resilience → Demo robust error reporting for both storage types.
+6. Each story adds value without breaking previous stories; roll out progressively.
 
 ### Parallel Team Strategy
 
@@ -252,8 +316,10 @@ With multiple developers:
 2. Once Phase 2 is done:
    - Developer A: User Story 1 (config schema, loader, selection, docs).
    - Developer B: User Story 2 (S3 provider and unified action workflow).
-   - Developer C: User Story 3 (error handling, retry logic, troubleshooting docs).
-3. Stories integrate through shared configuration and storage abstractions while remaining independently testable.
+   - Developer C: Phase 4.5 (artifact provider, migrating from find-database.ts).
+3. Once US2 and Phase 4.5 are done:
+   - Developer D: User Story 3 (error handling, retry logic for both storage types).
+4. Stories integrate through shared configuration and storage abstractions while remaining independently testable.
 
 ---
 

@@ -35,6 +35,12 @@ Defines storage backend configuration for the metrics database.
 ```typescript
 interface StorageConfig {
   type: 'sqlite-local' | 'sqlite-artifact' | 'sqlite-s3';
+  artifact?: ArtifactConfig;
+}
+
+interface ArtifactConfig {
+  name?: string;         // Default: 'unentropy-metrics'
+  branchFilter?: string; // Default: current branch (from GITHUB_REF_NAME)
 }
 ```
 
@@ -43,11 +49,14 @@ interface StorageConfig {
 | Field | Type | Required | Constraints | Description |
 |-------|------|----------|-------------|-------------|
 | `type` | enum | No | Either `'sqlite-local'`, `'sqlite-artifact'`, or `'sqlite-s3'` | Storage backend to use for the database. Defaults to `'sqlite-local'` if omitted. |
+| `artifact` | object | No | Only used when `type` is `'sqlite-artifact'` | Configuration for GitHub Artifacts storage. |
+| `artifact.name` | string | No | Must match pattern `^[a-zA-Z0-9_-]+$` | Name of the artifact to search for and upload. Defaults to `'unentropy-metrics'`. |
+| `artifact.branchFilter` | string | No | Valid Git branch name | Branch to search for previous artifacts. Defaults to current branch. |
 
 **Storage Type Descriptions**:
 - `sqlite-local`: Store database in local file system (default from spec 001)
-- `sqlite-artifact`: Store database in GitHub Artifacts (limited workflow)
-- `sqlite-s3`: Store database in S3-compatible storage (unified workflow)
+- `sqlite-artifact`: Store database in GitHub Artifacts with automatic search, download, and upload
+- `sqlite-s3`: Store database in S3-compatible storage with automatic download and upload
 
 ## Extended JSON Schema
 
@@ -61,11 +70,24 @@ This extends the base JSON schema from spec 001 with the storage block:
   "properties": {
     "storage": {
       "type": "object",
-      "required": ["type"],
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["sqlite-local", "sqlite-artifact", "sqlite-s3"]
+          "enum": ["sqlite-local", "sqlite-artifact", "sqlite-s3"],
+          "default": "sqlite-local"
+        },
+        "artifact": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "default": "unentropy-metrics"
+            },
+            "branchFilter": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -95,12 +117,34 @@ Same as spec 001 - no storage block needed:
 }
 ```
 
-### GitHub Artifacts Storage
+### GitHub Artifacts Storage (Default Options)
 
 ```json
 {
   "storage": {
     "type": "sqlite-artifact"
+  },
+  "metrics": [
+    {
+      "name": "test-coverage",
+      "type": "numeric",
+      "command": "npm run test:coverage -- --json | jq -r '.total.lines.pct'",
+      "unit": "%"
+    }
+  ]
+}
+```
+
+### GitHub Artifacts Storage (Custom Options)
+
+```json
+{
+  "storage": {
+    "type": "sqlite-artifact",
+    "artifact": {
+      "name": "my-project-metrics",
+      "branchFilter": "main"
+    }
   },
   "metrics": [
     {
@@ -150,9 +194,13 @@ Same as spec 001 - no storage block needed:
 
 ### sqlite-artifact
 - Database stored in GitHub Artifacts
-- Requires separate workflow steps for download/upload
-- Limited unified action functionality (collect + report only)
-- Artifact transfers handled externally
+- Full unified action support (search, download, collect, upload, report)
+- Automatic artifact search finds latest database from previous successful workflow runs
+- Automatic artifact upload persists updated database after collection
+- `GITHUB_TOKEN` and `GITHUB_REPOSITORY` auto-detected from environment
+- Configurable artifact name (default: `unentropy-metrics`)
+- Configurable branch filter (default: current branch)
+- First-run scenario: creates new database if no previous artifact exists
 
 ### sqlite-s3
 - Database stored in S3-compatible storage
@@ -195,6 +243,19 @@ All validation rules from spec 001 apply unchanged:
 
 ## Migration Path
 
+### From sqlite-local to sqlite-artifact
+1. Add `storage` block to `unentropy.json`:
+   ```json
+   {
+     "storage": {
+       "type": "sqlite-artifact"
+     },
+     "metrics": [...]
+   }
+   ```
+2. Ensure workflow has `actions: read` and `actions: write` permissions
+3. Use unified track-metrics action (no separate artifact steps needed)
+
 ### From sqlite-local to sqlite-s3
 1. Add `storage` block to `unentropy.json`:
    ```json
@@ -206,13 +267,12 @@ All validation rules from spec 001 apply unchanged:
    }
    ```
 2. Configure S3 credentials in GitHub Action parameters
-3. Replace separate download/upload steps with unified action
+3. Use unified track-metrics action
 
 ### From sqlite-artifact to sqlite-s3
 1. Change `storage.type` from `"sqlite-artifact"` to `"sqlite-s3"`
 2. Add S3 credentials to GitHub Action parameters
-3. Remove separate artifact download/upload workflow steps
-4. Use unified action for complete workflow
+3. Use unified action for complete workflow (artifact handling is automatic, no manual steps to remove)
 
 ## References
 

@@ -7,13 +7,13 @@
 
 ## Summary
 
-Create a unified track-metrics GitHub Action that orchestrates the complete Unentropy metrics workflow with support for three storage backends: local file system (sqlite-local), GitHub Artifacts (sqlite-artifact), and S3-compatible storage (sqlite-s3). The action will provide full workflow automation for S3 storage (download, collect, upload, report) while maintaining backward compatibility with existing local and artifact-based workflows. S3 credentials are handled securely via GitHub Action parameters.
+Create a unified track-metrics GitHub Action that orchestrates the complete Unentropy metrics workflow with support for three storage backends: local file system (sqlite-local), GitHub Artifacts (sqlite-artifact), and S3-compatible storage (sqlite-s3). The action will provide full workflow automation for both S3 and artifact storage (download/search, collect, upload, report) while maintaining backward compatibility with local file storage. S3 credentials are handled securely via GitHub Action parameters; GitHub token for artifact operations is auto-detected from the environment.
 
 ## Technical Context
 
 **Language/Version**: TypeScript with Bun runtime (per constitution)  
 **Primary Dependencies**: Bun native S3 client, existing Unentropy collector and reporter modules, StorageProvider interface from spec 001  
-**Storage**: Three-tier storage architecture - sqlite-local (default), sqlite-artifact (limited workflow), sqlite-s3 (full unified workflow)  
+**Storage**: Three-tier storage architecture - sqlite-local (default), sqlite-artifact (full artifact workflow), sqlite-s3 (full S3 workflow)  
 **Testing**: Bun test framework (per constitution), unit/integration/contract tests for all storage providers  
 **Target Platform**: GitHub Actions runners (Linux serverless environment)  
 **Project Type**: Single project with modular storage provider architecture  
@@ -102,14 +102,15 @@ specs/[###-feature]/
 src/
 ├── actions/
 │   ├── collect.ts           # Existing metric collection action
-│   ├── find-database.ts     # Existing artifact finder action
+│   ├── find-database.ts     # DEPRECATED: To be removed, logic moved to sqlite-artifact provider
 │   ├── report.ts            # Existing report generation action
-│   └── track-metrics.ts     # NEW: Unified track-metrics action
+│   └── track-metrics.ts     # Existing unified track-metrics action
 ├── storage/
 │   ├── providers/               # Existing storage providers from spec 001
 │   │   ├── sqlite-local.ts     # Existing local storage provider
 │   │   ├── factory.ts         # Existing factory (to be extended)
-│   │   └── sqlite-s3.ts       # NEW: S3-compatible storage provider
+│   │   ├── sqlite-s3.ts       # Existing S3-compatible storage provider
+│   │   └── sqlite-artifact.ts  # NEW: GitHub Artifacts storage provider (migrated from find-database.ts)
 │   ├── interface.ts            # Existing StorageProvider interface
 │   └── storage.ts             # Existing high-level Storage class
 ├── config/
@@ -121,18 +122,20 @@ src/
 
 tests/
 ├── contract/
-│   ├── track-metrics-config.test.ts      # NEW: Track-Metrics config contract tests
+│   ├── track-metrics-config.test.ts      # Existing Track-Metrics config contract tests
 │   └── track-metrics-workflow.test.ts    # NEW: Track-Metrics workflow contract tests
 ├── integration/
 │   ├── collection.test.ts
 │   ├── reporting.test.ts
 │   ├── storage-selection.test.ts         # Existing storage selection tests
-│   └── s3-storage.test.ts              # NEW: S3 storage integration tests
+│   ├── s3-storage.test.ts                # NEW: S3 storage integration tests
+│   └── artifact-storage.test.ts          # NEW: Artifact storage integration tests
 └── unit/
     ├── storage/
     │   ├── providers/
-    │   │   ├── sqlite-s3.test.ts         # NEW: S3 provider unit tests
-    │   │   └── factory.test.ts           # NEW: Extended factory tests
+    │   │   ├── sqlite-s3.test.ts         # Existing S3 provider unit tests
+    │   │   ├── sqlite-artifact.test.ts   # NEW: Artifact provider unit tests
+    │   │   └── factory.test.ts           # Existing extended factory tests
     │   └── interface.test.ts             # Existing StorageProvider interface tests
     └── actions/
         └── track-metrics.test.ts         # NEW: Track-Metrics action unit tests
@@ -144,7 +147,7 @@ tests/
     └── track-metrics-example.yml         # NEW: Example unified track-metrics workflow
 ```
 
-**Structure Decision**: Single project structure following existing patterns from spec 001. New unified track-metrics action integrates with existing collector, reporter, and database modules. Storage provider pattern from spec 001 is extended with SqliteS3StorageProvider while maintaining backward compatibility with existing sqlite-local and sqlite-artifact providers.
+**Structure Decision**: Single project structure following existing patterns from spec 001. Unified track-metrics action integrates with existing collector, reporter, and database modules. Storage provider pattern from spec 001 is extended with SqliteS3StorageProvider (existing) and new SqliteArtifactStorageProvider (migrated from find-database action) while maintaining backward compatibility with existing sqlite-local provider.
 
 ## Complexity Tracking
 
