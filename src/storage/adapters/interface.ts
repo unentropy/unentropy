@@ -41,12 +41,11 @@ export interface DatabaseAdapter {
   })[];
 
   // Quality gate queries
-  getBaselineMetricValues(
+  getBaselineMetricValue(
     metricName: string,
     referenceBranch: string,
-    maxBuilds?: number,
     maxAgeDays?: number
-  ): { value_numeric: number }[];
+  ): number | undefined;
 
   getPullRequestMetricValue(
     metricName: string,

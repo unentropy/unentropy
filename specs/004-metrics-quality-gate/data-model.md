@@ -86,15 +86,9 @@ interface BaselineConfig {
   // Reference branch name (defaults to main branch if omitted)
   referenceBranch?: string;
 
-  // Maximum number of successful reference-branch builds to consider (window size)
-  maxBuilds?: number; // default 20, min 5
-
-  // Maximum age of baseline builds (in days)
+  // Maximum age of baseline build (in days)
+  // If the most recent build is older than this, no baseline is available
   maxAgeDays?: number; // default 90
-
-  // Aggregation strategy for baseline values
-  // For this feature, median is the default and only required option
-  aggregate?: 'median';
 }
 ```
 
@@ -103,7 +97,6 @@ interface BaselineConfig {
 - When `mode` is `hard`, at least one threshold rule must be present.
 - `maxCommentMetrics` must be a positive integer within a safe bound (for example, 1–100).
 - `maxCommentCharacters` must be positive and lower than typical GitHub limits (for example, ≤20000).
-- `baseline.maxBuilds` must be between a minimum (for example, 5) and a reasonable upper bound (for example, 200).
 - `baseline.maxAgeDays` must be positive.
 
 ---
@@ -135,8 +128,8 @@ interface MetricSample {
   unit?: string;         // MetricDefinition.unit
   type: 'numeric' | 'label';
 
-  // Baseline series on the reference branch (subset of metric_values)
-  baselineValues: number[]; // numeric-only metrics
+  // Baseline value from the most recent successful build on the reference branch
+  baselineValue?: number; // undefined if no baseline available; numeric-only metrics
 
   // Current metric value for the pull request build being evaluated
   pullRequestValue?: number; // undefined if metric not present in PR run
@@ -145,7 +138,7 @@ interface MetricSample {
 
 **Notes**:
 - Quality gate evaluation applies only to numeric metrics; label metrics are ignored for thresholds but may still be displayed.
-- The `baselineValues` array is populated from the last N successful reference-branch builds that satisfy the BaselineConfig window.
+- The `baselineValue` is the metric value from the most recent successful push build on the reference branch within the configured `maxAgeDays` window.
 - Sample building logic is in `src/quality-gate/samples.ts`.
 
 ---
@@ -162,12 +155,12 @@ interface MetricEvaluationResult {
   metric: string;                // Metric name
   unit?: string;
 
-  baselineMedian?: number;       // Median of baselineValues (if available)
+  baseline?: number;             // Value from most recent build on reference branch (if available)
   pullRequestValue?: number;     // Current value on PR
 
   // Signed difference and relative change, when both values are present
-  absoluteDelta?: number;        // pullRequestValue - baselineMedian
-  relativeDeltaPercent?: number; // (pullRequestValue - baselineMedian) / baselineMedian * 100
+  absoluteDelta?: number;        // pullRequestValue - baseline
+  relativeDeltaPercent?: number; // (pullRequestValue - baseline) / baseline * 100
 
   // Applied threshold rule (resolved from configuration)
   threshold?: MetricThresholdConfig;
@@ -227,8 +220,6 @@ interface QualityGateResult {
   // Notes about baseline and configuration used (for debugging and transparency)
   baselineInfo: {
     referenceBranch: string;
-    buildsConsidered: number;
-    maxBuilds: number;
     maxAgeDays: number;
   };
 }

@@ -70,9 +70,7 @@ describe("Config Loader", () => {
 
       expect(config.qualityGate?.baseline).toBeDefined();
       expect(config.qualityGate?.baseline?.referenceBranch).toBe("main");
-      expect(config.qualityGate?.baseline?.maxBuilds).toBe(20);
       expect(config.qualityGate?.baseline?.maxAgeDays).toBe(90);
-      expect(config.qualityGate?.baseline?.aggregate).toBe("median");
     });
 
     it("should parse config with qualityGate thresholds", async () => {

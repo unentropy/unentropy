@@ -42,9 +42,7 @@ interface QualityGateConfig {
 
 interface BaselineConfig {
   referenceBranch?: string;        // Defaults to repository default branch (e.g., main)
-  maxBuilds?: number;              // Default: 20, Min: 5, Max: 200
   maxAgeDays?: number;             // Default: 90
-  aggregate?: 'median';            // Only 'median' supported initially
 }
 
 interface MetricThresholdConfig {
@@ -72,12 +70,12 @@ interface MetricThresholdConfig {
 
 ### baseline (within qualityGate, optional)
 
+The baseline is always the most recent successful build on the reference branch. The `maxAgeDays` option controls how far back to look for a baseline build.
+
 | Field           | Type   | Required | Default | Constraints               | Description |
 |-----------------|--------|----------|---------|---------------------------|-------------|
 | `referenceBranch` | string | No     | default repo branch | Non-empty string | Branch used as baseline for comparisons (commonly `main`). |
-| `maxBuilds`     | number | No       | `20`    | `5`–`200`                 | Maximum number of successful baseline builds to consider. |
-| `maxAgeDays`    | number | No       | `90`    | `>0`                      | Maximum age of baseline builds in days. |
-| `aggregate`     | enum   | No       | `median`| `median` only for now     | Aggregation method used to derive baseline value per metric. |
+| `maxAgeDays`    | number | No       | `90`    | `>0`                      | Maximum age of baseline build in days. If the most recent build is older than this, no baseline is available. |
 
 ### thresholds[*] (within qualityGate, optional)
 
@@ -129,18 +127,9 @@ interface MetricThresholdConfig {
           "type": "object",
           "properties": {
             "referenceBranch": { "type": "string" },
-            "maxBuilds": {
-              "type": "integer",
-              "minimum": 5,
-              "maximum": 200
-            },
             "maxAgeDays": {
               "type": "integer",
               "minimum": 1
-            },
-            "aggregate": {
-              "type": "string",
-              "enum": ["median"]
             }
           }
         },
@@ -232,9 +221,7 @@ interface MetricThresholdConfig {
     "mode": "hard",
     "baseline": {
       "referenceBranch": "main",
-      "maxBuilds": 20,
-      "maxAgeDays": 90,
-      "aggregate": "median"
+      "maxAgeDays": 90
     },
     "thresholds": [
       { "metric": "coverage", "mode": "min", "target": 80, "severity": "blocker" }

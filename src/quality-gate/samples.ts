@@ -14,7 +14,6 @@ export function buildMetricSamples(
   }[],
   repository: MetricsRepository,
   referenceBranch: string,
-  maxBuilds: number,
   maxAgeDays: number
 ): MetricSample[] {
   const samples: MetricSample[] = [];
@@ -26,22 +25,16 @@ export function buildMetricSamples(
       continue;
     }
 
-    const baselineValues = repository
-      .getBaselineMetricValues(def.name, referenceBranch, maxBuilds, maxAgeDays)
-      .map((v) => v.value_numeric);
+    const baselineValue = repository.getBaselineMetricValue(def.name, referenceBranch, maxAgeDays);
 
     samples.push({
       name: def.name,
       unit: def.unit,
       type: "numeric",
-      baselineValues,
+      baselineValue,
       pullRequestValue: collected.value_numeric,
     });
   }
 
   return samples;
-}
-
-export function calculateBuildsConsidered(samples: MetricSample[]): number {
-  return Math.max(...samples.map((s) => s.baselineValues.length), 0);
 }

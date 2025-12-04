@@ -6,14 +6,14 @@ export interface MetricSample {
   name: string;
   unit?: string;
   type: "numeric" | "label";
-  baselineValues: number[];
+  baselineValue?: number;
   pullRequestValue?: number;
 }
 
 export interface MetricEvaluationResult {
   metric: string;
   unit?: string;
-  baselineMedian?: number;
+  baseline?: number;
   pullRequestValue?: number;
   absoluteDelta?: number;
   relativeDeltaPercent?: number;
@@ -39,15 +39,11 @@ export interface QualityGateResult {
   };
   baselineInfo: {
     referenceBranch: string;
-    buildsConsidered: number;
-    maxBuilds: number;
     maxAgeDays: number;
   };
 }
 
 export interface QualityGateBaselineInfo {
   referenceBranch: string;
-  buildsConsidered: number;
-  maxBuilds: number;
   maxAgeDays: number;
 }

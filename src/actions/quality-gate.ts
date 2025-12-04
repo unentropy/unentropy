@@ -7,11 +7,7 @@ import type { StorageConfig } from "../config/schema.js";
 import type { StorageProviderConfig } from "../storage/providers/interface.js";
 import { formatValue, formatDelta } from "../metrics/unit-formatter.js";
 import type { UnitType } from "../metrics/types.js";
-import {
-  evaluateQualityGate,
-  buildMetricSamples,
-  calculateBuildsConsidered,
-} from "../quality-gate/index.js";
+import { evaluateQualityGate, buildMetricSamples } from "../quality-gate/index.js";
 import type { QualityGateResult } from "../quality-gate/index.js";
 import type { QualityGateConfig } from "../config/schema.js";
 
@@ -137,7 +133,8 @@ async function createQualityGateComment(
 
   let commentBody = `${marker}\n\n`;
 
-  if (gateResult.summary.totalMetrics === 0 || gateResult.baselineInfo.buildsConsidered === 0) {
+  const hasBaseline = gateResult.metrics.some((m) => m.baseline !== undefined);
+  if (gateResult.summary.totalMetrics === 0 || !hasBaseline) {
     commentBody += `## 🛡️ Quality Gate: **UNKNOWN** ⚠️\n\n`;
     commentBody += `### No Baseline Data Available\n\n`;
     commentBody += `This appears to be the first pull request, or baseline data is not yet available.\n`;
@@ -165,7 +162,7 @@ async function createQualityGateComment(
           : "**UNKNOWN** ⚠️";
 
     commentBody += `## 🛡️ Quality Gate: ${statusBadge}\n\n`;
-    commentBody += `**Mode**: ${gateResult.mode} • **Reference**: ${gateResult.baselineInfo.referenceBranch} • **Builds**: ${gateResult.baselineInfo.buildsConsidered}/${gateResult.baselineInfo.maxBuilds}\n\n`;
+    commentBody += `**Mode**: ${gateResult.mode} • **Reference**: ${gateResult.baselineInfo.referenceBranch}\n\n`;
 
     if (gateResult.failingMetrics.length > 0) {
       commentBody += `### 🔴 Blocking Violations\n\n`;
@@ -186,8 +183,8 @@ async function createQualityGateComment(
       const metricsToShow = evaluatedMetrics.slice(0, maxMetrics);
       for (const metric of metricsToShow) {
         const baselineStr =
-          metric.baselineMedian !== undefined
-            ? formatValue(metric.baselineMedian, metric.unit as UnitType)
+          metric.baseline !== undefined
+            ? formatValue(metric.baseline, metric.unit as UnitType)
             : "N/A";
         const prStr =
           metric.pullRequestValue !== undefined
@@ -223,8 +220,8 @@ async function createQualityGateComment(
 
       for (const metric of trackedMetrics) {
         const baselineStr =
-          metric.baselineMedian !== undefined
-            ? formatValue(metric.baselineMedian, metric.unit as UnitType)
+          metric.baseline !== undefined
+            ? formatValue(metric.baseline, metric.unit as UnitType)
             : "N/A";
         const prStr =
           metric.pullRequestValue !== undefined
@@ -333,22 +330,17 @@ export async function runQualityGateAction(): Promise<void> {
     );
 
     const referenceBranch = determineReferenceBranch(config);
-    const maxBuilds = config.qualityGate?.baseline?.maxBuilds ?? 20;
     const maxAgeDays = config.qualityGate?.baseline?.maxAgeDays ?? 90;
 
     core.info(
-      `Building metric samples (reference: ${referenceBranch}, maxBuilds: ${maxBuilds})...`
+      `Building metric samples (reference: ${referenceBranch}, maxAgeDays: ${maxAgeDays})...`
     );
     const samples = buildMetricSamples(
       collectionResult.collectedMetrics,
       repository,
       referenceBranch,
-      maxBuilds,
       maxAgeDays
     );
-
-    const buildsConsidered = calculateBuildsConsidered(samples);
-    core.info(`Baseline builds considered: ${buildsConsidered}`);
 
     core.info("Evaluating quality gate...");
     const gateResult = evaluateQualityGate(
@@ -356,8 +348,6 @@ export async function runQualityGateAction(): Promise<void> {
       { ...config.qualityGate, mode: gateMode },
       {
         referenceBranch,
-        buildsConsidered,
-        maxBuilds,
         maxAgeDays,
       }
     );
@@ -394,7 +384,6 @@ export async function runQualityGateAction(): Promise<void> {
       core.setOutput("quality-gate-comment-url", commentUrl);
     }
     core.setOutput("metrics-collected", collectionResult.successful);
-    core.setOutput("baseline-builds-considered", buildsConsidered);
     core.setOutput("baseline-reference-branch", referenceBranch);
 
     await storage.close();

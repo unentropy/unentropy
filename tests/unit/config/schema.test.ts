@@ -537,9 +537,7 @@ describe("Config Schema Validation", () => {
             mode: "soft",
             baseline: {
               referenceBranch: "main",
-              maxBuilds: 20,
               maxAgeDays: 90,
-              aggregate: "median",
             },
             thresholds: [],
           },
@@ -899,48 +897,6 @@ describe("Config Schema Validation", () => {
           qualityGate: {
             mode: "soft",
             maxCommentCharacters: 20001,
-            thresholds: [],
-          },
-        };
-
-        expect(() => validateConfig(config)).toThrow();
-      });
-
-      it("should reject baseline maxBuilds less than 5", () => {
-        const config = {
-          metrics: [
-            {
-              name: "coverage",
-              type: "numeric",
-              command: "echo 85",
-            },
-          ],
-          qualityGate: {
-            mode: "soft",
-            baseline: {
-              maxBuilds: 4,
-            },
-            thresholds: [],
-          },
-        };
-
-        expect(() => validateConfig(config)).toThrow();
-      });
-
-      it("should reject baseline maxBuilds greater than 200", () => {
-        const config = {
-          metrics: [
-            {
-              name: "coverage",
-              type: "numeric",
-              command: "echo 85",
-            },
-          ],
-          qualityGate: {
-            mode: "soft",
-            baseline: {
-              maxBuilds: 201,
-            },
             thresholds: [],
           },
         };
