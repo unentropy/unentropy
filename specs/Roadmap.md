@@ -17,13 +17,13 @@
 * [x] Separate GH action for quality gate
 
 ## 0.2 - MVP
-* [ ] Move to a dedicated organization
+* [x] Move to a dedicated organization
 * [ ] Scaffolding: `npx unentropy init`, an interactive CLI that creates a basic Unentropy configuration based on the current projects.
 * [ ] Simplify the config schema when using $ref
 * [ ] Support for @collect command
 * [ ] Polish quality gate comment, introduce some sort of templating
   * It should be less "dry"
-* [ ] Integrate find-artifact action into S3-artifact storage
+* [x] Integrate find-artifact action into S3-artifact storage
 * [ ] Properly packaged Github actions
 * [ ] Allow replacing existing build context
  
@@ -51,7 +51,8 @@
 * [ ] Proper tests for Storage class
 
 ## Spec-kit
-* [ ] Create a contract spec for GH quailty gate comment - how it should look like, what it should contain, etc.
+* [ ] Create a contract spec for GH quality gate comment - how it should look like, what it should contain, etc.
+* [ ] Cleanup or remove Spec 001
 
 ## Long term ideas
 * A website
