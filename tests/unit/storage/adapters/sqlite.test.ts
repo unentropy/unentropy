@@ -443,12 +443,13 @@ describe("SqliteDatabaseAdapter", () => {
       expect(builds).toHaveLength(2);
     });
 
-    it("returns only builds with metrics when onlyWithMetrics is true", () => {
+    it("returns only push builds with metrics when onlyWithMetrics is true", () => {
       const buildWithMetrics = adapter.insertBuildContext({
         commit_sha: "a".repeat(40),
         branch: "main",
         run_id: "1",
         run_number: 1,
+        event_name: "push",
         timestamp: new Date(Date.now() - 1000).toISOString(),
       });
 
@@ -457,6 +458,7 @@ describe("SqliteDatabaseAdapter", () => {
         branch: "main",
         run_id: "2",
         run_number: 2,
+        event_name: "push",
         timestamp: new Date().toISOString(),
       });
 
@@ -477,12 +479,39 @@ describe("SqliteDatabaseAdapter", () => {
       expect(builds[0]?.commit_sha).toBe("a".repeat(40));
     });
 
-    it("returns empty array when no builds have metrics", () => {
+    it("excludes pull_request builds when onlyWithMetrics is true", () => {
+      const prBuild = adapter.insertBuildContext({
+        commit_sha: "a".repeat(40),
+        branch: "main",
+        run_id: "1",
+        run_number: 1,
+        event_name: "pull_request",
+        timestamp: new Date().toISOString(),
+      });
+
+      const metric = adapter.upsertMetricDefinition({
+        name: "test-metric",
+        type: "numeric",
+      });
+
+      adapter.insertMetricValue({
+        metric_id: metric.id,
+        build_id: prBuild,
+        value_numeric: 42,
+        collected_at: new Date().toISOString(),
+      });
+
+      const builds = adapter.getAllBuildContexts({ onlyWithMetrics: true });
+      expect(builds).toHaveLength(0);
+    });
+
+    it("returns empty array when no push builds have metrics", () => {
       adapter.insertBuildContext({
         commit_sha: "a".repeat(40),
         branch: "main",
         run_id: "1",
         run_number: 1,
+        event_name: "push",
         timestamp: new Date().toISOString(),
       });
 
@@ -496,6 +525,7 @@ describe("SqliteDatabaseAdapter", () => {
         branch: "main",
         run_id: "1",
         run_number: 1,
+        event_name: "push",
         timestamp: "2024-01-01T00:00:00.000Z",
       });
 
@@ -504,6 +534,7 @@ describe("SqliteDatabaseAdapter", () => {
         branch: "main",
         run_id: "2",
         run_number: 2,
+        event_name: "push",
         timestamp: "2024-01-02T00:00:00.000Z",
       });
 
