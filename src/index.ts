@@ -3,12 +3,14 @@ import { hideBin } from "yargs/helpers";
 import { VerifyCommand } from "./cli/cmd/verify";
 import { CollectCommand } from "./cli/cmd/collect";
 import { TestCommand } from "./cli/cmd/test";
+import { InitCommand } from "./cli/cmd/init";
 
 const cli = yargs()
   .scriptName("unentropy")
   .command(VerifyCommand)
   .command(CollectCommand)
   .command(TestCommand)
+  .command(InitCommand)
   .fail((msg) => {
     if (
       msg.startsWith("Unknown argument") ||

@@ -1,0 +1,32 @@
+[project]
+name = "example-app"
+version = "1.0.0"
+description = "Example Python application"
+authors = [
+    {name = "Example Author", email = "author@example.com"}
+]
+dependencies = [
+    "requests>=2.31.0",
+    "pydantic>=2.5.0",
+]
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.11.0",
+    "ruff>=0.1.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=src --cov-report=lcov:coverage.lcov"
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311"]

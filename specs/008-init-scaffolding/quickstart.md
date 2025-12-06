@@ -97,10 +97,10 @@ Coverage file: `coverage/lcov.info`
 
 ### PHP
 ```bash
-# PHPUnit (generate LCOV format)
-vendor/bin/phpunit --coverage-lcov coverage/lcov.info
+# PHPUnit (generate Clover XML format)
+vendor/bin/phpunit --coverage-clover coverage.xml
 ```
-Coverage file: `coverage/lcov.info`
+Coverage file: `coverage.xml`
 
 ### Go
 ```bash

@@ -48,12 +48,7 @@ interface GeneratedConfig {
     "test-coverage": {
       "$ref": "coverage",
       "name": "Test Coverage",
-      "command": "@collect coverage-lcov coverage/lcov.info"
-    },
-    "bundle": {
-      "$ref": "size",
-      "name": "Bundle Size",
-      "command": "@collect size dist"
+      "command": "@collect coverage-xml coverage.xml"
     }
   },
   "storage": {
@@ -86,7 +81,7 @@ interface GeneratedConfig {
     "test-coverage": {
       "$ref": "coverage",
       "name": "Test Coverage",
-      "command": "@collect coverage-lcov coverage/lcov.info"
+      "command": "@collect coverage-xml coverage.xml"
     }
   },
   "storage": {
@@ -122,7 +117,7 @@ interface GeneratedConfig {
       "command": "go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%'"
     },
     "binary-size": {
-      "$ref": "bundle",
+      "$ref": "size",
       "name": "Binary Size",
       "command": "@collect size ./bin"
     }
