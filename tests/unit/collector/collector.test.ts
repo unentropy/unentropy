@@ -142,11 +142,11 @@ describe("parseMetricValue", () => {
 
 describe("collectMetrics - partial failure handling", () => {
   test("continues collecting when one metric fails", async () => {
-    const metrics: ResolvedMetricConfig[] = [
-      { name: "working-metric", type: "numeric", command: "echo 42" },
-      { name: "failing-metric", type: "numeric", command: "exit 1" },
-      { name: "another-working", type: "label", command: 'echo "green"' },
-    ];
+    const metrics: Record<string, ResolvedMetricConfig> = {
+      "working-metric": { id: "working-metric", type: "numeric", command: "echo 42" },
+      "failing-metric": { id: "failing-metric", type: "numeric", command: "exit 1" },
+      "another-working": { id: "another-working", type: "label", command: 'echo "green"' },
+    };
 
     const result = await collectMetrics(metrics);
 
@@ -158,14 +158,14 @@ describe("collectMetrics - partial failure handling", () => {
   });
 
   test("records failure details for failed metrics", async () => {
-    const metrics: ResolvedMetricConfig[] = [
-      {
-        name: "timeout-metric",
+    const metrics: Record<string, ResolvedMetricConfig> = {
+      "timeout-metric": {
+        id: "timeout-metric",
         type: "numeric",
         command: "sleep 60",
         timeout: 100,
       },
-    ];
+    };
 
     const result = await collectMetrics(metrics);
 
@@ -175,10 +175,10 @@ describe("collectMetrics - partial failure handling", () => {
   }, 10000);
 
   test("handles all metrics failing", async () => {
-    const metrics: ResolvedMetricConfig[] = [
-      { name: "fail1", type: "numeric", command: "exit 1" },
-      { name: "fail2", type: "numeric", command: "exit 1" },
-    ];
+    const metrics: Record<string, ResolvedMetricConfig> = {
+      fail1: { id: "fail1", type: "numeric", command: "exit 1" },
+      fail2: { id: "fail2", type: "numeric", command: "exit 1" },
+    };
 
     const result = await collectMetrics(metrics);
 
@@ -189,11 +189,11 @@ describe("collectMetrics - partial failure handling", () => {
   });
 
   test("handles all metrics succeeding", async () => {
-    const metrics: ResolvedMetricConfig[] = [
-      { name: "metric1", type: "numeric", command: "echo 1" },
-      { name: "metric2", type: "numeric", command: "echo 2" },
-      { name: "metric3", type: "label", command: 'echo "label"' },
-    ];
+    const metrics: Record<string, ResolvedMetricConfig> = {
+      metric1: { id: "metric1", type: "numeric", command: "echo 1" },
+      metric2: { id: "metric2", type: "numeric", command: "echo 2" },
+      metric3: { id: "metric3", type: "label", command: 'echo "label"' },
+    };
 
     const result = await collectMetrics(metrics);
 
@@ -204,9 +204,9 @@ describe("collectMetrics - partial failure handling", () => {
   });
 
   test("handles parse error as failure", async () => {
-    const metrics: ResolvedMetricConfig[] = [
-      { name: "parse-fail", type: "numeric", command: 'echo "not-a-number"' },
-    ];
+    const metrics: Record<string, ResolvedMetricConfig> = {
+      "parse-fail": { id: "parse-fail", type: "numeric", command: 'echo "not-a-number"' },
+    };
 
     const result = await collectMetrics(metrics);
 
@@ -216,19 +216,19 @@ describe("collectMetrics - partial failure handling", () => {
   });
 
   test("collects metrics in order", async () => {
-    const metrics: ResolvedMetricConfig[] = [
-      { name: "first", type: "label", command: 'echo "1"' },
-      { name: "second", type: "label", command: 'echo "2"' },
-      { name: "third", type: "label", command: 'echo "3"' },
-    ];
+    const metrics: Record<string, ResolvedMetricConfig> = {
+      first: { id: "first", type: "label", command: 'echo "1"' },
+      second: { id: "second", type: "label", command: 'echo "2"' },
+      third: { id: "third", type: "label", command: 'echo "3"' },
+    };
 
     const result = await collectMetrics(metrics);
 
     expect(result.successful).toBe(3);
   });
 
-  test("handles empty metrics array", async () => {
-    const metrics: ResolvedMetricConfig[] = [];
+  test("handles empty metrics object", async () => {
+    const metrics: Record<string, ResolvedMetricConfig> = {};
 
     const result = await collectMetrics(metrics);
 

@@ -4,233 +4,65 @@ import type { MetricConfig } from "../../../src/config/schema.js";
 
 describe("resolver", () => {
   describe("resolveMetricReference", () => {
-    it("should return config unchanged when no $ref is present", () => {
+    it.each([
+      ["coverage", "percent", "Overall test coverage percentage across the codebase"],
+      ["function-coverage", "percent", "Percentage of functions covered by tests"],
+      ["loc", "integer", "Total lines of code in the codebase"],
+      ["bundle-size", "bytes", "Total size of production build artifacts"],
+      ["build-time", "duration", "Time taken to complete the build"],
+      ["test-time", "duration", "Time taken to run all tests"],
+      ["dependencies-count", "integer", "Total number of dependencies"],
+    ] as const)("should resolve %s built-in metric", (ref, unit, description) => {
       const config: MetricConfig = {
-        name: "custom-metric",
-        type: "numeric",
-        command: "echo '42'",
-        description: "Custom metric",
-        unit: "integer",
+        $ref: ref,
+        command: `test-command-${ref}`,
       };
 
-      const result = resolveMetricReference(config);
+      const result = resolveMetricReference(ref, config);
 
-      expect(result).toEqual(config);
-      expect(result).toBe(config); // Same reference
-    });
-
-    it("should resolve coverage built-in metric", () => {
-      const config: MetricConfig = {
-        $ref: "coverage",
-        command: "bun test --coverage | jq '.coverage'",
-      };
-
-      const result = resolveMetricReference(config);
-
-      expect(result.name).toBe("coverage");
+      expect(result.id).toBe(ref);
+      expect(result.name).toBe(ref);
       expect(result.type).toBe("numeric");
-      expect(result.unit).toBe("percent");
-      expect(result.command).toBe("bun test --coverage | jq '.coverage'");
-      expect(result.description).toBe("Overall test coverage percentage across the codebase");
-      expect(result.$ref).toBeUndefined();
-    });
-
-    it("should resolve function-coverage built-in metric", () => {
-      const config: MetricConfig = {
-        $ref: "function-coverage",
-        command: "npm test --coverage | jq '.functions'",
-      };
-
-      const result = resolveMetricReference(config);
-
-      expect(result.name).toBe("function-coverage");
-      expect(result.type).toBe("numeric");
-      expect(result.unit).toBe("percent");
-      expect(result.command).toBe("npm test --coverage | jq '.functions'");
-      expect(result.description).toBe("Percentage of functions covered by tests");
-      expect(result.$ref).toBeUndefined();
-    });
-
-    it("should resolve loc built-in metric", () => {
-      const config: MetricConfig = {
-        $ref: "loc",
-        command: "find lib/ -name '*.js' | wc -l",
-      };
-
-      const result = resolveMetricReference(config);
-
-      expect(result.name).toBe("loc");
-      expect(result.type).toBe("numeric");
-      expect(result.unit).toBe("integer");
-      expect(result.command).toBe("find lib/ -name '*.js' | wc -l");
-      expect(result.description).toBe("Total lines of code in the codebase");
-      expect(result.$ref).toBeUndefined();
-    });
-
-    it("should resolve bundle-size built-in metric", () => {
-      const config: MetricConfig = {
-        $ref: "bundle-size",
-        command: "du -sk dist/ | cut -f1",
-      };
-
-      const result = resolveMetricReference(config);
-
-      expect(result.name).toBe("bundle-size");
-      expect(result.type).toBe("numeric");
-      expect(result.unit).toBe("bytes");
-      expect(result.command).toBe("du -sk dist/ | cut -f1");
-      expect(result.description).toBe("Total size of production build artifacts");
-      expect(result.$ref).toBeUndefined();
-    });
-
-    it("should resolve build-time built-in metric", () => {
-      const config: MetricConfig = {
-        $ref: "build-time",
-        command: "time npm run build",
-      };
-
-      const result = resolveMetricReference(config);
-
-      expect(result.name).toBe("build-time");
-      expect(result.type).toBe("numeric");
-      expect(result.unit).toBe("duration");
-      expect(result.command).toBe("time npm run build");
-      expect(result.description).toBe("Time taken to complete the build");
-      expect(result.$ref).toBeUndefined();
-    });
-
-    it("should resolve test-time built-in metric", () => {
-      const config: MetricConfig = {
-        $ref: "test-time",
-        command: "time npm test",
-      };
-
-      const result = resolveMetricReference(config);
-
-      expect(result.name).toBe("test-time");
-      expect(result.type).toBe("numeric");
-      expect(result.unit).toBe("duration");
-      expect(result.command).toBe("time npm test");
-      expect(result.description).toBe("Time taken to run all tests");
-      expect(result.$ref).toBeUndefined();
-    });
-
-    it("should resolve dependencies-count built-in metric", () => {
-      const config: MetricConfig = {
-        $ref: "dependencies-count",
-        command: "cat package.json | jq '.dependencies | length'",
-      };
-
-      const result = resolveMetricReference(config);
-
-      expect(result.name).toBe("dependencies-count");
-      expect(result.type).toBe("numeric");
-      expect(result.unit).toBe("integer");
-      expect(result.command).toBe("cat package.json | jq '.dependencies | length'");
-      expect(result.description).toBe("Total number of dependencies");
-      expect(result.$ref).toBeUndefined();
+      expect(result.unit).toBe(unit);
+      expect(result.command).toBe(`test-command-${ref}`);
+      expect(result.description).toBe(description);
     });
 
     it("should apply name override", () => {
       const config: MetricConfig = {
         $ref: "coverage",
-        name: "my-custom-coverage",
+        name: "My Custom Coverage",
         command: "npm run test:coverage",
       };
 
-      const result = resolveMetricReference(config);
+      const result = resolveMetricReference("my-custom-coverage", config);
 
-      expect(result.name).toBe("my-custom-coverage");
+      expect(result.id).toBe("my-custom-coverage");
+      expect(result.name).toBe("My Custom Coverage");
       expect(result.type).toBe("numeric");
       expect(result.unit).toBe("percent");
       expect(result.command).toBe("npm run test:coverage");
-      expect(result.$ref).toBeUndefined();
-    });
-
-    it("should apply command override", () => {
-      const config: MetricConfig = {
-        $ref: "loc",
-        command: "find src/ -name '*.ts' | wc -l",
-      };
-
-      const result = resolveMetricReference(config);
-
-      expect(result.name).toBe("loc");
-      expect(result.type).toBe("numeric");
-      expect(result.unit).toBe("integer");
-      expect(result.command).toBe("find src/ -name '*.ts' | wc -l");
-      expect(result.$ref).toBeUndefined();
-    });
-
-    it("should apply unit override", () => {
-      const config: MetricConfig = {
-        $ref: "bundle-size",
-        command: "du -sb dist/ | cut -f1",
-        unit: "bytes",
-      };
-
-      const result = resolveMetricReference(config);
-
-      expect(result.name).toBe("bundle-size");
-      expect(result.type).toBe("numeric");
-      expect(result.unit).toBe("bytes");
-      expect(result.command).toBe("du -sb dist/ | cut -f1");
-      expect(result.$ref).toBeUndefined();
-    });
-
-    it("should apply description override", () => {
-      const config: MetricConfig = {
-        $ref: "build-time",
-        command: "time make build",
-        description: "Custom build time measurement",
-      };
-
-      const result = resolveMetricReference(config);
-
-      expect(result.name).toBe("build-time");
-      expect(result.type).toBe("numeric");
-      expect(result.unit).toBe("duration");
-      expect(result.command).toBe("time make build");
-      expect(result.description).toBe("Custom build time measurement");
-      expect(result.$ref).toBeUndefined();
-    });
-
-    it("should apply timeout override", () => {
-      const config: MetricConfig = {
-        $ref: "test-time",
-        command: "time pytest",
-        timeout: 120000,
-      };
-
-      const result = resolveMetricReference(config);
-
-      expect(result.name).toBe("test-time");
-      expect(result.type).toBe("numeric");
-      expect(result.unit).toBe("duration");
-      expect(result.command).toBe("time pytest");
-      expect(result.timeout).toBe(120000);
-      expect(result.$ref).toBeUndefined();
     });
 
     it("should apply multiple overrides", () => {
       const config: MetricConfig = {
         $ref: "coverage",
-        name: "frontend-coverage",
+        name: "Frontend Coverage",
         command: "npm run test:coverage:frontend",
         unit: "percent",
         description: "Frontend test coverage",
         timeout: 60000,
       };
 
-      const result = resolveMetricReference(config);
+      const result = resolveMetricReference("frontend-coverage", config);
 
-      expect(result.name).toBe("frontend-coverage");
+      expect(result.id).toBe("frontend-coverage");
+      expect(result.name).toBe("Frontend Coverage");
       expect(result.type).toBe("numeric");
       expect(result.unit).toBe("percent");
       expect(result.command).toBe("npm run test:coverage:frontend");
       expect(result.description).toBe("Frontend test coverage");
       expect(result.timeout).toBe(60000);
-      expect(result.$ref).toBeUndefined();
     });
 
     it("should throw error for non-existent built-in metric", () => {
@@ -239,68 +71,143 @@ describe("resolver", () => {
         command: "echo 'test'",
       };
 
-      expect(() => resolveMetricReference(config)).toThrow(
+      expect(() => resolveMetricReference("test", config)).toThrow(
         "Built-in metric 'non-existent-metric' not found. Available metrics: coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count"
       );
     });
 
-    it("should throw error for empty $ref", () => {
-      const config: MetricConfig = {
-        $ref: "",
-        command: "echo 'test'",
-      };
+    describe("id inheritance (T024h)", () => {
+      it("should use object key as metric id", () => {
+        const config: MetricConfig = {
+          $ref: "loc",
+        };
 
-      expect(() => resolveMetricReference(config)).toThrow(
-        "Built-in metric '' not found. Available metrics: coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count"
-      );
+        const result = resolveMetricReference("my-custom-loc", config);
+
+        expect(result.id).toBe("my-custom-loc");
+      });
+
+      it("should allow different keys with same $ref", () => {
+        const config1: MetricConfig = { $ref: "loc" };
+        const config2: MetricConfig = { $ref: "loc" };
+
+        const result1 = resolveMetricReference("loc-src", config1);
+        const result2 = resolveMetricReference("loc-tests", config2);
+
+        expect(result1.id).toBe("loc-src");
+        expect(result2.id).toBe("loc-tests");
+        expect(result1.name).toBe(result2.name);
+        expect(result1.type).toBe(result2.type);
+      });
     });
 
-    it("should preserve type when not overridden", () => {
-      const config: MetricConfig = {
-        $ref: "coverage",
-        command: "npm test",
-      };
+    describe("command inheritance (T024i)", () => {
+      it("should use template command when user doesn't provide one", () => {
+        const config: MetricConfig = {
+          $ref: "loc",
+        };
 
-      const result = resolveMetricReference(config);
+        const result = resolveMetricReference("my-loc", config);
 
-      expect(result.type).toBe("numeric");
+        expect(result.command).toBe("@collect loc .");
+      });
+
+      it("should fail when template has no command and user doesn't provide one", () => {
+        const config: MetricConfig = {
+          $ref: "coverage",
+        };
+
+        expect(() => resolveMetricReference("my-coverage", config)).toThrow(
+          'Metric "my-coverage" requires a command.\nThe metric template "coverage" does not have a default command.\nYou must provide a command appropriate for your project.'
+        );
+      });
+
+      it("should use user command when provided for template without default", () => {
+        const config: MetricConfig = {
+          $ref: "coverage",
+          command: "npm test --coverage",
+        };
+
+        const result = resolveMetricReference("my-coverage", config);
+
+        expect(result.command).toBe("npm test --coverage");
+        expect(result.type).toBe("numeric");
+        expect(result.unit).toBe("percent");
+      });
     });
 
-    it("should allow type override", () => {
-      const config: MetricConfig = {
-        $ref: "coverage",
-        command: "npm test",
-        type: "label",
-      };
+    describe("command override (T045)", () => {
+      it("should override template command with user command", () => {
+        const config: MetricConfig = {
+          $ref: "loc",
+          command: "custom-loc-counter ./src",
+        };
 
-      const result = resolveMetricReference(config);
+        const result = resolveMetricReference("my-loc", config);
 
-      expect(result.type).toBe("label");
+        expect(result.command).toBe("custom-loc-counter ./src");
+        expect(result.type).toBe("numeric");
+        expect(result.unit).toBe("integer");
+      });
     });
 
-    it("should return new object (not modify input)", () => {
-      const config: MetricConfig = {
-        $ref: "coverage",
-        command: "npm test",
-      };
+    describe("unit override (T046)", () => {
+      it("should allow overriding unit with valid UnitType", () => {
+        const config: MetricConfig = {
+          $ref: "loc",
+          unit: "decimal",
+        };
 
-      const result = resolveMetricReference(config);
+        const result = resolveMetricReference("my-loc", config);
 
-      expect(result).not.toBe(config);
-      expect(config.$ref).toBe("coverage"); // Original unchanged
-      expect(result.$ref).toBeUndefined(); // Result has no $ref
+        expect(result.unit).toBe("decimal");
+        expect(result.type).toBe("numeric");
+        expect(result.command).toBe("@collect loc .");
+      });
+
+      it("should override percent unit with different unit", () => {
+        const config: MetricConfig = {
+          $ref: "coverage",
+          command: "npm test",
+          unit: "decimal",
+        };
+
+        const result = resolveMetricReference("my-coverage", config);
+
+        expect(result.unit).toBe("decimal");
+        expect(result.type).toBe("numeric");
+      });
+    });
+
+    describe("edge cases (T024j)", () => {
+      it("should preserve all template properties when minimal config", () => {
+        const config: MetricConfig = {
+          $ref: "loc",
+        };
+
+        const result = resolveMetricReference("my-loc", config);
+
+        expect(result.id).toBe("my-loc");
+        expect(result.name).toBe("loc");
+        expect(result.type).toBe("numeric");
+        expect(result.unit).toBe("integer");
+        expect(result.description).toBe("Total lines of code in the codebase");
+        expect(result.command).toBe("@collect loc .");
+      });
     });
   });
 
   describe("validateBuiltInReference", () => {
-    it("should not throw for valid built-in metric IDs", () => {
-      expect(() => validateBuiltInReference("coverage")).not.toThrow();
-      expect(() => validateBuiltInReference("function-coverage")).not.toThrow();
-      expect(() => validateBuiltInReference("loc")).not.toThrow();
-      expect(() => validateBuiltInReference("bundle-size")).not.toThrow();
-      expect(() => validateBuiltInReference("build-time")).not.toThrow();
-      expect(() => validateBuiltInReference("test-time")).not.toThrow();
-      expect(() => validateBuiltInReference("dependencies-count")).not.toThrow();
+    it.each([
+      "coverage",
+      "function-coverage",
+      "loc",
+      "bundle-size",
+      "build-time",
+      "test-time",
+      "dependencies-count",
+    ])("should not throw for valid built-in metric: %s", (metricId) => {
+      expect(() => validateBuiltInReference(metricId)).not.toThrow();
     });
 
     it("should throw error for non-existent built-in metric ID", () => {
@@ -324,12 +231,6 @@ describe("resolver", () => {
     it("should handle case-sensitive metric IDs", () => {
       expect(() => validateBuiltInReference("Coverage")).toThrow(
         "Built-in metric 'Coverage' not found. Available metrics: coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count"
-      );
-    });
-
-    it("should provide helpful error message with all available metrics", () => {
-      expect(() => validateBuiltInReference("invalid")).toThrow(
-        /Available metrics: coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count/
       );
     });
   });

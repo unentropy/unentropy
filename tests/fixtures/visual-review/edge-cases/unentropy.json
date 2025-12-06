@@ -1,38 +1,33 @@
 {
-  "metrics": [
-    {
-      "name": "test-coverage",
+  "metrics": {
+    "test-coverage": {
       "type": "numeric",
       "description": "This is a very long description that tests how to template handles descriptions with many characters and ensures that that layout doesn't break when displaying lengthy explanatory text about what a particular metric represents",
       "command": "echo '0'",
       "unit": "percent"
     },
-    {
-      "name": "bundle-size-kb",
+    "bundle-size-kb": {
       "type": "numeric",
       "description": "Bundle size with special chars: @/\\*",
       "command": "echo '9999999.99'",
       "unit": "bytes"
     },
-    {
-      "name": "flatline-metric",
+    "flatline-metric": {
       "type": "numeric",
       "description": "A metric that never changes",
       "command": "echo '100'",
       "unit": "integer"
     },
-    {
-      "name": "negative-metric",
+    "negative-metric": {
       "type": "numeric",
       "description": "Metric with negative values",
       "command": "echo '-42.5'",
       "unit": "decimal"
     },
-    {
-      "name": "special-chars-label",
+    "special-chars-label": {
       "type": "label",
       "description": "Label with special characters: <script>alert('xss')</script>",
       "command": "echo '<script>alert(\"xss\")</script>'"
     }
-  ]
+  }
 }

@@ -1,9 +1,8 @@
 {
-  "metrics": [
-    {
-      "name": "test-coverage",
+  "metrics": {
+    "test-coverage": {
       "type": "numeric",
       "command": "npm run test:coverage -- --json | jq -r '.total.lines.pct'"
     }
-  ]
+  }
 }

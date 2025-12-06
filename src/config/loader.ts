@@ -1,15 +1,10 @@
 import { readFile } from "fs/promises";
 import { validateConfig } from "./schema";
 import { resolveMetricReference } from "../metrics/resolver.js";
-import type {
-  ResolvedMetricConfig,
-  StorageConfig,
-  MetricConfig,
-  QualityGateConfig,
-} from "./schema";
+import type { ResolvedMetricConfig, StorageConfig, QualityGateConfig } from "./schema";
 
 export interface ResolvedUnentropyConfig {
-  metrics: ResolvedMetricConfig[];
+  metrics: Record<string, ResolvedMetricConfig>;
   storage: StorageConfig;
   qualityGate?: QualityGateConfig;
 }
@@ -23,54 +18,39 @@ export async function loadConfig(configPath = "unentropy.json"): Promise<Resolve
     throw new Error(`Invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  if (!parsedJson.metrics || !Array.isArray(parsedJson.metrics)) {
-    throw new Error("Configuration must contain a 'metrics' array");
+  if (
+    !parsedJson.metrics ||
+    typeof parsedJson.metrics !== "object" ||
+    Array.isArray(parsedJson.metrics)
+  ) {
+    throw new Error("Configuration must contain a 'metrics' object");
   }
 
-  const originalMetrics = parsedJson.metrics as MetricConfig[];
+  const validated = validateConfig(parsedJson);
 
-  const resolvedMetrics = originalMetrics.map((metric) => {
+  const resolvedMetrics: Record<string, ResolvedMetricConfig> = {};
+  for (const [key, metric] of Object.entries(validated.metrics)) {
     if (metric.$ref) {
-      return resolveMetricReference(metric);
-    }
-    return metric;
-  });
-
-  // Check for duplicate ids after resolution
-  const seenIds = new Map<string, { index: number; wasInherited: boolean }>();
-  for (let i = 0; i < resolvedMetrics.length; i++) {
-    const metric = resolvedMetrics[i];
-    const original = originalMetrics[i];
-    if (!metric || !original) continue;
-
-    const metricId = metric.id ?? metric.name;
-    if (metricId) {
-      const existing = seenIds.get(metricId);
-      if (existing) {
-        // Check if both were inherited from the same $ref
-        const currentWasInherited = original.$ref !== undefined && original.id === undefined;
-        if (existing.wasInherited && currentWasInherited) {
-          throw new Error(
-            `Duplicate metric id "${metricId}" found.\nWhen using the same $ref multiple times, provide explicit id values.`
-          );
-        }
-        throw new Error(
-          `Duplicate metric id "${metricId}" found.\nMetric ids must be unique within the configuration.`
-        );
+      resolvedMetrics[key] = resolveMetricReference(key, metric);
+    } else {
+      if (!metric.type || !metric.command) {
+        throw new Error(`Metric "${key}" requires both type and command fields`);
       }
-      seenIds.set(metricId, {
-        index: i,
-        wasInherited: original.$ref !== undefined && original.id === undefined,
-      });
+      resolvedMetrics[key] = {
+        id: key,
+        name: metric.name,
+        type: metric.type,
+        description: metric.description,
+        command: metric.command,
+        unit: metric.unit,
+        timeout: metric.timeout,
+      };
     }
   }
 
-  const configWithResolvedMetrics = {
-    ...parsedJson,
+  return {
     metrics: resolvedMetrics,
+    storage: validated.storage,
+    qualityGate: validated.qualityGate,
   };
-
-  const validated = validateConfig(configWithResolvedMetrics);
-
-  return validated as ResolvedUnentropyConfig;
 }

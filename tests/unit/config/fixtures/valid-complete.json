@@ -1,24 +1,21 @@
 {
-  "metrics": [
-    {
-      "name": "test-coverage",
+  "metrics": {
+    "test-coverage": {
       "type": "numeric",
       "description": "Percentage of code covered by tests",
       "command": "npm run test:coverage -- --json | jq -r '.total.lines.pct'",
       "unit": "percent"
     },
-    {
-      "name": "bundle-size",
+    "bundle-size": {
       "type": "numeric",
       "description": "Production bundle size in kilobytes",
       "command": "du -k dist/bundle.js | cut -f1",
       "unit": "bytes"
     },
-    {
-      "name": "build-status",
+    "build-status": {
       "type": "label",
       "description": "Overall build health status",
       "command": "npm run build && echo 'healthy' || echo 'failing'"
     }
-  ]
+  }
 }

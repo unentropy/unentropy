@@ -153,7 +153,7 @@ export async function runTrackMetricsAction(): Promise<void> {
 
   // Load configuration
   const config = await loadConfig(inputs.configFile);
-  core.info(`Configuration loaded successfully with ${config.metrics.length} metrics`);
+  core.info(`Configuration loaded successfully with ${Object.keys(config.metrics).length} metrics`);
 
   // Phase 1: Initialize storage
   core.info("Initializing storage provider...");

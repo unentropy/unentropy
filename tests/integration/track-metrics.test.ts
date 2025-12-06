@@ -19,14 +19,13 @@ describe("track-metrics action integration", () => {
       storage: {
         type: "sqlite-s3",
       },
-      metrics: [
-        {
-          name: "test-metric",
+      metrics: {
+        "test-metric": {
           type: "numeric",
           command: 'echo "42"',
           description: "Test metric",
         },
-      ],
+      },
     };
     writeFileSync(testConfigPath, JSON.stringify(testConfig, null, 2));
 

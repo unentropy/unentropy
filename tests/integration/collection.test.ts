@@ -46,21 +46,21 @@ describe("End-to-end collection workflow", () => {
   });
 
   test("should collect metrics and return results", async () => {
-    const metrics: ResolvedMetricConfig[] = [
-      {
-        name: "test-coverage",
+    const metrics: Record<string, ResolvedMetricConfig> = {
+      "test-coverage": {
+        id: "test-coverage",
         type: "numeric",
         command: 'echo "85.5"',
         description: "Test coverage percentage",
         unit: "percent",
       },
-      {
-        name: "build-status",
+      "build-status": {
+        id: "build-status",
         type: "label",
         command: 'echo "passing"',
         description: "Build status",
       },
-    ];
+    };
 
     const buildContext = {
       commit_sha: "abc123def456abc123def456abc123def456abcd",
@@ -93,9 +93,9 @@ describe("End-to-end collection workflow", () => {
   }, 10000); // 10 second timeout
 
   test("creates metric definitions on first collection", async () => {
-    const metrics: ResolvedMetricConfig[] = [
-      { name: "new-metric", type: "numeric", command: 'echo "42"' },
-    ];
+    const metrics: Record<string, ResolvedMetricConfig> = {
+      "new-metric": { id: "new-metric", type: "numeric", command: 'echo "42"' },
+    };
 
     const db = new Storage({ type: "sqlite-local", path: testDbPath });
     await db.initialize();
@@ -119,9 +119,9 @@ describe("End-to-end collection workflow", () => {
   });
 
   test("reuses existing metric definitions", async () => {
-    const metrics: ResolvedMetricConfig[] = [
-      { name: "existing-metric", type: "numeric", command: 'echo "1"' },
-    ];
+    const metrics: Record<string, ResolvedMetricConfig> = {
+      "existing-metric": { id: "existing-metric", type: "numeric", command: 'echo "1"' },
+    };
 
     // Use unique path for this specific test to avoid conflicts
     const uniqueSuffix = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
@@ -151,9 +151,9 @@ describe("End-to-end collection workflow", () => {
         timestamp: new Date().toISOString(),
       };
 
-      const metricsRun2: ResolvedMetricConfig[] = [
-        { name: "existing-metric", type: "numeric", command: 'echo "2"' },
-      ];
+      const metricsRun2: Record<string, ResolvedMetricConfig> = {
+        "existing-metric": { id: "existing-metric", type: "numeric", command: 'echo "2"' },
+      };
 
       const result2 = await collectMetrics(metricsRun2);
       await repository.recordBuild(buildContext2, result2.collectedMetrics);
@@ -176,11 +176,11 @@ describe("End-to-end collection workflow", () => {
   }, 10000); // 10 second timeout
 
   test("handles mixed success and failure gracefully", async () => {
-    const metrics: ResolvedMetricConfig[] = [
-      { name: "success1", type: "numeric", command: 'echo "10"' },
-      { name: "failure", type: "numeric", command: "exit 1" },
-      { name: "success2", type: "label", command: 'echo "ok"' },
-    ];
+    const metrics: Record<string, ResolvedMetricConfig> = {
+      success1: { id: "success1", type: "numeric", command: 'echo "10"' },
+      failure: { id: "failure", type: "numeric", command: "exit 1" },
+      success2: { id: "success2", type: "label", command: 'echo "ok"' },
+    };
 
     // Use unique path for this specific test to avoid conflicts
     const uniqueSuffix = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
@@ -217,9 +217,9 @@ describe("End-to-end collection workflow", () => {
   }, 10000); // 10 second timeout
 
   test("associates metrics with correct build context", async () => {
-    const metrics: ResolvedMetricConfig[] = [
-      { name: "metric", type: "numeric", command: 'echo "5"' },
-    ];
+    const metrics: Record<string, ResolvedMetricConfig> = {
+      metric: { id: "metric", type: "numeric", command: 'echo "5"' },
+    };
 
     // Use unique path for this specific test to avoid conflicts
     const uniqueSuffix = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
@@ -255,9 +255,9 @@ describe("End-to-end collection workflow", () => {
 });
 
 test("stores collection duration for successful metrics", async () => {
-  const metrics: ResolvedMetricConfig[] = [
-    { name: "timed-metric", type: "numeric", command: 'echo "100"' },
-  ];
+  const metrics: Record<string, ResolvedMetricConfig> = {
+    "timed-metric": { id: "timed-metric", type: "numeric", command: 'echo "100"' },
+  };
 
   // Use unique path for this specific test to avoid conflicts
   const uniqueSuffix = Date.now() + "-" + Math.random().toString(36).substr(2, 9);

@@ -1,11 +1,10 @@
 {
-  "metrics": [
-    {
-      "name": "test-coverage",
+  "metrics": {
+    "test-coverage": {
       "type": "numeric",
       "description": "Code coverage percentage",
       "command": "echo '85.5'",
       "unit": "percent"
     }
-  ]
+  }
 }

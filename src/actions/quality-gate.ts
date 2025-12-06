@@ -300,7 +300,9 @@ export async function runQualityGateAction(): Promise<void> {
     core.info(`Starting quality gate action with storage: ${inputs.storageType}`);
 
     const config = await loadConfig(inputs.configFile);
-    core.info(`Configuration loaded successfully with ${config.metrics.length} metrics`);
+    core.info(
+      `Configuration loaded successfully with ${Object.keys(config.metrics).length} metrics`
+    );
 
     const gateMode = (inputs.qualityGateMode ?? config.qualityGate?.mode ?? "soft") as
       | "off"
