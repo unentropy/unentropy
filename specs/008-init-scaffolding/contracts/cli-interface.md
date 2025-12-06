@@ -220,9 +220,9 @@ Checking unentropy.json...
 
 Collecting metrics:
 
-  ✓ lines-of-code          4,521 (integer)         0.8s
-  ✓ test-coverage           87.3 (percent)         2.1s
-  ✓ size          245,832 (bytes)           0.2s
+  ✓ lines-of-code (integer)	4,521         0.8s
+  ✓ test-coverage (percent)	87.3%         2.1s
+  ✓ size (bytes)	240 KB         0.2s
 
 All 3 metrics collected successfully.
 ```
@@ -236,9 +236,9 @@ Checking unentropy.json...
 
 Collecting metrics:
 
-  ✓ lines-of-code          4,521 (integer)         0.8s
-  ✗ test-coverage          Error: File not found: coverage/lcov.info
-  ✓ size          245,832 (bytes)           0.2s
+  ✓ lines-of-code (integer)	4,521         0.8s
+  ✗ test-coverage (percent)	Error: File not found: coverage/lcov.info
+  ✓ size (bytes)	240 KB         0.2s
 
 1 of 3 metrics failed.
 ```
@@ -252,13 +252,13 @@ Checking unentropy.json...
 
 Collecting metrics:
 
-  ✓ lines-of-code          4,521 (integer)         0.8s
+  ✓ lines-of-code (integer)	4,521         0.8s
     Command: @collect loc ./src --language TypeScript
 
-  ✓ test-coverage           87.3 (percent)         2.1s
+  ✓ test-coverage (percent)	87.3%         2.1s
     Command: @collect coverage-lcov coverage/lcov.info
 
-  ✓ size          245,832 (bytes)           0.2s
+  ✓ size (bytes)	240 KB         0.2s
     Command: @collect size dist
 
 All 3 metrics collected successfully.
@@ -287,9 +287,9 @@ Fix the errors above and try again.
 ```
 Collecting metrics:
 
-  ✓ lines-of-code          4,521 (integer)         0.8s
-  ✗ test-coverage          Error: Command timed out after 30000ms
-  ✓ size          245,832 (bytes)           0.2s
+  ✓ lines-of-code (integer)	4,521         0.8s
+  ✗ test-coverage (percent)	Error: Command timed out after 30000ms
+  ✓ size (bytes)	240 KB         0.2s
 
 1 of 3 metrics failed.
 ```
@@ -298,17 +298,26 @@ Collecting metrics:
 
 ### Value Formatting by Unit
 
+Values are formatted using human-readable units consistent with reports and PR comments:
+
 | Unit | Format | Example |
 |------|--------|---------|
 | `integer` | Thousands separator | `4,521` |
-| `percent` | One decimal place | `87.3` |
-| `bytes` | Raw number (formatted by display) | `245,832` |
-| `duration` | Milliseconds | `1,234` |
+| `percent` | One decimal place with % symbol | `87.3%` |
+| `bytes` | Auto-scaled to B/KB/MB/GB | `256 KB`, `1.5 MB` |
+| `duration` | Auto-scaled to ms/s/m/h | `45s`, `2m 15s` |
 | `decimal` | Two decimal places | `3.14` |
 
 ### Column Alignment
 
-- Metric name: Left-aligned, padded to longest name
-- Value: Right-aligned, 12 characters
-- Unit: Left-aligned in parentheses
+- Metric name with unit type: Left-aligned as `name (unit)`, padded to longest combined length
+- Tab separator between name+unit and value
+- Value: Right-aligned, dynamically sized to fit formatted value  
 - Duration: Right-aligned, formatted as `X.Xs`
+
+Example layout:
+```
+  ✓ metric-name (unit)	formatted-value	duration
+  ✓ lines-of-code (integer)	4,521         0.8s
+  ✓ test-coverage (percent)	87.3%         2.1s
+```
