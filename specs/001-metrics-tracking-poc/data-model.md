@@ -1,9 +1,9 @@
-# Data Model: MVP Metrics Tracking
+# Data Model: Metrics Tracking PoC
 
-**Feature**: 001-mvp-metrics-tracking  
+**Feature**: 001-metrics-tracking-poc  
 **Date**: Thu Oct 16 2025  
 **Updated**: 2025-12-06  
-**Status**: Complete
+**Status**: Implemented
 
 ## Overview
 

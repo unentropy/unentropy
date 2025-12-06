@@ -1,6 +1,6 @@
 # Database Schema Contract
 
-**Feature**: 003-mvp-metrics-tracking  
+**Feature**: 001-metrics-tracking-poc  
 **Database**: SQLite 3.x  
 **Schema Version**: 1.0.0  
 **Last Updated**: Thu Oct 16 2025

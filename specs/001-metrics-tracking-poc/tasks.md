@@ -1,9 +1,9 @@
-# Tasks: MVP Metrics Tracking System
+# Tasks: Metrics Tracking PoC
 
-**Input**: Design documents from `/specs/003-mvp-metrics-tracking/`
-**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
+**Feature**: 001-metrics-tracking-poc
+**Status**: Implemented (96/116 tasks completed - 83%)
 
-**Tests**: Tests are NOT explicitly requested in the specification, but the quickstart guide includes comprehensive test examples. Following best practices, tests will be included for quality assurance.
+**Note**: This task list documents the original PoC implementation. The 3-action architecture (collect-metrics, generate-report, find-database) has been superseded by the unified `track-metrics` action in spec 003. Core platform tasks (configuration, storage, reporting) remain relevant as foundational infrastructure.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 

@@ -1,6 +1,6 @@
 # Configuration Schema Contract
 
-**Feature**: 001-mvp-metrics-tracking  
+**Feature**: 001-metrics-tracking-poc  
 **File**: `unentropy.json`  
 **Version**: 2.0.0  
 **Last Updated**: 2025-12-06

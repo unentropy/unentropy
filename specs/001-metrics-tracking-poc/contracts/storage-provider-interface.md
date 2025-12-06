@@ -1,8 +1,8 @@
 # Contract: Storage Provider Interface
 
-**Feature**: 001-mvp-metrics-tracking  
+**Feature**: 001-metrics-tracking-poc  
 **Created**: Sat Nov 15 2025  
-**Status**: Draft
+**Status**: Implemented
 
 ## Purpose
 

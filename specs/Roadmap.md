@@ -54,7 +54,7 @@
 
 ## Spec-kit
 * [ ] Create a contract spec for GH quality gate comment - how it should look like, what it should contain, etc.
-* [ ] Cleanup or remove Spec 001
+* [x] Cleanup Spec 001 - repurposed as `001-metrics-tracking-poc` (foundational spec)
 
 ## Long term ideas
 * A website

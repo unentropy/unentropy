@@ -1,17 +1,23 @@
-# Feature Specification: MVP Metrics Tracking System
+# Feature Specification: Metrics Tracking PoC
 
-**Feature Branch**: `001-mvp-metrics-tracking`  
+**Feature Branch**: `001-metrics-tracking-poc`  
 **Created**: Thu Oct 16 2025  
-**Status**: Outdated  
-**Input**: User description: "build the specification for the mvp phase. We need our sqlite database, action to collect data, and a simple html generator that will create reports based on it. As the Unentropy user, I would like to have a configuration file (e.g. unentropy.json), where I can define what metrics/labels I want to track."
+**Status**: Implemented  
+**Type**: Foundation (referenced by other specs)
+
+## Overview
+
+This specification establishes the foundational proof-of-concept for the Unentropy metrics tracking system. It defines the core capabilities that subsequent specs build upon: configuration management, metric persistence, and report generation.
+
+**Note**: The original 3-action architecture (collect-metrics, generate-report, find-database) has been superseded by the unified `track-metrics` action defined in spec 003. This spec remains as the foundational reference for core platform contracts including configuration schema, database schema, storage architecture, and report generation.
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Define Custom Metrics via Configuration (Priority: P1)
 
-As a developer, I want to define what code metrics I want to track through a simple configuration file, so I can customize Unentropy to monitor metrics relevant to my project without modifying code.
+As an Unentropy user, I want to define what code metrics I want to track through a simple configuration file, so I can customize Unentropy to monitor metrics relevant to my project without modifying code.
 
-**Why this priority**: This is the foundation of the MVP - without the ability to define custom metrics, the system cannot be used. This enables the core value proposition of flexible, user-defined metric tracking.
+**Why this priority**: This is the foundation of the system - without the ability to define custom metrics, the system cannot be used. This enables the core value proposition of flexible, user-defined metric tracking.
 
 **Independent Test**: Can be fully tested by creating a configuration file with metric definitions and verifying the system correctly reads and validates the configuration, delivering immediate value by showing users how to customize their tracking setup.
 
@@ -23,9 +29,9 @@ As a developer, I want to define what code metrics I want to track through a sim
 
 ---
 
-### User Story 1.5 - Validate Configuration via CLI (Priority: P1.5)
+### User Story 2 - Validate Configuration Locally (Priority: P1.5)
 
-As a developer, I want to validate my unentropy.json configuration file locally before committing it, so I can catch configuration errors early and avoid CI pipeline failures.
+As an Unentropy user, I want to validate my unentropy.json configuration file locally before committing it, so I can catch configuration errors early and avoid CI pipeline failures.
 
 **Why this priority**: Configuration validation is critical for user experience and prevents wasted CI cycles. This sits between defining metrics and collecting data, serving as a quality gate before pipeline execution.
 
@@ -40,30 +46,30 @@ As a developer, I want to validate my unentropy.json configuration file locally 
 
 ---
 
-### User Story 2 - Collect Metrics in CI/CD Pipeline (Priority: P2)
+### User Story 3 - Persist Metrics Reliably (Priority: P2)
 
-As a developer, I want my CI/CD pipeline to automatically collect the metrics I've defined, so I can track code quality trends over time without manual intervention.
+As an Unentropy user, I want my metrics stored reliably across CI runs, so I never lose historical data and can track trends over time.
 
-**Why this priority**: Automated collection is essential for MVP value, but depends on having metrics defined first. This provides the data foundation for all reporting and analysis.
+**Why this priority**: Reliable persistence is essential for the core value proposition - tracking metrics over time. Without reliable storage, the entire system loses its purpose.
 
-**Independent Test**: Can be fully tested by running the data collection action in a CI environment with predefined metrics, verifying data is captured and stored correctly, delivering value by showing metric collection in action.
+**Independent Test**: Can be fully tested by collecting metrics across multiple CI runs and verifying that all historical data remains accessible and queryable for report generation.
 
 **Acceptance Scenarios**:
 
-1. **Given** I have metrics defined in my configuration, **When** the GitHub Action runs in my CI pipeline, **Then** the system collects all defined metrics and stores them with timestamps
-2. **Given** the collection action is running, **When** it encounters an error collecting a metric, **Then** the system logs the error but continues collecting other metrics
-3. **Given** I have committed new code, **When** the CI pipeline runs, **Then** the metrics for that commit are associated with the commit SHA and build metadata
-4. **Given** multiple pipeline runs occur, **When** metrics are collected, **Then** each run's data is stored independently with proper chronological ordering
+1. **Given** I have metrics defined in my configuration, **When** the CI pipeline runs and collects metrics, **Then** the system stores all metric values with timestamps and build metadata
+2. **Given** multiple pipeline runs have occurred, **When** metrics are collected, **Then** each run's data is stored independently with proper chronological ordering
+3. **Given** the database schema needs to evolve, **When** a new version is deployed, **Then** existing data is preserved and migrated safely
+4. **Given** I want to query historical data, **When** I generate a report, **Then** all previously collected metrics are available
 
 ---
 
-### User Story 3 - View Metric Trends in HTML Reports (Priority: P3)
+### User Story 4 - View Metric Trends in HTML Reports (Priority: P3)
 
-As a developer or team lead, I want to view my metrics over time in a simple HTML report, so I can identify trends and make data-driven decisions about code quality without complex tooling.
+As an Unentropy user, I want to view my metrics over time in a simple HTML report, so I can identify trends and make data-driven decisions about code quality without complex tooling.
 
 **Why this priority**: Visualization is the final piece that delivers insights, but requires both configuration and data collection to be working first. This is the user-facing output that justifies the system's existence.
 
-**Independent Test**: Can be fully tested by generating an HTML report from ** fixture data** (predefined unentropy.json configurations with dummy SQLite databases), verifying charts and trends display correctly through **manual visual review** against acceptance criteria, delivering value by providing actionable insights from collected data.
+**Independent Test**: Can be fully tested by generating an HTML report from **fixture data** (predefined unentropy.json configurations with dummy SQLite databases), verifying charts and trends display correctly through **manual visual review** against acceptance criteria, delivering value by providing actionable insights from collected data.
 
 **Acceptance Scenarios**:
 
@@ -73,23 +79,6 @@ As a developer or team lead, I want to view my metrics over time in a simple HTM
 4. **Given** I have sparse data (few data points), **When** generating the report, **Then** the system still produces a valid report with available data and indicates where more data would improve insights
 5. **Given** I view the report on different devices, **When** the report is opened on mobile, tablet, or desktop, **Then** the layout adapts appropriately and remains readable
 6. **Given** I hover over data points on a chart, **When** interacting with the visualization, **Then** I see tooltips with exact values, timestamps, and relevant context
-
----
-
-### User Story 4 - Unentropy Self-Monitoring (Priority: P4)
-
-As the Unentropy project maintainer, I want to use Unentropy to track its own code metrics (test coverage and lines of code), so I can demonstrate the tool's capabilities through "dogfooding" while monitoring the project's health.
-
-**Why this priority**: This serves as a demonstration of Unentropy's value proposition and provides a living example that potential users can reference. It validates the entire workflow while providing genuine project insights. This builds upon the core functionality and provides a real-world example.
-
-**Independent Test**: Can be fully tested by implementing the self-monitoring configuration in the Unentropy repository itself, verifying metric collection works in CI, and generating reports that show actual project trends over time.
-
-**Acceptance Scenarios**:
-
-1. **Given** I have the Unentropy repository with working metric collection, **When** I create an `unentropy.json` configuration with test coverage and LoC metrics, **Then** the system tracks these metrics on each commit
-2. **Given** I have self-monitoring configured, **When** I run the CI pipeline, **Then** test coverage percentage and source code lines are collected and stored
-3. **Given** I have collected self-monitoring data over multiple commits, **When** I generate a report, **Then** I can visualize how test coverage and code size change over time
-4. **Given** a potential user wants to see Unentropy in action, **When** they view the project's generated reports, **Then** they see a real example of the tool's capabilities
 
 ---
 
@@ -127,31 +116,30 @@ As the Unentropy project maintainer, I want to use Unentropy to track its own co
 - **FR-004.4**: Verify command MUST provide specific, actionable error messages for different validation failure types
 - **FR-005**: Configuration MUST allow users to define multiple metrics in a single file
 
-#### Data Collection
+#### Data Persistence
 
-- **FR-006**: System MUST provide a GitHub Action that collects defined metrics during CI/CD pipeline execution
-- **FR-007**: System MUST store collected metrics with timestamps indicating when they were captured
-- **FR-008**: System MUST associate collected metrics with commit SHA and build metadata
-- **FR-009**: System MUST store metric data in a SQLite database file
-- **FR-010**: System MUST handle partial failures gracefully (continue collecting other metrics if one fails)
-- **FR-011**: System MUST persist data across multiple pipeline runs without data loss
-- **FR-012**: System MUST support concurrent pipeline executions without database corruption
+- **FR-006**: System MUST store collected metrics with timestamps indicating when they were captured
+- **FR-007**: System MUST associate collected metrics with commit SHA and build metadata
+- **FR-008**: System MUST store metric data in a SQLite database file
+- **FR-009**: System MUST handle partial failures gracefully (continue collecting other metrics if one fails)
+- **FR-010**: System MUST persist data across multiple pipeline runs without data loss
+- **FR-011**: System MUST support concurrent pipeline executions without database corruption
 
 #### Report Generation
 
-- **FR-013**: System MUST generate HTML reports displaying metric trends over time
-- **FR-014**: System MUST create visual charts showing how metrics change across builds
-- **FR-015**: Generated reports MUST be self-contained single-file HTML documents
-- **FR-016**: Reports MUST display each configured metric in a separate section
-- **FR-017**: System MUST generate valid reports even with limited data (minimum 1 data point)
-- **FR-018**: Charts MUST clearly indicate time progression and metric values
-- **FR-019**: Reports MUST be responsive and render correctly on mobile, tablet, and desktop screens
-- **FR-020**: Reports MUST include summary statistics (min, max, average, trend direction) for each metric
-- **FR-021**: Charts MUST include interactive tooltips showing exact values and timestamps
-- **FR-022**: Reports MUST be accessible (WCAG 2.1 AA compliance for color contrast and semantic HTML)
-- **FR-023**: Reports MUST handle missing/sparse data with clear visual indicators and informative messages
-- **FR-024**: Reports MUST use Tailwind CSS from CDN for styling (no custom CSS compilation required)
-- **FR-025**: Reports MUST include metadata section showing repository name, generation timestamp, and data range
+- **FR-012**: System MUST generate HTML reports displaying metric trends over time
+- **FR-013**: System MUST create visual charts showing how metrics change across builds
+- **FR-014**: Generated reports MUST be self-contained single-file HTML documents
+- **FR-015**: Reports MUST display each configured metric in a separate section
+- **FR-016**: System MUST generate valid reports even with limited data (minimum 1 data point)
+- **FR-017**: Charts MUST clearly indicate time progression and metric values
+- **FR-018**: Reports MUST be responsive and render correctly on mobile, tablet, and desktop screens
+- **FR-019**: Reports MUST include summary statistics (min, max, average, trend direction) for each metric
+- **FR-020**: Charts MUST include interactive tooltips showing exact values and timestamps
+- **FR-021**: Reports MUST be accessible (WCAG 2.1 AA compliance for color contrast and semantic HTML)
+- **FR-022**: Reports MUST handle missing/sparse data with clear visual indicators and informative messages
+- **FR-023**: Reports MUST use Tailwind CSS from CDN for styling (no custom CSS compilation required)
+- **FR-024**: Reports MUST include metadata section showing repository name, generation timestamp, and data range
 
 ### Key Entities
 
@@ -159,29 +147,6 @@ As the Unentropy project maintainer, I want to use Unentropy to track its own co
 - **Metric Data Point**: Represents a single collected metric value, including metric identifier, value, timestamp, commit SHA, and build metadata
 - **Build Context**: Represents the CI/CD execution context, including commit SHA, branch name, build number, and timestamp
 - **Report**: Represents generated HTML output, including all metrics, time range, and visualization data
-
-### Self-Monitoring Example Configuration
-
-The Unentropy project will include a reference `unentropy.json` configuration that tracks:
-
-```json
-{
-  "metrics": {
-    "test-coverage": {
-      "type": "percentage",
-      "description": "Test coverage percentage for the codebase",
-      "command": "bun test --coverage | grep 'Lines' | awk '{print $2}' | sed 's/%//'"
-    },
-    "lines-of-code": {
-      "type": "numeric",
-      "description": "Total lines of code in src/ directory",
-      "command": "find src/ -name '*.ts' -not -path '*/node_modules/*' | xargs wc -l | tail -1 | awk '{print $1}'"
-    }
-  }
-}
-```
-
-This configuration serves as both a working example and genuine project monitoring.
 
 ## Success Criteria *(mandatory)*
 
@@ -207,7 +172,7 @@ This configuration serves as both a working example and genuine project monitori
 - GitHub Actions environment has write permissions to the database location
 - Report generation occurs after data collection, either as part of the same pipeline or a separate scheduled job
 - Metric collection scripts/commands are provided by the user and referenced in configuration (system invokes them but doesn't define them)
-- All pipeline runs occur on a single repository (no multi-repository aggregation in MVP)
+- All pipeline runs occur on a single repository (no multi-repository aggregation in PoC)
 
 ## Dependencies *(mandatory)*
 
@@ -223,28 +188,40 @@ This configuration serves as both a working example and genuine project monitori
 
 ## Scope Boundaries *(mandatory)*
 
-### In Scope (MVP)
+### In Scope (PoC)
 
 - Configuration file parsing and validation
 - CLI verification command for local configuration validation
 - Command-line interface with yargs for argument parsing
 - Local file system access for configuration file reading
 - SQLite database creation and metric storage (local file system)
-- Storage provider pattern architecture (extensible: sqlite-local, sqlite-artifact, sqlite-s3, postgres)
+- Storage provider pattern architecture (extensible: sqlite-local, sqlite-s3, postgres)
 - SQLite local storage provider implementation (file-based SQLite)
-- GitHub Action for collecting metrics in CI/CD
 - Basic HTML report generation with time-series charts
 - Single repository tracking
 - Commit-level granularity for metrics
-- Self-monitoring implementation for Unentropy project (test coverage + LoC)
-- Reference configuration and workflow for demonstration purposes
 
 ### Out of Scope (Future Specs)
 
-- Remote storage backends (sqlite-artifact for GitHub Artifacts, sqlite-s3 for S3, postgres for PostgreSQL)
+- GitHub Actions integration (see spec 003 for unified track-metrics action)
+- Remote storage backends (sqlite-s3 for S3 - see spec 003)
+- Quality gate evaluation and PR comments (see spec 004)
+- Built-in metric collectors (see spec 005)
+- Advanced report customization (see spec 006)
 - Multi-repository metric aggregation
 - Advanced analytics (anomaly detection, trend forecasting)
 - Real-time metric streaming
 - Metric alerting and notifications
 - Custom visualization plugins
-- Database migration tools for schema evolution beyond v1.0.0
+
+## Foundational Contracts
+
+This spec establishes contracts that are referenced by subsequent specs:
+
+| Contract | Location | Referenced By |
+|----------|----------|---------------|
+| Configuration Schema | `contracts/config-schema.md` | All specs |
+| Database Schema | `contracts/database-schema.md` | 003, 004, 005, 006 |
+| Storage Provider Interface | `contracts/storage-provider-interface.md` | 003 |
+| HTML Report Template | `contracts/html-report-template.md` | 006 |
+| Visual Acceptance Criteria | `contracts/visual-acceptance-criteria.md` | 006 |

@@ -1,8 +1,8 @@
-# Research & Technical Decisions: MVP Metrics Tracking
+# Research & Technical Decisions: Metrics Tracking PoC
 
-**Feature**: 003-mvp-metrics-tracking  
+**Feature**: 001-metrics-tracking-poc  
 **Date**: Thu Oct 16 2025  
-**Status**: Complete
+**Status**: Implemented
 
 ## Overview
 

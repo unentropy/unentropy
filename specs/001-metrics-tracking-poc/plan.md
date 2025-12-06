@@ -1,13 +1,13 @@
-# Implementation Plan: MVP Metrics Tracking System
+# Implementation Plan: Metrics Tracking PoC
 
-**Branch**: `003-mvp-metrics-tracking` | **Date**: Thu Oct 16 2025 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/003-mvp-metrics-tracking/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `001-metrics-tracking-poc` | **Date**: Thu Oct 16 2025 | **Spec**: [spec.md](./spec.md)
+**Status**: Implemented
 
 ## Summary
 
-Build a serverless metrics tracking system that allows developers to define custom metrics via `unentropy.json`, automatically collect those metrics during CI/CD runs through a GitHub Action, store data in SQLite, and generate self-contained HTML reports with trend visualizations using Chart.js. After implementing the core functionality, the MVP will include a self-monitoring implementation where Unentropy tracks its own test coverage and lines of code, serving as both a demonstration and genuine project health monitoring.
+This plan covers the foundational proof-of-concept for the Unentropy metrics tracking system. It establishes core capabilities: configuration management with validation, SQLite-based metric persistence with a three-layer storage architecture, and self-contained HTML report generation with Chart.js visualizations.
+
+**Note**: The original 3-action architecture (collect-metrics, generate-report, find-database) has been superseded by the unified `track-metrics` action defined in spec 003. This plan documents the core platform implementation that subsequent specs build upon.
 
 ## Technical Context
 
@@ -80,17 +80,18 @@ Build a serverless metrics tracking system that allows developers to define cust
 ### Documentation (this feature)
 
 ```
-specs/001-mvp-metrics-tracking/
- ├── plan.md              # This file (/speckit.plan command output)
- ├── research.md          # Phase 0 output (/speckit.plan command)
- ├── data-model.md        # Phase 1 output (/speckit.plan command)
- ├── quickstart.md        # Phase 1 output (/speckit.plan command)
- ├── contracts/           # Phase 1 output (/speckit.plan command)
+specs/001-metrics-tracking-poc/
+ ├── plan.md              # This file
+ ├── research.md          # Technical decisions and research
+ ├── data-model.md        # Entity definitions and storage architecture
+ ├── quickstart.md        # Acceptance test scenarios
+ ├── contracts/           # Interface contracts (referenced by other specs)
  │   ├── config-schema.md              # unentropy.json schema
  │   ├── database-schema.md            # SQLite table definitions
  │   ├── storage-provider-interface.md # Storage provider contract (extensibility)
- │   └── action-interface.md           # GitHub Action inputs/outputs
- └── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+ │   ├── html-report-template.md       # Report template contract
+ │   └── visual-acceptance-criteria.md # Visual testing checklist
+ └── tasks.md             # Implementation tasks (completed)
 ```
 
 ### Source Code (repository root)
@@ -190,55 +191,23 @@ This separation enables:
 
 Provider naming: `<database-engine>-<storage-location>` (e.g., `sqlite-local`, `sqlite-s3`). See `contracts/storage-provider-interface.md` and `contracts/database-adapter-interface.md` for detailed contracts.
 
-## User Story 4 Implementation: Self-Monitoring
+## Foundational Contracts
 
-### Reference Configuration
+This PoC establishes contracts that are referenced by subsequent specs:
 
-After core functionality is complete, the project will include `unentropy.json` in the root directory:
+| Contract | Purpose | Referenced By |
+|----------|---------|---------------|
+| Configuration Schema | unentropy.json validation | All specs |
+| Database Schema | SQLite table definitions | 003, 004, 005, 006 |
+| Storage Provider Interface | Three-layer architecture | 003 |
+| HTML Report Template | Report structure | 006 |
 
-```json
-{
-  "metrics": [
-    {
-      "name": "test_coverage",
-      "type": "percentage", 
-      "description": "Test coverage percentage for the codebase",
-      "command": "bun test --coverage 2>/dev/null | grep -E '^Lines\\s*:' | awk '{print $2}' | sed 's/%//' || echo '0'"
-    },
-    {
-      "name": "lines_of_code",
-      "type": "numeric",
-      "description": "Total lines of TypeScript code in src/ directory", 
-      "command": "find src/ -name '*.ts' -not -path '*/node_modules/*' | xargs wc -l | tail -1 | awk '{print $1}' || echo '0'"
-    }
-  ]
-}
-```
+## Future Enhancements (Out of Scope)
 
-### CI/CD Integration
+The following enhancements are documented here for future specs:
 
-The existing `.github/workflows/ci.yml` will be extended to include:
-
-1. **Configuration Verification Step**: Run `unentropy verify` to validate configuration before collection
-2. **Database Download Step**: Download database artifact from previous successful runs using GitHub's actions/download-artifact
-3. **Metric Collection Step**: Run the collect-metrics action with downloaded database (or create new)
-4. **Database Persistence**: Store updated SQLite database as workflow artifact  
-5. **Report Generation**: Generate HTML report and attach as artifact or PR comment
-
-### Demonstration Value
-
-This self-monitoring setup provides:
-- **Live Example**: Users can see actual Unentropy configuration and results
-- **Validation**: Each PR shows impact on test coverage and code size
-- **Performance Tracking**: Monitor how changes affect project metrics
-- **Documentation**: Working reference implementation
-- **CLI Usage**: Demonstrates `unentropy verify` command in CI context
-
-### Success Metrics for Self-Monitoring
-
-- Test coverage trends visible over time
-- LoC growth tracking for project scope management  
-- Reports generated successfully on each commit
-- Configuration serves as clear example for new users
-- CLI verification runs successfully on each commit before collection
+- **Drizzle ORM Migration**: Replace raw SQL with type-safe Drizzle schema (tracked in Roadmap)
+- **Database Migrations**: Proper versioned migration system
+- **Transaction Support**: Improved transaction handling for concurrent writes
+- **Connection Pooling**: Better connection lifecycle management
 
