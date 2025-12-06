@@ -78,7 +78,7 @@ export const CONFIG_TEMPLATES: Record<ProjectType, ConfigTemplate> = {
       "test-coverage": {
         $ref: "coverage",
         name: "Test Coverage",
-        command: "@collect coverage-lcov coverage/lcov.info",
+        command: "@collect coverage-xml coverage.xml",
       },
     },
     qualityGate: DEFAULT_QUALITY_GATE,
@@ -122,11 +122,6 @@ export const CONFIG_TEMPLATES: Record<ProjectType, ConfigTemplate> = {
   },
 };
 
-/**
- * Get configuration template for a project type
- * @param projectType Project type to get template for
- * @returns Configuration template
- */
 export function getTemplateForProjectType(projectType: ProjectType): ConfigTemplate {
   const template = CONFIG_TEMPLATES[projectType];
   if (!template) {
@@ -135,10 +130,6 @@ export function getTemplateForProjectType(projectType: ProjectType): ConfigTempl
   return template;
 }
 
-/**
- * Get all available project types that have templates
- * @returns Array of project type IDs
- */
 export function getAvailableProjectTypes(): ProjectType[] {
   return Object.keys(CONFIG_TEMPLATES) as ProjectType[];
 }

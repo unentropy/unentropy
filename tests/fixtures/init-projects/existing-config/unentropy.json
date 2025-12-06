@@ -1,0 +1,17 @@
+{
+  "metrics": {
+    "custom-metric": {
+      "type": "numeric",
+      "name": "Custom Metric",
+      "command": "echo 42",
+      "unit": "integer"
+    }
+  },
+  "storage": {
+    "type": "sqlite-local"
+  },
+  "qualityGate": {
+    "mode": "off",
+    "thresholds": []
+  }
+}

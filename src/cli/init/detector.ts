@@ -15,9 +15,6 @@ export interface ProjectTypeConfig {
   priority: number;
 }
 
-/**
- * Project type configurations with detection rules
- */
 export const PROJECT_TYPES: Record<ProjectType, ProjectTypeConfig> = {
   javascript: {
     id: "javascript",
@@ -52,11 +49,6 @@ export const PROJECT_TYPES: Record<ProjectType, ProjectTypeConfig> = {
   },
 };
 
-/**
- * Detect project type based on marker files in current directory
- * @param cwd Current working directory (defaults to process.cwd())
- * @returns Detection result or null if no project type detected
- */
 export function detectProjectType(cwd: string = process.cwd()): DetectionResult | null {
   // Sort project types by priority (lower number = higher priority)
   const sortedTypes = Object.values(PROJECT_TYPES).sort((a, b) => a.priority - b.priority);
@@ -75,32 +67,10 @@ export function detectProjectType(cwd: string = process.cwd()): DetectionResult 
   return null;
 }
 
-/**
- * Get project type configuration by ID
- * @param type Project type ID
- * @returns Project type configuration
- */
-export function getProjectType(type: ProjectType): ProjectTypeConfig {
-  const config = PROJECT_TYPES[type];
-  if (!config) {
-    throw new Error(`Invalid project type: ${type}`);
-  }
-  return config;
-}
-
-/**
- * Validate project type string
- * @param type Project type string to validate
- * @returns True if valid project type
- */
 export function isValidProjectType(type: string): type is ProjectType {
   return Object.keys(PROJECT_TYPES).includes(type);
 }
 
-/**
- * Get all valid project type IDs
- * @returns Array of valid project type IDs
- */
 export function getValidProjectTypes(): ProjectType[] {
   return Object.keys(PROJECT_TYPES) as ProjectType[];
 }

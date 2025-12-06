@@ -35,8 +35,8 @@ export const PROJECT_TYPE_WORKFLOWS: Record<ProjectType, ProjectTypeWorkflow> = 
   php: {
     setupAction: "shivammathur/setup-php@v2",
     installCommand: "composer install",
-    testCommand: "vendor/bin/phpunit --coverage-lcov coverage/lcov.info",
-    coverageFile: "coverage/lcov.info",
+    testCommand: "vendor/bin/phpunit --coverage-clover coverage.xml",
+    coverageFile: "coverage.xml",
   },
   go: {
     setupAction: "actions/setup-go@v5",

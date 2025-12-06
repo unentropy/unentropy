@@ -1,0 +1,21 @@
+{
+  "name": "example-app",
+  "version": "1.0.0",
+  "description": "Example JavaScript application",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest --coverage",
+    "build": "webpack",
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "example",
+    "test"
+  ],
+  "author": "Test Author",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "webpack": "^5.0.0"
+  }
+}

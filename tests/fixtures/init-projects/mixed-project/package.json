@@ -1,0 +1,14 @@
+{
+  "name": "mixed-stack-app",
+  "version": "1.0.0",
+  "description": "Full-stack app with both JavaScript and PHP",
+  "main": "frontend/index.js",
+  "scripts": {
+    "test": "jest --coverage",
+    "build": "webpack"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "webpack": "^5.0.0"
+  }
+}

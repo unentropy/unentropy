@@ -215,12 +215,7 @@ Display Summary
     "test-coverage": {
       "$ref": "coverage",
       "name": "Test Coverage",
-      "command": "@collect coverage-lcov coverage/lcov.info"
-    },
-    "bundle": {
-      "$ref": "bundle",
-      "name": "Bundle Size",
-      "command": "@collect size dist"
+      "command": "@collect coverage-xml coverage.xml"
     }
   }
 }
@@ -239,7 +234,7 @@ Display Summary
     "test-coverage": {
       "$ref": "coverage",
       "name": "Test Coverage",
-      "command": "@collect coverage-lcov coverage/lcov.info"
+      "command": "@collect coverage-xml coverage.xml"
     }
   }
 }

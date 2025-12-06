@@ -92,7 +92,7 @@ export const InitCommand = cmd({
 | Language | Primary Format | Collector | Fallback |
 |----------|---------------|-----------|----------|
 | JavaScript/TS | LCOV | `@collect coverage-lcov` | N/A (available) |
-| PHP | Clover XML | Not available | Use `--coverage-lcov` flag in PHPUnit |
+| PHP | Clover XML | `@collect coverage-xml` | N/A (available) |
 | Go | Go cover profile | Not available | Shell command parsing |
 | Python | Cobertura XML | Not available | Use `--cov-report=lcov` in pytest |
 
@@ -100,7 +100,7 @@ export const InitCommand = cmd({
 
 **Coverage Commands by Project Type**:
 - JavaScript: `@collect coverage-lcov coverage/lcov.info`
-- PHP: `@collect coverage-lcov coverage/lcov.info` (with note about `--coverage-lcov`)
+- PHP: `@collect coverage-xml coverage.xml`
 - Go: `go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%'`
 - Python: `@collect coverage-lcov coverage.lcov` (with note about `--cov-report=lcov`)
 
@@ -149,7 +149,7 @@ function detectProjectType(cwd: string): { type: ProjectType; files: string[] } 
 | Language | Setup Action | Test Command |
 |----------|--------------|--------------|
 | JavaScript | `actions/setup-node@v4` + `npm ci` | `npm test -- --coverage` |
-| PHP | `shivammathur/setup-php@v2` + `composer install` | `vendor/bin/phpunit --coverage-lcov coverage/lcov.info` |
+| PHP | `shivammathur/setup-php@v2` + `composer install` | `vendor/bin/phpunit --coverage-clover coverage.xml` |
 | Go | `actions/setup-go@v5` | `go test -coverprofile=coverage.out ./...` |
 | Python | `actions/setup-python@v5` + `pip install` | `pytest --cov=src --cov-report=lcov:coverage.lcov` |
 

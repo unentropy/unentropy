@@ -1,0 +1,8 @@
+{
+  "name": "existing-project",
+  "version": "1.0.0",
+  "description": "Project that already has unentropy.json",
+  "scripts": {
+    "test": "jest --coverage"
+  }
+}

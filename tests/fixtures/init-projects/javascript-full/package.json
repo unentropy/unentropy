@@ -1,0 +1,23 @@
+{
+  "name": "typescript-app",
+  "version": "2.1.0",
+  "description": "TypeScript application with full tooling",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "vitest --coverage",
+    "build": "tsc && vite build",
+    "dev": "vite",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^4.0.0",
+    "vitest": "^0.34.0",
+    "eslint": "^8.0.0"
+  }
+}

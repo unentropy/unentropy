@@ -232,6 +232,6 @@ A developer wants to verify that all metrics can be collected successfully befor
 - Existing metric collection runner (`src/collector/runner.ts`)
 - Coverage format support depends on available collectors:
   - JavaScript/TypeScript: LCOV (available)
-  - PHP: Clover XML (not yet available - will document LCOV alternative via `--coverage-lcov` flag)
+  - PHP: Clover XML (available via `@collect coverage-xml`)
   - Go: Go cover profile (not yet available - will use shell command fallback)
   - Python: Cobertura XML (not yet available - will document LCOV alternative via `--cov-report=lcov`)
