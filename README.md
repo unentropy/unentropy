@@ -23,9 +23,85 @@
 
 ## **Getting Started**
 
-### Step 1: Create Configuration
+### Quick Start
 
-Create an `unentropy.json` file in your repository root:
+Get started with Unentropy in under 2 minutes:
+
+#### 1. Generate Configuration
+
+Run this command in your project directory:
+
+```bash
+bunx unentropy init
+```
+
+This auto-detects your project type (JavaScript, PHP, Go, or Python) and creates `unentropy.json` with sensible defaults for tracking lines of code and test coverage.
+
+Example output:
+
+```
+Detected project type: javascript (found: package.json, tsconfig.json)
+
+✓ Created unentropy.json with 3 metrics:
+  - lines-of-code (Lines of Code)
+  - test-coverage (Test Coverage)
+  - bundle (Bundle Size)
+```
+
+#### 2. Verify Metrics Locally
+
+Test that metrics collection works before pushing to CI:
+
+```bash
+bunx unentropy test
+```
+
+Example output:
+
+```
+✓ Config schema valid
+
+Collecting metrics:
+
+  ✓ lines-of-code (integer)    4,521         0.8s
+  ✓ test-coverage (percent)    87.3%         2.1s
+  ✓ bundle (bytes)             240 KB        0.2s
+
+All 3 metrics collected successfully.
+```
+
+If a metric fails, make sure you've run your tests with coverage first. The init output shows the specific test command for your project type.
+
+#### 3. Add GitHub Workflows
+
+Copy the workflow examples from your `init` output into your repository:
+
+1. **Main branch tracking** → `.github/workflows/metrics.yml`
+   (from the "TRACK METRICS" section)
+
+2. **Pull request quality gate** → `.github/workflows/quality-gate.yml`
+   (from the "QUALITY GATE" section)
+
+Commit and push these files to start tracking metrics.
+
+**That's it!** Metrics are now tracked automatically on every commit to main, and PRs get quality gate feedback.
+
+### View Your First Report
+
+After pushing to main:
+
+1. Go to your repository's **Actions** tab
+2. Click the latest **Track Metrics** workflow run
+3. Download `unentropy-report.html` from artifacts
+4. Open in browser to see interactive metric trends
+
+On pull requests, check for automated quality gate comments.
+
+## **Advanced Configuration**
+
+### Manual Configuration
+
+For full control, you can create `unentropy.json` manually instead of using `bunx unentropy init`:
 
 ```json
 {
@@ -53,14 +129,11 @@ Create an `unentropy.json` file in your repository root:
 }
 ```
 
-**That's it!** Unentropy includes built-in templates for common metrics. Only override `command` when the metric needs project-specific configuration (like coverage, which varies by test framework).
+**Built-in metric templates:** Unentropy includes templates for common metrics (`loc`, `size`, `coverage`). Only override `command` when you need project-specific paths or options.
 
-### Step 2: Add GitHub Workflows
+### Workflow Configuration Reference
 
-Unentropy uses two workflows:
-
-1. **Main branch workflow** - Tracks metrics and builds historical database
-2. **Pull request workflow** - Evaluates PRs against quality gate thresholds
+If you're not using `bunx unentropy init`, here are the workflow templates:
 
 #### Main Branch Workflow
 
@@ -84,8 +157,6 @@ jobs:
       - name: Track metrics
         uses: unentropy/track-metrics-action@v1
 ```
-
-**That's it!** Metrics are automatically tracked and stored in GitHub Actions artifacts. No secrets or external services required.
 
 #### Pull Request Quality Gate Workflow
 
@@ -111,17 +182,7 @@ jobs:
         uses: unentropy/quality-gate-action@v1
 ```
 
-The quality gate will post a PR comment showing how metrics compare to your baseline and whether any thresholds are violated.
-
-### Step 3: View Your Reports
-
-After the workflow runs:
-
-- Download `unentropy-report.html` from workflow artifacts
-- Open in browser to see interactive metric trends over time
-- On PRs, check the automated quality gate comment
-
-## **Advanced Configuration**
+**Note:** Adjust test commands based on your project type. The `init` command generates the correct commands automatically.
 
 ### Store Metrics in S3-Compatible Storage
 
