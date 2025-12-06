@@ -17,7 +17,7 @@ This document defines the data entities, their relationships, validation rules, 
 
 **Attributes**:
 - `id` (integer, primary key): Auto-generated unique identifier
-- `name` (string, unique, required): Metric name (e.g., "test-coverage", "bundle-size")
+- `name` (string, unique, required): Metric name (e.g., "test-coverage", "size")
 - `type` (enum, required): Either 'numeric' or 'label'
 - `unit` (string, optional): Display unit for numeric metrics (e.g., "%", "ms", "KB", "LOC")
 - `description` (string, optional): Human-readable description of what this metric measures

@@ -24,13 +24,13 @@ For templates with default commands, just reference the metric template. The obj
 {
   "metrics": {
     "loc": { "$ref": "loc" },
-    "bundle-size": { "$ref": "bundle-size" }
+    "size": { "$ref": "size" }
   }
 }
 ```
 
 This automatically:
-- Uses the object key as the metric id (e.g., `"loc"`, `"bundle-size"`)
+- Uses the object key as the metric id (e.g., `"loc"`, `"size"`)
 - Uses the default `@collect` command from the template
 - Applies the correct unit type for formatting
 
@@ -58,7 +58,7 @@ Customize the collection path or options while keeping other defaults:
   "metrics": {
     "loc": { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
     "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov ./reports/lcov.info" },
-    "bundle-size": { "$ref": "bundle-size", "command": "@collect size ./dist/*.js" }
+    "size": { "$ref": "size", "command": "@collect size ./dist/*.js" }
   }
 }
 ```
@@ -124,8 +124,8 @@ The `@collect` prefix simplifies collector invocation by delegating to the exist
 ```json
 {
   "metrics": {
-    "js-bundle": { "$ref": "bundle-size", "command": "@collect size ./dist/*.js" },
-    "actions-bundle": { "$ref": "bundle-size", "command": "@collect size .github/actions/*/dist/*.js" }
+    "js-bundle": { "$ref": "size", "command": "@collect size ./dist/*.js" },
+    "actions-bundle": { "$ref": "size", "command": "@collect size .github/actions/*/dist/*.js" }
   }
 }
 ```
@@ -151,7 +151,7 @@ These templates have default `@collect` commands and can be used with minimal co
 | ID | Default Command | Unit |
 |----|-----------------|------|
 | `loc` | `@collect loc .` | `integer` |
-| `bundle-size` | `@collect size ./dist` | `bytes` |
+| `size` | `@collect size ./dist` | `bytes` |
 
 ### Templates Requiring Custom Commands
 
@@ -187,7 +187,7 @@ These templates don't have default commands (too technology/project-specific):
       "$ref": "build-time",
       "command": "(time bun run build) 2>&1 | grep real | awk '{print $2}'"
     },
-    "bundle-size": { "$ref": "bundle-size" }
+    "size": { "$ref": "size" }
   }
 }
 ```
@@ -212,7 +212,7 @@ Combine metric templates with quality gate thresholds:
 {
   "metrics": {
     "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
-    "bundle-size": { "$ref": "bundle-size" }
+    "size": { "$ref": "size" }
   },
   "qualityGate": {
     "mode": "soft",
@@ -224,7 +224,7 @@ Combine metric templates with quality gate thresholds:
         "tolerance": 0.5
       },
       {
-        "metric": "bundle-size",
+        "metric": "size",
         "mode": "delta-max-drop",
         "maxDropPercent": 5
       }
@@ -242,7 +242,7 @@ Combine metric templates with quality gate thresholds:
 **Problem**: `Invalid metric reference: "$ref: unknown-metric"`
 
 **Solution**: Check available metric IDs:
-- coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count
+- coverage, function-coverage, loc, size, build-time, test-time, dependencies-count
 
 ### "Invalid metric key" Error
 

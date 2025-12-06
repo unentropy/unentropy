@@ -6,7 +6,7 @@
       "command": "echo '85.5'",
       "unit": "percent"
     },
-    "bundle-size": {
+    "size": {
       "type": "numeric",
       "description": "JavaScript bundle size in KB",
       "command": "echo '245.8'",

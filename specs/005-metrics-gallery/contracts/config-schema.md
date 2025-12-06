@@ -82,7 +82,7 @@ interface UnentropyConfig {
 - `coverage` - Test coverage percentage
 - `function-coverage` - Function coverage percentage
 - `loc` - Lines of code
-- `bundle-size` - Production bundle size
+- `size` - Production bundle size
 - `build-time` - Build duration
 - `test-time` - Test suite duration
 - `dependencies-count` - Dependency count
@@ -135,7 +135,7 @@ Commands starting with `@collect` are executed directly in-process without spawn
 {
   "metrics": {
     "src-loc": { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
-    "bundle": { "$ref": "bundle-size", "command": "@collect size .github/actions/*/dist/*.js" }
+    "bundle": { "$ref": "size", "command": "@collect size .github/actions/*/dist/*.js" }
   }
 }
 ```
@@ -186,7 +186,7 @@ type UnitType = 'percent' | 'integer' | 'bytes' | 'duration' | 'decimal';
                   "coverage",
                   "function-coverage",
                   "loc",
-                  "bundle-size",
+                  "size",
                   "build-time",
                   "test-time",
                   "dependencies-count"
@@ -268,13 +268,13 @@ type UnitType = 'percent' | 'integer' | 'bytes' | 'duration' | 'decimal';
 
 ### 1. Ultra-Minimal Configuration
 
-For metrics with default commands (`loc`, `bundle-size`):
+For metrics with default commands (`loc`, `size`):
 
 ```json
 {
   "metrics": {
     "loc": { "$ref": "loc" },
-    "bundle-size": { "$ref": "bundle-size" }
+    "size": { "$ref": "size" }
   }
 }
 ```
@@ -291,7 +291,7 @@ For metrics with default commands (`loc`, `bundle-size`):
     "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
     "src-loc": { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" },
     "test-loc": { "$ref": "loc", "command": "@collect loc ./tests --language TypeScript" },
-    "bundle": { "$ref": "bundle-size", "command": "@collect size ./dist/*.js" }
+    "bundle": { "$ref": "size", "command": "@collect size ./dist/*.js" }
   }
 }
 ```
@@ -337,7 +337,7 @@ For metrics with default commands (`loc`, `bundle-size`):
 {
   "metrics": {
     "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
-    "bundle-size": { "$ref": "bundle-size" }
+    "size": { "$ref": "size" }
   },
   "storage": {
     "type": "sqlite-s3"
@@ -351,7 +351,7 @@ For metrics with default commands (`loc`, `bundle-size`):
         "tolerance": 0.5
       },
       {
-        "metric": "bundle-size",
+        "metric": "size",
         "mode": "delta-max-drop",
         "maxDropPercent": 5
       }
@@ -366,7 +366,7 @@ For metrics with default commands (`loc`, `bundle-size`):
 {
   "metrics": {
     "actions-bundle": {
-      "$ref": "bundle-size",
+      "$ref": "size",
       "command": "@collect size .github/actions/*/dist/*.js"
     }
   }
@@ -481,7 +481,7 @@ Keys must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)
 
 ```
 Error: Invalid metric reference "$ref: unknown-metric"
-Available metric templates: coverage, function-coverage, loc, bundle-size, 
+Available metric templates: coverage, function-coverage, loc, size, 
 build-time, test-time, dependencies-count
 ```
 
@@ -504,7 +504,7 @@ Available collectors: loc, size, coverage-lcov, coverage-json, coverage-xml
 
 ```
 Error: Threshold references non-existent metric "typo-coverage"
-Available metrics: coverage, bundle-size
+Available metrics: coverage, size
 ```
 
 ### Missing Required Fields (Custom Metric)

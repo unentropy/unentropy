@@ -131,7 +131,7 @@ interface MetricConfig {
       "command": "npm run test:coverage -- --json | jq -r '.total.lines.pct'",
       "unit": "%"
     },
-    "bundle-size": {
+    "size": {
       "name": "Bundle Size",
       "type": "numeric",
       "description": "Production bundle size in kilobytes",
@@ -158,7 +158,7 @@ interface MetricConfig {
       "command": "cd api && npm run test:coverage -- --json | jq -r '.total.lines.pct'",
       "unit": "%"
     },
-    "frontend-bundle-size": {
+    "frontend-size": {
       "type": "numeric",
       "command": "du -k frontend/dist/main.js | cut -f1",
       "unit": "KB"

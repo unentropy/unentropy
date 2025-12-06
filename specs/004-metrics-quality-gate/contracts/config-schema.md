@@ -204,7 +204,7 @@ The baseline is always the most recent successful build on the reference branch.
       "command": "npm run coverage -- --json | jq -r '.total.lines.pct'",
       "unit": "%"
     },
-    "bundle-size": {
+    "size": {
       "type": "numeric",
       "command": "du -k dist/bundle.js | cut -f1",
       "unit": "KB"
@@ -215,7 +215,7 @@ The baseline is always the most recent successful build on the reference branch.
     "enablePullRequestComment": true,
     "thresholds": [
       { "metric": "coverage", "mode": "no-regression", "tolerance": 0.5 },
-      { "metric": "bundle-size", "mode": "delta-max-drop", "maxDropPercent": 5 }
+      { "metric": "size", "mode": "delta-max-drop", "maxDropPercent": 5 }
     ]
   }
 }

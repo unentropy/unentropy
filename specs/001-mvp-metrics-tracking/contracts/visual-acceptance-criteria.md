@@ -62,7 +62,7 @@ Visual acceptance testing ensures the HTML reports meet design, usability, and a
       "description": "Percentage of code covered by tests"
     },
     {
-      "name": "bundle-size",
+      "name": "size",
       "type": "numeric",
       "description": "JavaScript bundle size in KB"
     },

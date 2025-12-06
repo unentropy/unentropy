@@ -6,7 +6,7 @@
       "command": "echo '0'",
       "unit": "percent"
     },
-    "bundle-size-kb": {
+    "size-kb": {
       "type": "numeric",
       "description": "Bundle size with special chars: @/\\*",
       "command": "echo '9999999.99'",

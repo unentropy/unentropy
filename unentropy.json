@@ -17,7 +17,7 @@
       "command": "@collect coverage-lcov coverage/lcov.info"
     },
     "total-bundle-size": {
-      "$ref": "bundle-size",
+      "$ref": "size",
       "name": "Actions bundle size",
       "description": "Total size of all compiled GitHub Actions",
       "command": "@collect size .github/actions/*/dist/*.js"

@@ -30,7 +30,7 @@ This document captures research findings and design decisions for implementing t
 {
   "metrics": [
     {"$ref": "coverage"},
-    {"$ref": "bundle-size", "name": "custom-bundle"}
+    {"$ref": "size", "name": "custom-bundle"}
   ]
 }
 ```
@@ -160,7 +160,7 @@ const MetricConfigSchema = z.object({
 **Example Error**:
 ```
 Invalid metric reference: "$ref: unknown-metric"
-Available metric templates: coverage, function-coverage, loc, bundle-size, 
+Available metric templates: coverage, function-coverage, loc, size, 
 build-time, test-time, dependencies-count
 ```
 
@@ -293,7 +293,7 @@ unentropy collect <format-type> <source-path> [options]
 **Bundle size example**:
 ```json
 {
-  "$ref": "bundle-size",
+  "$ref": "size",
   "command": "bun run build && unentropy collect size ./dist/"
 }
 ```
@@ -301,7 +301,7 @@ unentropy collect <format-type> <source-path> [options]
 **File size example**:
 ```json
 {
-  "$ref": "bundle-size",
+  "$ref": "size",
   "command": "unentropy collect size ./dist/bundle.js"
 }
 ```

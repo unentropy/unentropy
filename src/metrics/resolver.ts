@@ -8,14 +8,14 @@ export function resolveMetricReference(key: string, config: MetricConfig): Resol
 
   if (config.$ref.trim() === "") {
     throw new Error(
-      `Built-in metric '${config.$ref}' not found. Available metrics: coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count`
+      `Built-in metric '${config.$ref}' not found. Available metrics: coverage, function-coverage, loc, size, build-time, test-time, dependencies-count`
     );
   }
 
   const builtInMetric = getMetricTemplate(config.$ref);
   if (!builtInMetric) {
     throw new Error(
-      `Built-in metric '${config.$ref}' not found. Available metrics: coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count`
+      `Built-in metric '${config.$ref}' not found. Available metrics: coverage, function-coverage, loc, size, build-time, test-time, dependencies-count`
     );
   }
 

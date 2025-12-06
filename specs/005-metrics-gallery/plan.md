@@ -78,7 +78,7 @@ src/
 │   │   └── size.ts
 │   └── commands/        # Default command implementations
 │       ├── coverage.ts
-│       ├── bundle-size.ts
+│       ├── size.ts
 │       ├── loc.ts
 │       ├── build-time.ts
 │       ├── test-time.ts

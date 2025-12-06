@@ -74,13 +74,13 @@ describe("SqliteDatabaseAdapter", () => {
 
     it("updates existing metric definition on conflict", () => {
       const metric1 = adapter.upsertMetricDefinition({
-        name: "bundle-size",
+        name: "size",
         type: "numeric",
         unit: "bytes",
       });
 
       const metric2 = adapter.upsertMetricDefinition({
-        name: "bundle-size",
+        name: "size",
         type: "numeric",
         unit: "integer",
         description: "Updated description",

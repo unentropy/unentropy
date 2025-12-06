@@ -178,7 +178,7 @@ Same as spec 001 - no storage block needed:
       "command": "npm run test:coverage -- --json | jq -r '.total.lines.pct'",
       "unit": "%"
     },
-    "bundle-size": {
+    "size": {
       "type": "numeric",
       "description": "Production bundle size in kilobytes",
       "command": "du -k dist/bundle.js | cut -f1",

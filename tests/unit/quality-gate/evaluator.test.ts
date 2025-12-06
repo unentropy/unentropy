@@ -60,14 +60,14 @@ describe("evaluateThreshold", () => {
   describe("max mode", () => {
     it("should pass when value below maximum", () => {
       const sample: MetricSample = {
-        name: "bundle-size",
+        name: "size",
         type: "numeric",
         unit: "bytes",
         baselineValue: 500,
         pullRequestValue: 450,
       };
       const threshold: MetricThresholdConfig = {
-        metric: "bundle-size",
+        metric: "size",
         mode: "max",
         target: 500,
       };
@@ -77,14 +77,14 @@ describe("evaluateThreshold", () => {
 
     it("should fail when value exceeds maximum", () => {
       const sample: MetricSample = {
-        name: "bundle-size",
+        name: "size",
         type: "numeric",
         unit: "bytes",
         baselineValue: 500,
         pullRequestValue: 550,
       };
       const threshold: MetricThresholdConfig = {
-        metric: "bundle-size",
+        metric: "size",
         mode: "max",
         target: 500,
       };
@@ -477,7 +477,7 @@ describe("evaluateQualityGate", () => {
           pullRequestValue: 85,
         },
         {
-          name: "bundle-size",
+          name: "size",
           type: "numeric",
           unit: "bytes",
           baselineValue: 500,
@@ -493,7 +493,7 @@ describe("evaluateQualityGate", () => {
             target: 80,
           },
           {
-            metric: "bundle-size",
+            metric: "size",
             mode: "max",
             target: 500,
           },
@@ -551,7 +551,7 @@ describe("evaluateQualityGate", () => {
           pullRequestValue: 85,
         },
         {
-          name: "bundle-size",
+          name: "size",
           type: "numeric",
           unit: "bytes",
           baselineValue: 500,
@@ -574,7 +574,7 @@ describe("evaluateQualityGate", () => {
             target: 80,
           },
           {
-            metric: "bundle-size",
+            metric: "size",
             mode: "max",
             target: 500,
           },

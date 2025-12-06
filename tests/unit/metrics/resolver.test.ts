@@ -8,7 +8,7 @@ describe("resolver", () => {
       ["coverage", "percent", "Overall test coverage percentage across the codebase"],
       ["function-coverage", "percent", "Percentage of functions covered by tests"],
       ["loc", "integer", "Total lines of code in the codebase"],
-      ["bundle-size", "bytes", "Total size of production build artifacts"],
+      ["size", "bytes", "Size of files or directories"],
       ["build-time", "duration", "Time taken to complete the build"],
       ["test-time", "duration", "Time taken to run all tests"],
       ["dependencies-count", "integer", "Total number of dependencies"],
@@ -72,7 +72,7 @@ describe("resolver", () => {
       };
 
       expect(() => resolveMetricReference("test", config)).toThrow(
-        "Built-in metric 'non-existent-metric' not found. Available metrics: coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count"
+        "Built-in metric 'non-existent-metric' not found. Available metrics: coverage, function-coverage, loc, size, build-time, test-time, dependencies-count"
       );
     });
 
@@ -202,7 +202,7 @@ describe("resolver", () => {
       "coverage",
       "function-coverage",
       "loc",
-      "bundle-size",
+      "size",
       "build-time",
       "test-time",
       "dependencies-count",
@@ -212,7 +212,7 @@ describe("resolver", () => {
 
     it("should throw error for non-existent built-in metric ID", () => {
       expect(() => validateBuiltInReference("non-existent")).toThrow(
-        "Built-in metric 'non-existent' not found. Available metrics: coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count"
+        "Built-in metric 'non-existent' not found. Available metrics: coverage, function-coverage, loc, size, build-time, test-time, dependencies-count"
       );
     });
 
@@ -230,7 +230,7 @@ describe("resolver", () => {
 
     it("should handle case-sensitive metric IDs", () => {
       expect(() => validateBuiltInReference("Coverage")).toThrow(
-        "Built-in metric 'Coverage' not found. Available metrics: coverage, function-coverage, loc, bundle-size, build-time, test-time, dependencies-count"
+        "Built-in metric 'Coverage' not found. Available metrics: coverage, function-coverage, loc, size, build-time, test-time, dependencies-count"
       );
     });
   });

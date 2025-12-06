@@ -35,7 +35,7 @@ Development teams want to track multiple variations of the same metric (e.g., so
 **Acceptance Scenarios**:
 
 1. **Given** a user adds `"src-loc": { "$ref": "loc", "command": "@collect loc ./src --language TypeScript" }`, **When** metrics are collected, **Then** the system counts only TypeScript lines in the src directory using the key "src-loc" as the id.
-2. **Given** a user references `"bundle": { "$ref": "bundle-size", "command": "@collect size ./dist/*.js" }` with a glob pattern, **When** metrics are collected, **Then** the system sums the size of all matching JavaScript files.
+2. **Given** a user references `"bundle": { "$ref": "size", "command": "@collect size ./dist/*.js" }` with a glob pattern, **When** metrics are collected, **Then** the system sums the size of all matching JavaScript files.
 3. **Given** multiple metrics use the same `$ref` with different object keys, **When** the configuration is validated, **Then** each metric is treated as a separate entry with unique ids (from their keys).
 
 ---
@@ -97,7 +97,7 @@ Units are semantic types that determine how metric values are formatted consiste
    - **Default Command**: `@collect loc .`
    - **Default Threshold**: none
 
-4. **`bundle-size`** - Production Bundle Size
+4. **`size`** - Production Bundle Size
    - **Description**: Total size of production build artifacts
    - **Type**: numeric
    - **Unit**: `bytes`
@@ -161,7 +161,7 @@ Units are semantic types that determine how metric values are formatted consiste
 
 ### Functional Requirements
 
-- **FR-001**: The system MUST provide a library of metric template definitions that users can reference by a unique identifier (e.g., `coverage`, `bundle-size`, `loc`).
+- **FR-001**: The system MUST provide a library of metric template definitions that users can reference by a unique identifier (e.g., `coverage`, `size`, `loc`).
 - **FR-002**: Each metric template MUST include at minimum: description, metric type (numeric or label), and optional unit type and default command using `@collect` syntax.
 - **FR-003**: The system MUST use the object key as the metric identifier. For custom metrics (without `$ref`), `type` and `command` are required.
 - **FR-004**: When a metric template is referenced, the system MUST resolve the reference to a complete metric configuration by combining template metadata with user-provided overrides before metric collection begins.

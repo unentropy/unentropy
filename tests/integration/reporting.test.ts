@@ -27,7 +27,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     });
 
     const bundleSizeMetric = adapter.upsertMetricDefinition({
-      name: "bundle-size",
+      name: "size",
       type: "numeric",
       unit: "bytes",
       description: "Total bundle size",
@@ -87,7 +87,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     expect(html).toContain("<!DOCTYPE html>");
     expect(html).toContain("test-org/test-repo");
     expect(html).toContain("test-coverage");
-    expect(html).toContain("bundle-size");
+    expect(html).toContain("size");
     expect(html).toContain("Code coverage percentage");
     expect(html).toContain("Total bundle size");
   });
@@ -101,7 +101,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     expect(html).toContain("timeline:");
     expect(html).toContain("lineCharts:");
     expect(html).toMatch(/"id":"test-coverage"/);
-    expect(html).toMatch(/"id":"bundle-size"/);
+    expect(html).toMatch(/"id":"size"/);
     expect(html).toContain("buildLineChart");
   });
 
@@ -130,7 +130,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     });
 
     expect(html).toContain("test-coverage");
-    expect(html).not.toContain("bundle-size");
+    expect(html).not.toContain("size");
     expect(html).not.toContain("build-status");
   });
 

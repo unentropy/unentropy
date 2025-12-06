@@ -361,7 +361,7 @@ describe("calculateSummaryStats", () => {
 
   test("detects downward trend", () => {
     const data: TimeSeriesData = {
-      metricName: "bundle-size",
+      metricName: "size",
       metricType: "numeric" as const,
       unit: "bytes",
       description: "Bundle size",
