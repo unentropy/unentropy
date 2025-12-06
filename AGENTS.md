@@ -69,7 +69,3 @@ Unentropy is a serverless tool for tracking custom code metrics in CI/CD pipelin
 
 - Bun runtime with TypeScript (aligned with existing Unentropy codebase). + Bun runtime, TypeScript, SQLite (metrics store), GitHub Actions runtime, GitHub REST API client for pull request comments, Chart.js for existing visual reports. (004-metrics-quality-gate)
 - Existing SQLite database managed via the storage provider abstraction (local, artifact, or S3-compatible backends). (004-metrics-quality-gate)
-
-## Recent Changes
-
-- 004-metrics-quality-gate: Added Bun runtime with TypeScript (aligned with existing Unentropy codebase). + Bun runtime, TypeScript, SQLite (metrics store), GitHub Actions runtime, GitHub REST API client for pull request comments, Chart.js for existing visual reports.
