@@ -18,12 +18,12 @@
 
 ## 0.2 - MVP
 * [x] Move to a dedicated organization
-* [ ] Scaffolding: `bunx unentropy init`, an interactive CLI that creates a basic Unentropy configuration based on the current projects.
+* [x] Scaffolding: `bunx unentropy init`, an interactive CLI that creates a basic Unentropy configuration based on the current projects.
 * [x] Simplify the config schema when using $ref. Will likely need to introduce the notion of "id", so that metric can be referenced in a quality gate.
 * [x] Support for @collect command
+* [x] Integrate find-artifact action into S3-artifact storage
 * [ ] Polish quality gate comment, introduce some sort of internal templating
   * It should be less "dry"
-* [x] Integrate find-artifact action into S3-artifact storage
 * [ ] Properly packaged Github actions
 * [ ] Allow replacing existing build context
 * [ ] Review how metric definitions are stored how things like "units" are handled, since they overlap with unentropy.json config. What should be the source of truth?
