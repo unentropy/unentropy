@@ -56,10 +56,10 @@ export function parseMetricValue(output: string, type: "numeric" | "label"): Par
  * Collect metrics by running their commands and parsing outputs.
  * Returns collected metrics for caller to record to database.
  *
- * @param metrics - Array of metric configurations to collect
+ * @param metrics - Object of metric configurations to collect (key is metric id)
  * @returns Collection result with successful metrics and failures
  */
-export async function collectMetrics(metrics: ResolvedMetricConfig[]): Promise<
+export async function collectMetrics(metrics: Record<string, ResolvedMetricConfig>): Promise<
   CollectionResult & {
     collectedMetrics: {
       definition: {
@@ -75,6 +75,8 @@ export async function collectMetrics(metrics: ResolvedMetricConfig[]): Promise<
     }[];
   }
 > {
+  const metricEntries = Object.entries(metrics);
+
   const result: CollectionResult & {
     collectedMetrics: {
       definition: {
@@ -89,18 +91,20 @@ export async function collectMetrics(metrics: ResolvedMetricConfig[]): Promise<
       collection_duration_ms?: number;
     }[];
   } = {
-    total: metrics.length,
+    total: metricEntries.length,
     successful: 0,
     failed: 0,
     failures: [],
     collectedMetrics: [],
   };
 
-  if (metrics.length === 0) {
+  if (metricEntries.length === 0) {
     return result;
   }
 
-  for (const metric of metrics) {
+  for (const [key, metric] of metricEntries) {
+    const metricId = metric.id ?? key;
+
     try {
       const commandResult = await runCommand(metric.command, {}, metric.timeout ?? 60000);
 
@@ -111,7 +115,7 @@ export async function collectMetrics(metrics: ResolvedMetricConfig[]): Promise<
 
         result.failed++;
         result.failures.push({
-          metricName: metric.name,
+          metricName: metricId,
           reason,
         });
         continue;
@@ -122,16 +126,15 @@ export async function collectMetrics(metrics: ResolvedMetricConfig[]): Promise<
       if (!parseResult.success) {
         result.failed++;
         result.failures.push({
-          metricName: metric.name,
+          metricName: metricId,
           reason: `Failed to parse output: ${parseResult.error}`,
         });
         continue;
       }
 
-      // Add to collected metrics (caller will record to DB)
       result.collectedMetrics.push({
         definition: {
-          name: metric.name,
+          name: metricId,
           type: metric.type,
           unit: metric.unit,
           description: metric.description,
@@ -146,7 +149,7 @@ export async function collectMetrics(metrics: ResolvedMetricConfig[]): Promise<
     } catch (error) {
       result.failed++;
       result.failures.push({
-        metricName: metric.name,
+        metricName: metricId,
         reason: error instanceof Error ? error.message : "Unknown error occurred",
       });
     }

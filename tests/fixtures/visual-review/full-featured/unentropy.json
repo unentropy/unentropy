@@ -1,37 +1,32 @@
 {
-  "metrics": [
-    {
-      "name": "test-coverage",
+  "metrics": {
+    "test-coverage": {
       "type": "numeric",
       "description": "Percentage of code covered by tests",
       "command": "echo '85.5'",
       "unit": "percent"
     },
-    {
-      "name": "bundle-size",
+    "bundle-size": {
       "type": "numeric",
       "description": "JavaScript bundle size in KB",
       "command": "echo '245.8'",
       "unit": "bytes"
     },
-    {
-      "name": "build-status",
+    "build-status": {
       "type": "label",
       "description": "CI build result",
       "command": "echo 'success'"
     },
-    {
-      "name": "primary-language",
+    "primary-language": {
       "type": "label",
       "description": "Most used programming language",
       "command": "echo 'TypeScript'"
     },
-    {
-      "name": "api-response-time",
+    "api-response-time": {
       "type": "numeric",
       "description": "Average API response time (sparse data - only collected on some builds)",
       "command": "echo '150'",
       "unit": "duration"
     }
-  ]
+  }
 }

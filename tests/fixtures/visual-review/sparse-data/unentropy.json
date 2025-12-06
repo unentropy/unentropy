@@ -1,17 +1,15 @@
 {
-  "metrics": [
-    {
-      "name": "test-coverage",
+  "metrics": {
+    "test-coverage": {
       "type": "numeric",
       "description": "Code coverage percentage",
       "command": "echo '82.5'",
       "unit": "percent"
     },
-    {
-      "name": "build-status",
+    "build-status": {
       "type": "label",
       "description": "CI build result",
       "command": "echo 'success'"
     }
-  ]
+  }
 }

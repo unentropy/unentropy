@@ -9,10 +9,10 @@ describe("Config Loader", () => {
     const configPath = path.join(fixturesDir, "valid-minimal.json");
     const config = await loadConfig(configPath);
 
-    expect(config.metrics).toHaveLength(1);
-    expect(config.metrics[0]?.name).toBe("test-coverage");
-    expect(config.metrics[0]?.type).toBe("numeric");
-    expect(config.metrics[0]?.command).toBe(
+    expect(Object.keys(config.metrics)).toHaveLength(1);
+    expect(config.metrics["test-coverage"]).toBeDefined();
+    expect(config.metrics["test-coverage"]?.type).toBe("numeric");
+    expect(config.metrics["test-coverage"]?.command).toBe(
       "npm run test:coverage -- --json | jq -r '.total.lines.pct'"
     );
   });
@@ -21,10 +21,9 @@ describe("Config Loader", () => {
     const configPath = path.join(fixturesDir, "valid-complete.json");
     const config = await loadConfig(configPath);
 
-    expect(config.metrics).toHaveLength(3);
+    expect(Object.keys(config.metrics)).toHaveLength(3);
 
-    const metric = config.metrics[0];
-    expect(metric?.name).toBe("test-coverage");
+    const metric = config.metrics["test-coverage"];
     expect(metric?.type).toBe("numeric");
     expect(metric?.description).toBe("Percentage of code covered by tests");
     expect(metric?.unit).toBe("percent");
@@ -35,9 +34,9 @@ describe("Config Loader", () => {
     const configPath = path.join(fixturesDir, "valid-label.json");
     const config = await loadConfig(configPath);
 
-    expect(config.metrics).toHaveLength(1);
-    expect(config.metrics[0]?.type).toBe("label");
-    expect(config.metrics[0]?.name).toBe("build-status");
+    expect(Object.keys(config.metrics)).toHaveLength(1);
+    expect(config.metrics["build-status"]).toBeDefined();
+    expect(config.metrics["build-status"]?.type).toBe("label");
   });
 
   it("should throw error for missing config file", async () => {
@@ -130,7 +129,7 @@ describe("Config Loader", () => {
       expect(config).toHaveProperty("metrics");
       expect(config).toHaveProperty("storage");
       expect(config).toHaveProperty("qualityGate");
-      expect(config.metrics).toBeInstanceOf(Array);
+      expect(typeof config.metrics).toBe("object");
       expect(config.storage).toHaveProperty("type");
     });
   });

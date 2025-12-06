@@ -1,18 +1,16 @@
 {
-  "metrics": [
-    {
-      "name": "coverage",
+  "metrics": {
+    "coverage": {
       "type": "numeric",
       "command": "echo 85",
       "unit": "percent"
     },
-    {
-      "name": "bundle-size",
+    "bundle-size": {
       "type": "numeric",
       "command": "du -k dist/bundle.js | cut -f1",
       "unit": "bytes"
     }
-  ],
+  },
   "qualityGate": {
     "mode": "soft",
     "enablePullRequestComment": true,

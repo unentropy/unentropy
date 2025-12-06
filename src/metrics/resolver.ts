@@ -1,9 +1,9 @@
-import type { MetricConfig } from "../config/schema.js";
+import type { MetricConfig, ResolvedMetricConfig } from "../config/schema.js";
 import { getMetricTemplate, listMetricTemplateIds } from "./registry.js";
 
-export function resolveMetricReference(config: MetricConfig): MetricConfig {
+export function resolveMetricReference(key: string, config: MetricConfig): ResolvedMetricConfig {
   if (config.$ref === undefined || config.$ref === null) {
-    return config;
+    throw new Error(`resolveMetricReference called without $ref for metric "${key}"`);
   }
 
   if (config.$ref.trim() === "") {
@@ -19,26 +19,22 @@ export function resolveMetricReference(config: MetricConfig): MetricConfig {
     );
   }
 
-  // Inherit id from template if not provided
-  const resolvedId = config.id !== undefined ? config.id : builtInMetric.id;
+  const command = config.command ?? builtInMetric.command;
+  if (!command) {
+    throw new Error(
+      `Metric "${key}" requires a command.\nThe metric template "${config.$ref}" does not have a default command.\nYou must provide a command appropriate for your project.`
+    );
+  }
 
-  // Start with built-in metric defaults
-  const resolved: MetricConfig = {
-    id: resolvedId,
-    name: builtInMetric.name,
+  const resolved: ResolvedMetricConfig = {
+    id: key,
+    name: config.name ?? builtInMetric.name,
     type: builtInMetric.type,
-    description: builtInMetric.description,
-    command: builtInMetric.command,
-    unit: builtInMetric.unit,
+    description: config.description ?? builtInMetric.description,
+    command,
+    unit: config.unit ?? builtInMetric.unit,
+    timeout: config.timeout,
   };
-
-  // Apply user overrides (excluding $ref)
-  if (config.name !== undefined) resolved.name = config.name;
-  if (config.type !== undefined) resolved.type = config.type;
-  if (config.description !== undefined) resolved.description = config.description;
-  if (config.command !== undefined) resolved.command = config.command;
-  if (config.unit !== undefined) resolved.unit = config.unit;
-  if (config.timeout !== undefined) resolved.timeout = config.timeout;
 
   return resolved;
 }
@@ -53,11 +49,4 @@ export function validateBuiltInReference(ref: string): void {
     const availableMetrics = listMetricTemplateIds().join(", ");
     throw new Error(`Built-in metric '${ref}' not found. Available metrics: ${availableMetrics}`);
   }
-
-  // Additional validation could be added here in the future
-  // For now, we just validate that the metric exists
-}
-
-export function resolveMetric(config: MetricConfig): MetricConfig {
-  return config;
 }

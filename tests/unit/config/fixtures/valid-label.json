@@ -1,10 +1,9 @@
 {
-  "metrics": [
-    {
-      "name": "build-status",
+  "metrics": {
+    "build-status": {
       "type": "label",
       "description": "Overall build health status",
       "command": "npm run build && echo 'healthy' || echo 'failing'"
     }
-  ]
+  }
 }

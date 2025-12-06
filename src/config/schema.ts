@@ -4,22 +4,17 @@ export const UnitTypeSchema = z.enum(["percent", "integer", "bytes", "duration",
   message: "unit must be one of: percent, integer, bytes, duration, decimal",
 });
 
+const MetricKeySchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9-]+$/, {
+    message: "metric key must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)",
+  });
+
 export const ResolvedMetricConfigSchema = z.object({
-  id: z
-    .string()
-    .min(1)
-    .max(64)
-    .regex(/^[a-z0-9-]+$/, {
-      message: "id must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)",
-    })
-    .optional(),
-  name: z
-    .string()
-    .min(1)
-    .max(64)
-    .regex(/^[a-z0-9-]+$/, {
-      message: "name must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)",
-    }),
+  id: MetricKeySchema,
+  name: z.string().max(256).optional(),
   type: z.enum(["numeric", "label"], {
     message: "type must be either 'numeric' or 'label'",
   }),
@@ -32,22 +27,7 @@ export const ResolvedMetricConfigSchema = z.object({
 export const MetricConfigSchema = z
   .object({
     $ref: z.string().optional(),
-    id: z
-      .string()
-      .min(1)
-      .max(64)
-      .regex(/^[a-z0-9-]+$/, {
-        message: "id must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)",
-      })
-      .optional(),
-    name: z
-      .string()
-      .min(1)
-      .max(64)
-      .regex(/^[a-z0-9-]+$/, {
-        message: "name must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)",
-      })
-      .optional(),
+    name: z.string().max(256).optional(),
     type: z
       .enum(["numeric", "label"], {
         message: "type must be either 'numeric' or 'label'",
@@ -67,17 +47,13 @@ export const MetricConfigSchema = z
   .strict()
   .refine(
     (data) => {
-      // If using $ref, id may be optional (inherits from template)
       if (data.$ref) {
         return true;
       }
-      // If not using $ref (custom metric), either id or name is required (id preferred)
-      // Also type and command are required
-      const hasIdentifier = data.id || data.name;
-      return hasIdentifier && data.type && data.command;
+      return data.type && data.command;
     },
     {
-      message: 'Custom metrics (without $ref) require an "id" field.',
+      message: "Custom metrics (without $ref) require type and command fields.",
     }
   );
 
@@ -150,19 +126,25 @@ export const QualityGateConfigSchema = z
   })
   .strict();
 
+export const MetricsObjectSchema = z
+  .record(MetricKeySchema, MetricConfigSchema)
+  .refine((obj) => Object.keys(obj).length >= 1, {
+    message: "metrics object must contain at least one metric",
+  })
+  .refine((obj) => Object.keys(obj).length <= 50, {
+    message: "metrics object cannot contain more than 50 metrics",
+  });
+
 export const UnentropyConfigSchema = z
   .object({
     storage: StorageConfigSchema.optional(),
-    metrics: z
-      .array(MetricConfigSchema)
-      .min(1, { message: "metrics array must contain at least one metric" })
-      .max(50),
+    metrics: MetricsObjectSchema,
     qualityGate: QualityGateConfigSchema.optional(),
   })
   .strict()
   .transform((data) => ({
     ...data,
-    storage: data.storage || { type: "sqlite-local" },
+    storage: data.storage || { type: "sqlite-local" as const },
   }));
 
 export type MetricConfig = z.infer<typeof MetricConfigSchema>;
@@ -180,7 +162,6 @@ export function validateConfig(config: unknown): UnentropyConfig {
     const firstIssue = result.error.issues[0];
     let errorMessage = firstIssue?.message || "Validation error";
 
-    // Improve error message for missing command field
     if (firstIssue?.code === "invalid_type" && firstIssue?.path?.includes("command")) {
       errorMessage =
         "command field is required for all metrics. Built-in metrics are templates only and do not provide commands.";
@@ -189,24 +170,13 @@ export function validateConfig(config: unknown): UnentropyConfig {
     throw new Error(errorMessage);
   }
 
-  const metricIds = new Set<string>();
-  for (const metric of result.data.metrics) {
-    const metricId = metric.id ?? metric.name;
-    if (metricId) {
-      if (metricIds.has(metricId)) {
-        throw new Error(
-          `Duplicate metric id "${metricId}" found.\nMetric ids must be unique within the configuration.`
-        );
-      }
-      metricIds.add(metricId);
-    }
-  }
+  const metricKeys = Object.keys(result.data.metrics);
 
   if (result.data.qualityGate?.thresholds) {
     for (const threshold of result.data.qualityGate.thresholds) {
-      if (!metricIds.has(threshold.metric)) {
+      if (!metricKeys.includes(threshold.metric)) {
         throw new Error(
-          `Threshold references non-existent metric "${threshold.metric}".\nMetric must be defined in the metrics array with a matching id.`
+          `Threshold references non-existent metric "${threshold.metric}".\nAvailable metrics: ${metricKeys.join(", ")}`
         );
       }
     }
