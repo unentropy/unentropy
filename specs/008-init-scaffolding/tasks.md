@@ -162,21 +162,21 @@
 
 ### Implementation for User Story 6
 
-- [ ] T052 [US6] Create TestCommand with command structure and arguments interface (TestArgs) in src/cli/cmd/test.ts
-- [ ] T053 [US6] Implement config loading and schema validation in src/cli/cmd/test.ts
-- [ ] T054 [US6] Implement sequential metric collection logic (reuse collector/runner.ts) in src/cli/cmd/test.ts
-- [ ] T055 [US6] Implement CollectionResult formatting and display in src/cli/cmd/test.ts
-- [ ] T056 [US6] Add --config option for custom config file path in src/cli/cmd/test.ts
-- [ ] T057 [US6] Add --verbose option to show commands executed in src/cli/cmd/test.ts
-- [ ] T058 [US6] Add --timeout option for custom per-metric timeout in src/cli/cmd/test.ts
-- [ ] T059 [US6] Implement exit code logic (0=success, 1=config error, 2=collection failure) in src/cli/cmd/test.ts
-- [ ] T060 [US6] Implement TestSummary display (success/failure counts) in src/cli/cmd/test.ts
-- [ ] T061 [US6] Register TestCommand in src/index.ts
+- [x] T052 [US6] Create TestCommand with command structure and arguments interface (TestArgs) in src/cli/cmd/test.ts
+- [x] T053 [US6] Implement config loading and schema validation in src/cli/cmd/test.ts
+- [x] T054 [US6] Implement sequential metric collection logic (reuse collector/runner.ts) in src/cli/cmd/test.ts
+- [x] T055 [US6] Implement CollectionResult formatting and display in src/cli/cmd/test.ts
+- [x] T056 [US6] Add --config option for custom config file path in src/cli/cmd/test.ts
+- [x] T057 [US6] Add --verbose option to show commands executed in src/cli/cmd/test.ts
+- [x] T058 [US6] Add --timeout option for custom per-metric timeout in src/cli/cmd/test.ts
+- [x] T059 [US6] Implement exit code logic (0=success, 1=config error, 2=collection failure) in src/cli/cmd/test.ts
+- [x] T060 [US6] Implement TestSummary display (success/failure counts) in src/cli/cmd/test.ts
+- [x] T061 [US6] Register TestCommand in src/index.ts
 - [ ] T062 [US6] Add "run bunx unentropy test" suggestion to init output in src/cli/cmd/init.ts
-- [ ] T063 [US6] Create integration test for successful test command in tests/integration/cli-test.test.ts
-- [ ] T064 [US6] Create integration test for config validation failure in tests/integration/cli-test.test.ts
-- [ ] T065 [US6] Create integration test for metric collection failure in tests/integration/cli-test.test.ts
-- [ ] T066 [US6] Create integration test for verbose mode output in tests/integration/cli-test.test.ts
+- [x] T063 [US6] Create integration test for successful test command in tests/integration/cli-test.test.ts
+- [x] T064 [US6] Create integration test for config validation failure in tests/integration/cli-test.test.ts
+- [x] T065 [US6] Create integration test for metric collection failure in tests/integration/cli-test.test.ts
+- [x] T066 [US6] Create integration test for verbose mode output in tests/integration/cli-test.test.ts
 
 **Checkpoint**: User Story 6 complete - users can validate metric collection locally
 

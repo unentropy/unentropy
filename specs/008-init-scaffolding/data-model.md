@@ -103,10 +103,12 @@ Result of running a single metric's collection command (used by `test` command).
 | `metricName` | `string` | Display name of the metric |
 | `success` | `boolean` | Whether collection succeeded |
 | `value` | `number \| string \| null` | Collected value (null if failed) |
-| `unit` | `string \| undefined` | Unit type (percent, integer, bytes, etc.) |
+| `unit` | `string \| undefined` | Unit type (percent, integer, bytes, etc.) - used for display formatting |
 | `duration` | `number` | Collection time in milliseconds |
 | `error` | `string \| undefined` | Error message if failed |
 | `command` | `string` | The command that was executed |
+
+**Note**: Values are formatted for display using `formatValue()` from `src/metrics/unit-formatter.ts` to ensure consistency with reports and PR comments.
 
 ### TestSummary
 
