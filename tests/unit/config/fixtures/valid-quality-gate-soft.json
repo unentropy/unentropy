@@ -5,7 +5,7 @@
       "command": "echo 85",
       "unit": "percent"
     },
-    "bundle-size": {
+    "size": {
       "type": "numeric",
       "command": "du -k dist/bundle.js | cut -f1",
       "unit": "bytes"
@@ -28,7 +28,7 @@
         "severity": "blocker"
       },
       {
-        "metric": "bundle-size",
+        "metric": "size",
         "mode": "delta-max-drop",
         "maxDropPercent": 5,
         "severity": "warning"

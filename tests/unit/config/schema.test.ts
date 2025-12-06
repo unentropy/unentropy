@@ -90,7 +90,7 @@ describe("Config Schema Validation", () => {
             type: "numeric",
             command: "echo 85",
           },
-          "bundle-size": {
+          size: {
             type: "numeric",
             command: "echo 100",
           },
@@ -509,14 +509,14 @@ describe("Config Schema Validation", () => {
       it("should accept max threshold mode with target", () => {
         const config = {
           metrics: {
-            "bundle-size": {
+            size: {
               type: "numeric",
               command: "echo 100",
             },
           },
           qualityGate: {
             mode: "soft",
-            thresholds: [{ metric: "bundle-size", mode: "max", target: 500 }],
+            thresholds: [{ metric: "size", mode: "max", target: 500 }],
           },
         };
 
@@ -581,7 +581,7 @@ describe("Config Schema Validation", () => {
               type: "numeric",
               command: "echo 85",
             },
-            "bundle-size": {
+            size: {
               type: "numeric",
               command: "echo 100",
             },
@@ -590,7 +590,7 @@ describe("Config Schema Validation", () => {
             mode: "soft",
             thresholds: [
               { metric: "coverage", mode: "min", target: 80 },
-              { metric: "bundle-size", mode: "max", target: 500 },
+              { metric: "size", mode: "max", target: 500 },
             ],
           },
         };
@@ -671,14 +671,14 @@ describe("Config Schema Validation", () => {
       it("should reject max mode without target", () => {
         const config = {
           metrics: {
-            "bundle-size": {
+            size: {
               type: "numeric",
               command: "echo 100",
             },
           },
           qualityGate: {
             mode: "soft",
-            thresholds: [{ metric: "bundle-size", mode: "max" }],
+            thresholds: [{ metric: "size", mode: "max" }],
           },
         };
 
@@ -1044,7 +1044,7 @@ describe("Config Schema Validation", () => {
         const config = {
           metrics: {
             coverage: { $ref: "coverage", command: "echo 85" },
-            "bundle-size": { $ref: "bundle-size", command: "du -k dist/bundle.js | cut -f1" },
+            size: { $ref: "size", command: "du -k dist/bundle.js | cut -f1" },
             loc: {
               $ref: "loc",
               command: "find src/ -name '*.ts' | xargs wc -l | tail -1 | awk '{print $1}'",
@@ -1060,7 +1060,7 @@ describe("Config Schema Validation", () => {
           "coverage",
           "function-coverage",
           "loc",
-          "bundle-size",
+          "size",
           "build-time",
           "test-time",
           "dependencies-count",
@@ -1093,8 +1093,8 @@ describe("Config Schema Validation", () => {
       it("should accept $ref with command only", () => {
         const config = {
           metrics: {
-            "bundle-size": {
-              $ref: "bundle-size",
+            size: {
+              $ref: "size",
               command: "du -k dist/main.js | cut -f1",
             },
           },
@@ -1106,8 +1106,8 @@ describe("Config Schema Validation", () => {
       it("should accept $ref with unit override and command", () => {
         const config = {
           metrics: {
-            "bundle-size": {
-              $ref: "bundle-size",
+            size: {
+              $ref: "size",
               command: "du -k dist/main.js | cut -f1",
               unit: "bytes",
             },
@@ -1177,8 +1177,8 @@ describe("Config Schema Validation", () => {
       it("should reject $ref with invalid unit value", () => {
         const config = {
           metrics: {
-            "bundle-size": {
-              $ref: "bundle-size",
+            size: {
+              $ref: "size",
               command: "echo 100",
               unit: "invalid-unit",
             },
@@ -1264,7 +1264,7 @@ describe("Config Schema Validation", () => {
         const config = {
           metrics: {
             "prod-bundle": {
-              $ref: "bundle-size",
+              $ref: "size",
               name: "Prod Bundle",
               command: "du -k dist/prod.js | cut -f1",
             },

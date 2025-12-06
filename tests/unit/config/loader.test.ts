@@ -86,7 +86,7 @@ describe("Config Loader", () => {
       expect(coverageThreshold?.severity).toBe("blocker");
 
       const bundleSizeThreshold = config.qualityGate?.thresholds?.[1];
-      expect(bundleSizeThreshold?.metric).toBe("bundle-size");
+      expect(bundleSizeThreshold?.metric).toBe("size");
       expect(bundleSizeThreshold?.mode).toBe("delta-max-drop");
       expect(bundleSizeThreshold?.maxDropPercent).toBe(5);
       expect(bundleSizeThreshold?.severity).toBe("warning");

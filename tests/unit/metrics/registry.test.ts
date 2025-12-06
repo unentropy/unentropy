@@ -40,12 +40,12 @@ describe("registry", () => {
       expect(result?.command).toBe("@collect loc .");
     });
 
-    it("should return bundle-size metric template when requested", () => {
-      const result = getMetricTemplate("bundle-size");
+    it("should return size metric template when requested", () => {
+      const result = getMetricTemplate("size");
 
       expect(result).toBeDefined();
-      expect(result?.id).toBe("bundle-size");
-      expect(result?.name).toBe("bundle-size");
+      expect(result?.id).toBe("size");
+      expect(result?.name).toBe("size");
       expect(result?.type).toBe("numeric");
       expect(result?.unit).toBe("bytes");
       expect(result?.command).toBe("@collect size dist");
@@ -106,13 +106,13 @@ describe("registry", () => {
         "coverage",
         "function-coverage",
         "loc",
-        "bundle-size",
+        "size",
         "build-time",
         "test-time",
         "dependencies-count",
       ];
 
-      const templatesWithCommands = ["loc", "bundle-size"];
+      const templatesWithCommands = ["loc", "size"];
 
       metricIds.forEach((id) => {
         const metric = getMetricTemplate(id);
@@ -147,7 +147,7 @@ describe("registry", () => {
       expect(result).toContain("coverage");
       expect(result).toContain("function-coverage");
       expect(result).toContain("loc");
-      expect(result).toContain("bundle-size");
+      expect(result).toContain("size");
       expect(result).toContain("build-time");
       expect(result).toContain("test-time");
       expect(result).toContain("dependencies-count");

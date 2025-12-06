@@ -132,7 +132,7 @@ Metric templates fall into two categories:
 
 **With default commands:**
 - `loc`: `@collect loc .` - sensible default for entire project
-- `bundle-size`: `@collect size ./dist` - common convention
+- `size`: `@collect size ./dist` - common convention
 
 **Without default commands** (require user configuration):
 - `coverage`: Technology-specific (Jest, Vitest, c8, etc.)
@@ -257,11 +257,11 @@ Metric templates fall into two categories:
 
 ---
 
-#### 4. bundle-size
+#### 4. size
 
 ```typescript
 {
-  id: 'bundle-size',
+  id: 'size',
   name: 'Bundle Size',
   description: 'Total size of production build artifacts',
   type: 'numeric',
@@ -278,16 +278,16 @@ Metric templates fall into two categories:
 {
   "metrics": {
     // Ultra-minimal (measures ./dist directory)
-    "bundle-size": { "$ref": "bundle-size" },
+    "size": { "$ref": "size" },
 
     // Specific file
-    "main-bundle": { "$ref": "bundle-size", "command": "@collect size ./dist/main.js" },
+    "main-bundle": { "$ref": "size", "command": "@collect size ./dist/main.js" },
 
     // Glob pattern
-    "js-bundles": { "$ref": "bundle-size", "command": "@collect size ./dist/*.js" },
+    "js-bundles": { "$ref": "size", "command": "@collect size ./dist/*.js" },
 
     // Multiple directories with glob
-    "actions-bundle": { "$ref": "bundle-size", "command": "@collect size .github/actions/*/dist/*.js" }
+    "actions-bundle": { "$ref": "size", "command": "@collect size .github/actions/*/dist/*.js" }
   }
 }
 ```
@@ -466,6 +466,6 @@ New `@collect` collectors may be added:
 **1.0.0** (2025-11-22):
 - Initial registry with 7 metric templates
 - Coverage: coverage, function-coverage
-- Size: loc, bundle-size
+- Size: loc, size
 - Performance: build-time, test-time
 - Dependencies: dependencies-count

@@ -224,7 +224,7 @@
 - [x] T024b [NEW] [US1] Add command to loc metric in src/metrics/registry.ts
   - command: "@collect loc ."
 
-- [x] T024c [NEW] [US1] Add command to bundle-size metric in src/metrics/registry.ts
+- [x] T024c [NEW] [US1] Add command to size metric in src/metrics/registry.ts
   - command: "@collect size ./dist"
 
 - [x] T024d [NEW] [US1] Verify coverage metrics have NO command in src/metrics/registry.ts
@@ -286,7 +286,7 @@
 - [x] T026 [P] [US2] Define loc metric template in src/metrics/registry.ts
   - unit: "integer" (UnitType)
   - command: "@collect loc ."
-- [x] T027 [P] [US2] Define bundle-size metric template in src/metrics/registry.ts
+- [x] T027 [P] [US2] Define size metric template in src/metrics/registry.ts
   - unit: "bytes" (UnitType)
   - command: "@collect size ./dist"
 - [x] T028 [P] [US2] Define build-time metric template in src/metrics/registry.ts
@@ -623,7 +623,7 @@ Task: "Add unit tests for null handling"
 Task: "Define coverage metric template in src/metrics/registry.ts"
 Task: "Define function-coverage metric template in src/metrics/registry.ts"
 Task: "Define loc metric template in src/metrics/registry.ts"
-Task: "Define bundle-size metric template in src/metrics/registry.ts"
+Task: "Define size metric template in src/metrics/registry.ts"
 Task: "Define build-time metric template in src/metrics/registry.ts"
 Task: "Define test-time metric template in src/metrics/registry.ts"
 Task: "Define dependencies-count metric template in src/metrics/registry.ts"

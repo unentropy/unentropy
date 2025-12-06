@@ -11,7 +11,7 @@ describe("buildMetricSamples", () => {
         if (name === "coverage") {
           return 80;
         }
-        if (name === "bundle-size") {
+        if (name === "size") {
           return 500;
         }
         return undefined;
@@ -104,7 +104,7 @@ describe("buildMetricSamples", () => {
       },
       {
         definition: {
-          name: "bundle-size",
+          name: "size",
           type: "numeric" as const,
           unit: "bytes",
           description: "Bundle size",
@@ -118,7 +118,7 @@ describe("buildMetricSamples", () => {
     expect(samples).toHaveLength(2);
     expect(samples[0]?.name).toBe("coverage");
     expect(samples[0]?.baselineValue).toBe(80);
-    expect(samples[1]?.name).toBe("bundle-size");
+    expect(samples[1]?.name).toBe("size");
     expect(samples[1]?.baselineValue).toBe(500);
   });
 

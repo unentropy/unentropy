@@ -34,7 +34,7 @@ Create an `unentropy.json` file in your repository root:
       "$ref": "loc"
     },
     "bundle": {
-      "$ref": "bundle-size"
+      "$ref": "size"
     },
     "coverage": {
       "$ref": "coverage",

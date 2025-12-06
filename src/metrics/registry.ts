@@ -23,10 +23,10 @@ export const METRIC_TEMPLATES: MetricTemplateRegistry = {
     command: "@collect loc .",
     unit: "integer",
   },
-  "bundle-size": {
-    id: "bundle-size",
-    name: "bundle-size",
-    description: "Total size of production build artifacts",
+  size: {
+    id: "size",
+    name: "size",
+    description: "Size of files or directories",
     type: "numeric",
     command: "@collect size dist",
     unit: "bytes",

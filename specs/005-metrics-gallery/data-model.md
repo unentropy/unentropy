@@ -313,7 +313,7 @@ interface MetricThresholdConfig {
 {
   "metrics": {
     "loc": { "$ref": "loc" },
-    "bundle-size": { "$ref": "bundle-size" },
+    "size": { "$ref": "size" },
     "custom": { "type": "numeric", "command": "echo 42" }
   }
 }
@@ -331,7 +331,7 @@ interface MetricThresholdConfig {
     description: 'Total lines of code in the codebase'
   },
   {
-    id: 'bundle-size',        // from object key
+    id: 'size',        // from object key
     name: 'Bundle Size',      // inherited from template
     command: '@collect size ./dist',  // from template.command
     type: 'numeric',
@@ -478,7 +478,7 @@ Keys must be lowercase with hyphens only (pattern: ^[a-z0-9-]+$)
 **Error**:
 ```
 Invalid metric reference "$ref: unknown-metric"
-Available metric templates: coverage, function-coverage, loc, bundle-size, 
+Available metric templates: coverage, function-coverage, loc, size, 
 build-time, test-time, dependencies-count
 ```
 
