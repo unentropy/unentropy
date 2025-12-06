@@ -23,46 +23,41 @@
 
 ## **Getting Started**
 
-### Configuration
+### Step 1: Create Configuration
 
-Create an `unentropy.json` file to define your metrics:
+Create an `unentropy.json` file in your repository root:
 
 ```json
 {
-  "metrics": [
-    {
-      "$ref": "loc",
-      "name": "lines-of-code",
-      "description": "Total lines of TypeScript code",
-      "command": "@collect loc ./src --language TypeScript"
+  "metrics": {
+    "loc": {
+      "$ref": "loc"
     },
-    {
+    "bundle": {
+      "$ref": "bundle-size"
+    },
+    "coverage": {
       "$ref": "coverage",
-      "name": "test-coverage",
-      "description": "Test coverage",
-      "command": "@collect coverage-lcov coverage/lcov.info"
+      "command": "@collect coverage-lcov ./coverage/lcov.info"
     }
-  ],
-  "storage": {
-    "type": "sqlite-s3"
   },
   "qualityGate": {
-    "mode": "soft",
     "thresholds": [
       {
-        "metric": "test-coverage",
+        "metric": "coverage",
         "mode": "min",
-        "target": 80,
-        "severity": "blocker"
+        "target": 80
       }
     ]
   }
 }
 ```
 
-### Set up GitHub Workflows
+**That's it!** Unentropy includes built-in templates for common metrics. Only override `command` when the metric needs project-specific configuration (like coverage, which varies by test framework).
 
-Unentropy uses two separate workflows:
+### Step 2: Add GitHub Workflows
+
+Unentropy uses two workflows:
 
 1. **Main branch workflow** - Tracks metrics and builds historical database
 2. **Pull request workflow** - Evaluates PRs against quality gate thresholds
@@ -72,7 +67,7 @@ Unentropy uses two separate workflows:
 Create `.github/workflows/metrics.yml`:
 
 ```yaml
-name: Metrics Tracking
+name: Track Metrics
 on:
   push:
     branches: [main]
@@ -84,20 +79,15 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run tests with coverage
-        run: npm test -- --coverage
+        run: bun test --coverage
 
       - name: Track metrics
         uses: unentropy/track-metrics-action@v1
-        with:
-          s3-endpoint: ${{ secrets.AWS_ENDPOINT_URL }}
-          s3-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          s3-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          s3-bucket: ${{ secrets.AWS_BUCKET_NAME }}
-          s3-region: ${{ secrets.AWS_REGION }}
-          database-key: "unentropy-metrics.db"
 ```
 
-#### Pull Request Workflow with Quality Gate
+**That's it!** Metrics are automatically tracked and stored in GitHub Actions artifacts. No secrets or external services required.
+
+#### Pull Request Quality Gate Workflow
 
 Create `.github/workflows/quality-gate.yml`:
 
@@ -109,36 +99,73 @@ on:
 jobs:
   quality-gate:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
       - name: Run tests with coverage
-        run: bun test --coverage --coverage-report=lcov
+        run: bun test --coverage
 
       - name: Quality Gate Check
         uses: unentropy/quality-gate-action@v1
-        with:
-          storage-type: sqlite-s3
-          quality-gate-mode: soft # Use 'hard' to block PRs that fail thresholds
-          s3-endpoint: ${{ secrets.AWS_ENDPOINT_URL }}
-          s3-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          s3-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          s3-bucket: ${{ secrets.AWS_BUCKET_NAME }}
-          s3-region: ${{ secrets.AWS_REGION }}
-          database-key: "unentropy-metrics.db"
 ```
 
-### Publish the report to GitHub Pages
+The quality gate will post a PR comment showing how metrics compare to your baseline and whether any thresholds are violated.
+
+### Step 3: View Your Reports
+
+After the workflow runs:
+
+- Download `unentropy-report.html` from workflow artifacts
+- Open in browser to see interactive metric trends over time
+- On PRs, check the automated quality gate comment
+
+## **Advanced Configuration**
+
+### Store Metrics in S3-Compatible Storage
+
+For multi-repo tracking or long-term history, you can store metrics in S3-compatible storage.
+
+Add to `unentropy.json`:
+
+```json
+{
+  "storage": {
+    "type": "sqlite-s3"
+  }
+}
+```
+
+Update both workflows to include S3 credentials:
 
 ```yaml
-deploy:
-  name: Deploy to GitHub Pages
-  environment:
-    name: github-pages
-    url: ${{ steps.deployment.outputs.page_url }}
-  runs-on: ubuntu-latest
-  needs: metrics
-  if: github.ref == 'refs/heads/main' && needs.metrics.result == 'success'
+- uses: unentropy/track-metrics-action@v1
+  with:
+    s3-endpoint: ${{ secrets.S3_ENDPOINT }}
+    s3-access-key-id: ${{ secrets.S3_ACCESS_KEY_ID }}
+    s3-secret-access-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+    s3-bucket: my-metrics-bucket
+    s3-region: us-east-1
+```
+
+Supported S3-compatible services: AWS S3, Cloudflare R2, MinIO, DigitalOcean Spaces, and more.
+
+### Customize Metric Names and Descriptions
+
+You can override any property from the built-in metric templates:
+
+```json
+{
+  "metrics": {
+    "frontend-loc": {
+      "$ref": "loc",
+      "name": "Frontend Code Lines",
+      "description": "Lines of code in React components",
+      "command": "@collect loc ./src/components"
+    }
+  }
+}
 ```
 
 ### Quality Gate Modes
@@ -146,16 +173,44 @@ deploy:
 The quality gate can operate in three modes:
 
 - **`off`** - Disabled, no threshold evaluation
-- **`soft`** (recommended for new setups) - Evaluates thresholds and posts PR comments, but never fails the build
-- **`hard`** - Fails the build when blocking thresholds are violated
+- **`soft`** (default) - Evaluates thresholds and posts PR comments, never fails the build
+- **`hard`** - Fails the build when thresholds are violated
 
-Start with `soft` mode to observe behavior, then switch to `hard` mode once your thresholds are stable.
+Set the mode in `unentropy.json`:
 
-### Review Reports
+```json
+{
+  "qualityGate": {
+    "mode": "hard",
+    "thresholds": [...]
+  }
+}
+```
 
-After the CI run, download the `unentropy-report.html` artifact to see the latest trends and track your progress against codebase entropy!
+Start with `soft` mode to observe behavior, then switch to `hard` once your thresholds are stable.
 
-On pull requests, the quality gate will automatically post a comment showing how metrics compare to your baseline and whether any thresholds are violated.
+### Publish Reports to GitHub Pages
+
+Add a deployment job to `.github/workflows/metrics.yml`:
+
+```yaml
+deploy:
+  name: Deploy to GitHub Pages
+  runs-on: ubuntu-latest
+  needs: track-metrics
+  permissions:
+    pages: write
+    id-token: write
+  environment:
+    name: github-pages
+    url: ${{ steps.deployment.outputs.page_url }}
+  steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+```
+
+Enable GitHub Pages in your repository settings to view reports at `https://<username>.github.io/<repo>/`.
 
 ## **Development Setup**
 

@@ -2,13 +2,13 @@
   "metrics": {
     "lines-of-code": {
       "$ref": "loc",
-      "name": "lines-of-code",
+      "name": "Lines of code",
       "description": "total lines of typescript/tsx code in src/ directory",
       "command": "@collect loc ./src --language TypeScript"
     },
     "lines-of-test-code": {
       "$ref": "loc",
-      "name": "lines-of-test-code",
+      "name": "Lines of test code",
       "description": "Total lines of TypeScript/TSX code in tests/ directory",
       "command": "@collect loc ./tests --language TypeScript"
     },
@@ -18,13 +18,13 @@
     },
     "total-bundle-size": {
       "$ref": "bundle-size",
-      "name": "total-bundle-size",
+      "name": "Actions bundle size",
       "description": "Total size of all compiled GitHub Actions",
       "command": "@collect size .github/actions/*/dist/*.js"
     },
     "specs-size": {
       "$ref": "loc",
-      "name": "specs-size",
+      "name": "Specs size (lines)",
       "description": "Total lines of specification documentation",
       "command": "@collect loc ./specs --language Markdown"
     }
