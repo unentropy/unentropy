@@ -1,7 +1,8 @@
-# Specification Quality Checklist: GitHub Action Publishing
+# Specification Quality Checklist: Unentropy Publishing & Distribution
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2025-01-03  
+**Updated**: 2025-12-07  
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,9 +32,11 @@
 
 ## Notes
 
-- Specification is complete and ready for `/speckit.plan`
-- All clarifications resolved based on prior conversation context:
-  - Actions to publish: `track-metrics` and `quality-gate` only
-  - Target repositories: `unentropy/track-metrics` and `unentropy/quality-gate`
-  - Versioning: Unified versioning triggered by main repo releases
-  - History: No need to preserve git history in target repos
+- Specification is complete and ready for planning
+- Updated to cover full publishing story:
+  - npm registry publishing for CLI (bunx unentropy)
+  - GitHub Actions publishing to dedicated repos
+  - GitHub Marketplace listing (P3)
+- Beta publishing (0.x versions) fully supported with same automation as stable (1.x+)
+- User stories prioritized: npm CLI (P1) > Actions usage (P2) > Marketplace (P3)
+- Automation details deferred to plan.md, research.md, and tasks.md
