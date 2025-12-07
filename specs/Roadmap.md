@@ -19,6 +19,7 @@
 ## 0.2 - MVP
 * [x] Move to a dedicated organization
 * [x] Scaffolding: `bunx unentropy init`, an interactive CLI that creates a basic Unentropy configuration based on the current projects.
+  * [ ] Package and publish unentropy CLI
 * [x] Simplify the config schema when using $ref. Will likely need to introduce the notion of "id", so that metric can be referenced in a quality gate.
 * [x] Support for @collect command
 * [x] Integrate find-artifact action into S3-artifact storage

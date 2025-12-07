@@ -50,8 +50,4 @@ export class SqliteLocalStorageProvider implements StorageProvider {
     if (!this.db) throw new Error("Database not initialized");
     return this.db;
   }
-
-  getDatabasePath(): string {
-    return this.config.path;
-  }
 }

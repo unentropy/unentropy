@@ -63,11 +63,4 @@ export class Storage {
   getConfig(): StorageProviderConfig {
     return this.config;
   }
-
-  /**
-   * Get the database file path.
-   */
-  getDatabasePath(): string {
-    return this.provider.getDatabasePath();
-  }
 }
