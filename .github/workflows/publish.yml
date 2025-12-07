@@ -1,0 +1,133 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # Need write for creating releases
+
+jobs:
+  publish:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate semver tag
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "Validating tag: $TAG"
+          if ! echo "$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Error: Tag '$TAG' does not match semver format (vMAJOR.MINOR.PATCH)"
+            exit 1
+          fi
+          echo "Tag is valid semver"
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Tag: $TAG"
+          echo "Version: $VERSION"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.3"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify version matches tag
+        run: |
+          PACKAGE_VERSION=$(cat package.json | grep '"version"' | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
+          echo "Package version: $PACKAGE_VERSION"
+          echo "Tag version: ${{ steps.version.outputs.version }}"
+          if [ "$PACKAGE_VERSION" != "${{ steps.version.outputs.version }}" ]; then
+            echo "Error: package.json version ($PACKAGE_VERSION) does not match tag version (${{ steps.version.outputs.version }})"
+            exit 1
+          fi
+          echo "Version match confirmed"
+
+      - name: Run checks
+        run: bun run check
+
+      - name: Build CLI
+        run: bun run build:cli
+
+      - name: Verify CLI build
+        run: |
+          if [ ! -f dist/index.js ]; then
+            echo "Error: CLI build failed - dist/index.js not found"
+            exit 1
+          fi
+          if ! head -1 dist/index.js | grep -q "#!/usr/bin/env bun"; then
+            echo "Error: CLI missing proper shebang"
+            exit 1
+          fi
+          echo "CLI build verified"
+
+      - name: Check if version already published
+        id: check_published
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if npm view unentropy@$VERSION version 2>/dev/null; then
+            echo "Version $VERSION already published to npm"
+            echo "published=true" >> $GITHUB_OUTPUT
+          else
+            echo "Version $VERSION not yet published"
+            echo "published=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to npm
+        if: steps.check_published.outputs.published == 'false'
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Configure npm authentication
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+
+          # Determine if this is a beta version (0.x)
+          MAJOR_VERSION=$(echo $VERSION | cut -d. -f1)
+          if [ "$MAJOR_VERSION" = "0" ]; then
+            echo "Publishing beta version $VERSION with --tag beta"
+            npm publish --tag beta
+          else
+            echo "Publishing stable version $VERSION with --tag latest"
+            npm publish --dry-run
+          fi
+
+          echo "Successfully published unentropy@$VERSION to npm"
+
+      - name: Skip npm publish (already published)
+        if: steps.check_published.outputs.published == 'true'
+        run: |
+          echo "Skipping npm publish - version already exists"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body: |
+            Release ${{ steps.version.outputs.tag }}
+
+            **Installation:**
+            ```bash
+            bunx unentropy@${{ steps.version.outputs.version }}
+            ```
+
+            **npm Package:** https://www.npmjs.com/package/unentropy/v/${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: ${{ startsWith(steps.version.outputs.version, '0.') }}
+          token: ${{ secrets.GITHUB_TOKEN }}
