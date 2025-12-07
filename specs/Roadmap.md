@@ -24,14 +24,14 @@
 * [x] Support for @collect command
 * [x] Integrate find-artifact action into S3-artifact storage
 * [x] unentropy preview command
-* [ ] Use Drizzle ORM and proper migration system
 * [ ] In-repository docs
-* [ ] Polish quality gate comment, introduce some sort of internal templating
-  * It should be less "dry"
+* [ ] Polish quality gate comment, make it less dry 
+* [ ] Polish HTML reports: dummy data, crosshair, etc.
 * [ ] Properly packaged Github actions
  
 ## 0.3 - MVP+
 * [ ] Public docs
+* [ ] Use Drizzle ORM and proper migration system
 * [ ] "Main branch"
 * [ ] Custom collectors and metrics / simple plugins
 * [ ] Public config schema 
@@ -40,23 +40,23 @@
 
 ## TBD
 * Support for more robust, cloud databases (Postgres, MySQL, ...)
+* Non-trackable metrics (affecting quality gate only)
 * Templated PR comments
 * Garbage collection from metrics database
 * What to do when the number of metrics grows too large?
 * Heuristic alerts ("Your bundle suddenly increased in size by X%")
-* Review the tests.
-  * Remove redundancy
-  * Cleanup the split between contract/integration/unit
 
 ## Technical improvements
-* [x] Cleanup queries.js - clear contract
 * [ ] Use DB transactions when collecting metrics
 * [ ] Make sure to keep the database connection open for as short a time as possible
 * [ ] Proper tests for Storage class
+* [ ] Review the tests.
+  * Remove redundancy
+  * Cleanup the split between contract/integration/unit
 
 ## Spec-kit
+* [ ] Create a contract spec for HTML report template
 * [ ] Create a contract spec for GH quality gate comment - how it should look like, what it should contain, etc.
-* [x] Cleanup Spec 001 - repurposed as `001-metrics-tracking-poc` (foundational spec)
 
 ## Long term ideas
 * A website
