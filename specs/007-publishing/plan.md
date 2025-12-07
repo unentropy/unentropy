@@ -1,11 +1,14 @@
 # Implementation Plan: Unentropy Publishing & Distribution
 
-**Branch**: `007-publishing` | **Date**: 2025-12-07 | **Spec**: [spec.md](./spec.md)
+**Branch**: `007-publishing` | **Date**: 2025-12-08 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/007-publishing/spec.md`
+**Approach**: Hybrid automation (Option C) - Tag-based publishing with streamlined version management
 
 ## Summary
 
-Complete publishing story for Unentropy covering npm registry (CLI via `bunx`) and GitHub Marketplace (Actions). Implement GitHub Actions workflows to automate publishing to npm on release creation and sync action files to dedicated repositories (`unentropy/track-metrics`, `unentropy/quality-gate`) with proper version tagging (exact + floating tags).
+Complete publishing story for Unentropy covering npm registry (CLI via `bunx`) and GitHub Marketplace (Actions). Implement GitHub Actions workflows to automate publishing to npm on git tag push, sync action files to dedicated repositories (`unentropy/track-metrics`, `unentropy/quality-gate`) with proper version tagging (exact + floating tags).
+
+**Key Decision**: Using tag-based workflow with helper scripts for version bumping, providing a balance between automation and control. This approach eliminates manual GitHub release creation while maintaining simplicity during beta phase. Clear migration path to changesets-based workflow when approaching v1.0.
 
 ## Technical Context
 
@@ -25,6 +28,32 @@ Complete publishing story for Unentropy covering npm registry (CLI via `bunx`) a
 2. **RESOLVED**: Floating tag strategy - Git CLI with force-push in single atomic operation
 3. **RESOLVED**: CLI bundle configuration - Single-file bundle, all dependencies bundled
 4. **RESOLVED**: Partial failure handling - Idempotent design with pre-flight validation (no explicit rollback)
+5. **RESOLVED**: Automation approach - Hybrid tag-based workflow (Option C) balancing simplicity and automation
+
+### Automation Approach: Hybrid Tag-Based Publishing
+
+**Decision**: Use git tag-based workflow with npm scripts for version bumping (Option C)
+
+**Rationale**:
+- Project is in beta (0.x) - Heavy automation (changesets) may be premature
+- 40% of implementation already complete - avoid throwing away Phase 1-2 work
+- Streamlines workflow from 4 manual steps to 1 command
+- Clear migration path to changesets when approaching v1.0
+- Good for solo/small team with infrequent releases
+
+**Developer Workflow**:
+```bash
+# Single command to release
+bun run version:patch   # Bumps version, creates tag, pushes
+# → CI automatically publishes to npm
+# → CI automatically publishes actions
+# → CI automatically creates GitHub release
+```
+
+**Alternatives Considered**:
+- **Option A (Keep as-is)**: Manual version + manual release → Would work but requires 4 manual steps
+- **Option B (Changesets)**: Industry standard but adds complexity for beta phase
+- **Option C (Selected)**: Best balance of automation and simplicity for current project stage
 
 ## Constitution Check
 

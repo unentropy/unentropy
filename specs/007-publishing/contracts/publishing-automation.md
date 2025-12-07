@@ -10,14 +10,26 @@ This contract defines how the automated publishing workflow orchestrates npm pac
 ## Workflow Trigger
 
 **Event:**
-- GitHub release published in `unentropy/unentropy` repository
-- Only triggered by "published" action (not "created", "edited", or "deleted")
-- Draft releases do not trigger publishing
+- Git tag push matching pattern `v*` in `unentropy/unentropy` repository
+- Triggered by: `git push --tags` or automated via bun version scripts
+- Only tags matching semantic versioning trigger publishing
 
 **Validation:**
-- Release tag must follow semantic versioning (vMAJOR.MINOR.PATCH)
+- Tag must follow semantic versioning (vMAJOR.MINOR.PATCH)
 - Tag format: `v0.1.0`, `v1.2.3` (with `v` prefix)
 - Invalid tags (e.g., `latest`, `beta-1`, `v1.2`) skip publishing with warning
+
+**Developer Workflow:**
+```bash
+# Option 1: Use bun scripts (recommended)
+bun run version:patch   # Bumps version, creates tag, pushes automatically
+bun run version:minor
+bun run version:major
+
+# Option 2: Manual (traditional)
+bun pm version patch    # Bumps version and creates tag
+git push --follow-tags  # Pushes commit and tag
+```
 
 ## Required Repository Secrets
 
@@ -35,12 +47,16 @@ This contract defines how the automated publishing workflow orchestrates npm pac
 ## Publishing Sequence
 
 **High-level flow:**
-1. Validate release tag format (semver)
-2. Build CLI package
-3. Build GitHub Actions
-4. Publish to npm
-5. Publish actions to target repositories
-6. Verify all steps completed successfully
+1. Developer runs `bun run version:patch` (or minor/major)
+2. Bun bumps version in package.json, commits, creates tag
+3. Script automatically pushes commit and tag
+4. GitHub Actions workflow triggers on tag push
+5. Workflow validates tag format (semver)
+6. Build CLI package and GitHub Actions
+7. Publish to npm
+8. Publish actions to target repositories
+9. Create GitHub release automatically
+10. Verify all steps completed successfully
 
 **Failure handling:**
 - Any build failure stops entire workflow (no publishing occurs)
@@ -82,8 +98,7 @@ This contract defines how the automated publishing workflow orchestrates npm pac
 2. Verify package.json version matches extracted version
 3. Check if version already published (skip if yes - idempotency)
 4. Run `npm publish` with `NPM_TOKEN`
-5. For beta versions (0.x), tag with `beta` dist-tag
-6. Verify package appears on npm registry
+5. Verify package appears on npm registry
 
 **Idempotency check:**
 ```bash
@@ -92,12 +107,11 @@ if npm view unentropy@$VERSION version 2>/dev/null; then
   echo "Version $VERSION already published, skipping..."
   exit 0
 fi
-npm publish --tag beta
+npm publish
 ```
 
 **Command examples:**
-- Beta: `npm publish --tag beta`
-- Stable: `npm publish` (tags as `latest` by default)
+- `npm publish` (tags as `latest` by default)
 
 **Validation:**
 - npm publish exits with code 0 (success)
@@ -169,8 +183,8 @@ git push origin --tags --force
 - File operations are replace-all (deterministic)
 
 **Not safe to retry:**
-- Creating GitHub release (already done manually)
-- First npm publish of a version (duplicate error)
+- First npm publish of a version (duplicate error - but workflow has idempotency check)
+- GitHub release creation (will error if release exists, but harmless)
 
 **Retry strategy:**
 - Workflow can be re-run if it fails partway
@@ -257,12 +271,15 @@ git push origin --tags --force
 
 **Success:**
 - Workflow completes without errors
+- GitHub release created automatically with basic notes
+- npm package published and visible immediately
 - Optional: Post to Slack/Discord with release notes
 
 **Failure:**
 - Workflow fails with clear error message
 - GitHub sends notification to workflow initiator
 - Logs include specific failure point for debugging
+- Can retry by re-running workflow (idempotent design)
 
 ## Version-Specific Behavior
 
@@ -278,8 +295,23 @@ git push origin --tags --force
 
 ## Future Enhancements (Not Required Initially)
 
-- Automated changelog generation
+- Automated changelog generation (via changesets or release-please)
 - Provenance attestation for npm packages
 - GitHub Marketplace auto-update notification
 - Pre-release testing in staging environment
 - Automated rollback on verification failure
+- Migration to changesets-based workflow (post-beta, approaching v1.0)
+
+## Migration Path to Full Automation (Post-Beta)
+
+When the project is ready for more sophisticated automation (approaching v1.0):
+
+1. **Install changesets**: `bun add -D @changesets/cli`
+2. **Initialize changesets**: `npx changeset init`
+3. **Modify workflow** to use `changesets/action@v1`
+4. **Developer workflow changes**:
+   - Create changeset files instead of manual version bumps
+   - Bot creates "Version Packages" PR
+   - Merge PR to publish (instead of pushing tags)
+
+This hybrid approach provides a smooth onboarding to best practices without overwhelming complexity during beta.

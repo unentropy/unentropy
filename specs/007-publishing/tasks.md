@@ -2,6 +2,7 @@
 
 **Input**: Design documents from `/specs/007-publishing/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
+**Approach**: Hybrid automation (Option C) - Tag-based publishing with streamlined version management
 
 **Tests**: No test tasks included (not explicitly requested in spec).
 
@@ -24,11 +25,11 @@
 
 **Purpose**: Project configuration and package.json updates for publishing
 
-- [ ] T001 Update package.json with `bin` field pointing to `./dist/index.js`
-- [ ] T002 Update package.json with `files` array: `["dist", "README.md"]`
-- [ ] T003 [P] Update package.json with `engines` field: `{ "node": ">=18.0.0" }`
-- [ ] T004 [P] Update package.json with npm discovery keywords in `keywords` array
-- [ ] T005 [P] Verify package.json has required fields: `name`, `version`, `description`, `license`, `homepage`, `repository`
+- [x] T001 Update package.json with `bin` field pointing to `./dist/index.js`
+- [x] T002 Update package.json with `files` array: `["dist", "README.md"]`
+- [x] T003 [P] Update package.json with `engines` field: `{ "node": ">=18.0.0" }`
+- [x] T004 [P] Update package.json with npm discovery keywords in `keywords` array
+- [x] T005 [P] Verify package.json has required fields: `name`, `version`, `description`, `license`, `homepage`, `repository`
 
 ---
 
@@ -38,10 +39,12 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create CLI build script in scripts/build-cli.ts using Bun bundler with `target: "node"`, `banner: "#!/usr/bin/env node"`, output to dist/index.js
-- [ ] T007 Add `build:cli` npm script to package.json that runs scripts/build-cli.ts
-- [ ] T008 [P] Verify existing build:actions script in scripts/build-actions.ts works correctly
-- [ ] T009 Create publish workflow skeleton in .github/workflows/publish.yml with trigger on release published event
+- [x] T006 Create CLI build script in scripts/build-cli.ts using Bun bundler with `target: "node"`, `banner: "#!/usr/bin/env node"`, output to dist/index.js
+- [x] T007 Add `build:cli` npm script to package.json that runs scripts/build-cli.ts
+- [x] T008 [P] Verify existing build:actions script in scripts/build-actions.ts works correctly
+- [x] T009 Create publish workflow skeleton in .github/workflows/publish.yml with trigger on tag push (v* pattern)
+- [ ] T009b Update scripts/build-cli.ts to use `target: "node"` instead of `target: "bun"` for cross-runtime compatibility
+- [x] T009c Add version helper scripts to package.json: `version:patch`, `version:minor`, `version:major` that run `bun pm version X && git push --follow-tags`
 
 **Checkpoint**: Build infrastructure ready - user story implementation can now begin
 
@@ -55,13 +58,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Add semver tag validation step to .github/workflows/publish.yml (validate tag matches vMAJOR.MINOR.PATCH format)
-- [ ] T011 [US1] Add version match validation step to .github/workflows/publish.yml (package.json version must match release tag)
-- [ ] T012 [US1] Add CLI build step to .github/workflows/publish.yml (run bun run build:cli)
-- [ ] T013 [US1] Add npm idempotency check to .github/workflows/publish.yml (skip if version already published)
-- [ ] T014 [US1] Add npm publish step to .github/workflows/publish.yml with NPM_TOKEN secret
-- [ ] T015 [US1] Add beta dist-tag logic to .github/workflows/publish.yml (use --tag beta for 0.x versions)
-- [ ] T016 [US1] Document NPM_TOKEN secret requirement in specs/007-publishing/quickstart.md
+- [x] T010 [US1] Update .github/workflows/publish.yml trigger to `on.push.tags: ['v*']` instead of release.published
+- [x] T011 [US1] Add semver tag validation step to .github/workflows/publish.yml (validate tag matches vMAJOR.MINOR.PATCH format)
+- [x] T012 [US1] Add version match validation step to .github/workflows/publish.yml (package.json version must match tag version)
+- [x] T013 [US1] Add CLI build step to .github/workflows/publish.yml (run bun run build:cli)
+- [x] T014 [US1] Add npm idempotency check to .github/workflows/publish.yml (skip if version already published)
+- [x] T015 [US1] Add npm publish step to .github/workflows/publish.yml with NPM_TOKEN secret
+- [x] T016 [US1] Add beta dist-tag logic to .github/workflows/publish.yml (use --tag beta for 0.x versions)
+- [x] T017 [US1] Add GitHub release creation step to .github/workflows/publish.yml (create release from tag automatically)
+- [x] T018 [US1] Document NPM_TOKEN secret requirement in specs/007-publishing/quickstart.md (already done, just verify)
 
 **Checkpoint**: User Story 1 complete - `bunx unentropy init` works after release is published
 
@@ -75,19 +80,19 @@
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Add actions build step to .github/workflows/publish.yml (run bun run build:actions)
-- [ ] T018 [US2] Add job for publishing track-metrics action to .github/workflows/publish.yml
-- [ ] T019 [P] [US2] Add job for publishing quality-gate action to .github/workflows/publish.yml
-- [ ] T020 [US2] Implement clone target repo step in publish workflow (use ACTIONS_PUBLISH_TOKEN for auth)
-- [ ] T021 [US2] Implement clear existing files step in publish workflow (remove all except .git/)
-- [ ] T022 [US2] Implement copy files step in publish workflow (action.yml, dist/, README.md)
-- [ ] T023 [US2] Implement commit step in publish workflow with traceability message
-- [ ] T024 [US2] Implement tag creation step in publish workflow (exact version tag)
-- [ ] T025 [US2] Implement floating tag update step in publish workflow (v0, v0.1 force-push)
-- [ ] T026 [US2] Implement push step in publish workflow (commits + tags with --force)
-- [ ] T027 [US2] Document ACTIONS_PUBLISH_TOKEN secret requirement in specs/007-publishing/quickstart.md
-- [ ] T028 [P] [US2] Create README.md for .github/actions/track-metrics/ with usage examples
-- [ ] T029 [P] [US2] Create README.md for .github/actions/quality-gate/ with usage examples
+- [ ] T019 [US2] Add actions build step to .github/workflows/publish.yml (run bun run build:actions)
+- [ ] T020 [US2] Add job for publishing track-metrics action to .github/workflows/publish.yml
+- [ ] T021 [P] [US2] Add job for publishing quality-gate action to .github/workflows/publish.yml
+- [ ] T022 [US2] Implement clone target repo step in publish workflow (use ACTIONS_PUBLISH_TOKEN for auth)
+- [ ] T023 [US2] Implement clear existing files step in publish workflow (remove all except .git/)
+- [ ] T024 [US2] Implement copy files step in publish workflow (action.yml, dist/, README.md)
+- [ ] T025 [US2] Implement commit step in publish workflow with traceability message
+- [ ] T026 [US2] Implement tag creation step in publish workflow (exact version tag)
+- [ ] T027 [US2] Implement floating tag update step in publish workflow (v0, v0.1 force-push)
+- [ ] T028 [US2] Implement push step in publish workflow (commits + tags with --force)
+- [ ] T029 [US2] Document ACTIONS_PUBLISH_TOKEN secret requirement in specs/007-publishing/quickstart.md (already done, just verify)
+- [ ] T030 [P] [US2] Create README.md for .github/actions/track-metrics/ with usage examples
+- [ ] T031 [P] [US2] Create README.md for .github/actions/quality-gate/ with usage examples
 
 **Checkpoint**: User Story 2 complete - `uses: unentropy/track-metrics@v0` works after release
 
@@ -103,9 +108,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Verify action.yml branding fields (icon, color) are set in .github/actions/track-metrics/action.yml
-- [ ] T031 [P] [US3] Verify action.yml branding fields (icon, color) are set in .github/actions/quality-gate/action.yml
-- [ ] T032 [US3] Document manual Marketplace listing steps in specs/007-publishing/quickstart.md
+- [ ] T032 [US3] Verify action.yml branding fields (icon, color) are set in .github/actions/track-metrics/action.yml
+- [ ] T033 [P] [US3] Verify action.yml branding fields (icon, color) are set in .github/actions/quality-gate/action.yml
+- [ ] T034 [US3] Document manual Marketplace listing steps in specs/007-publishing/quickstart.md
 
 **Checkpoint**: Prerequisites ready for manual Marketplace listing
 
@@ -115,11 +120,12 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T033 Add workflow timeout settings to .github/workflows/publish.yml (15 min overall, 5 min per step)
-- [ ] T034 [P] Add error handling with clear messages for common failures in publish workflow
-- [ ] T035 [P] Update main README.md with installation instructions (`bunx unentropy init`)
-- [ ] T036 Run quickstart.md validation (manual walkthrough of publishing process)
-- [ ] T037 Update specs/007-publishing/tasks.md to mark all tasks complete
+- [ ] T035 Add workflow timeout settings to .github/workflows/publish.yml (15 min overall, 5 min per step)
+- [ ] T036 [P] Add error handling with clear messages for common failures in publish workflow
+- [ ] T037 [P] Update main README.md with installation instructions (`bunx unentropy init`)
+- [ ] T038 [P] Add section to quickstart.md explaining migration path to changesets (post-beta)
+- [ ] T039 Run quickstart.md validation (manual walkthrough of publishing process)
+- [ ] T040 Update specs/007-publishing/tasks.md to mark all tasks complete
 
 ---
 

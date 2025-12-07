@@ -5,9 +5,11 @@ import { CollectCommand } from "./cli/cmd/collect";
 import { TestCommand } from "./cli/cmd/test";
 import { InitCommand } from "./cli/cmd/init";
 import { PreviewCommand } from "./cli/cmd/preview";
+import pkg from "../package.json" assert { type: "json" };
 
 const cli = yargs()
   .scriptName("unentropy")
+  .version(pkg.version)
   .command(VerifyCommand)
   .command(CollectCommand)
   .command(TestCommand)

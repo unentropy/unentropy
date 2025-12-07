@@ -1,10 +1,32 @@
 {
   "name": "unentropy",
-  "homepage": "https://github.com/mtymek/unentropy",
-  "version": "0.1.0",
+  "homepage": "https://github.com/unentropy/unentropy",
+  "repository": {
+    "url": "git+https://github.com/unentropy/unentropy.git"
+  },
+  "version": "0.1.7",
   "type": "module",
   "description": "Serverless tool for tracking custom code metrics in CI/CD pipelines",
   "license": "MIT",
+  "bin": {
+    "unentropy": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "metrics",
+    "ci-cd",
+    "code-quality",
+    "github-actions",
+    "npm",
+    "typescript",
+    "bun"
+  ],
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -14,6 +36,7 @@
     }
   },
   "scripts": {
+    "build:cli": "bun run scripts/build-cli.ts",
     "build:actions": "bun run scripts/build-actions.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
@@ -24,7 +47,10 @@
     "format:check": "prettier --check .",
     "check": "bun run lint && bun run typecheck && bun run format:check",
     "generate-fixtures": "bun run scripts/generate-fixtures.ts",
-    "visual-review": "bun run scripts/generate-fixtures.ts && bun run scripts/open-reports.ts"
+    "visual-review": "bun run scripts/generate-fixtures.ts && bun run scripts/open-reports.ts",
+    "version:patch": "bun pm version patch && git push --follow-tags",
+    "version:minor": "bun pm version minor && git push --follow-tags",
+    "version:major": "bun pm version major && git push --follow-tags"
   },
   "devDependencies": {
     "@types/bun": "latest",
