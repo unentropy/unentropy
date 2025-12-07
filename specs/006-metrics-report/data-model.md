@@ -1,11 +1,12 @@
 # Data Model: Metrics Report
 
 **Feature**: 006-metrics-report  
-**Date**: 2025-11-29
+**Date**: 2025-11-29  
+**Updated**: 2025-12-07
 
 ## Overview
 
-This document defines the data structures for the enhanced Metrics Report, including normalized build data, synthetic preview data, and toggle state management.
+This document defines the data structures for the enhanced Metrics Report, including normalized build data, synthetic preview data, toggle state management, synchronized tooltips, zoom/pan state, date range filtering, and chart export.
 
 ---
 
@@ -55,15 +56,17 @@ Generated preview data for a metric when toggle is active.
 | Field | Type | Description |
 |-------|------|-------------|
 | metricId | string | Links to NormalizedMetricData |
+| timestamps | string[] | 20 ISO timestamps spanning 60 days |
 | values | number[] | 20 synthetic data points |
 | stats | SummaryStats | Statistics for synthetic data |
 | seed | number | Deterministic seed used for generation |
 
 **Generation Rules**:
-- Always generates exactly 20 data points
+- Always generates exactly 20 data points spanning 60 days (every 3 days)
 - Uses mean-reverting algorithm with Gaussian noise
 - Seed derived from `hash(metricName) XOR timestamp`
 - Constrained to metric-appropriate ranges (e.g., 0-100 for percentages)
+- Timestamps are generated relative to current date at report generation time
 
 ---
 
@@ -79,23 +82,94 @@ Extended report data structure including preview data and toggle visibility.
 | previewData | SyntheticDataSet[] | One per metric (only if showToggle) |
 
 **State Transitions**:
-- `showToggle` is determined at generation time, not runtime
+- `showToggle` is determined at generation time based on `buildCount < 10`
 - Toggle state is runtime-only (client-side JavaScript)
+- Default state: ON (showing synthetic preview data)
+- Toggle OFF: Shows real sparse data (or empty charts if buildCount = 0)
+- With 0 builds: Metrics are generated from config with empty real data arrays
 
 ---
 
-### 5. ChartRenderContext
+### 5. ChartsData (Optimized Embedded JSON)
 
-Data passed to Chart.js for rendering, supporting toggle switching.
+The actual data structure embedded in the HTML report, optimized for minimal payload size.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| id | string | DOM element ID |
-| config | ChartConfig | Chart.js configuration object |
-| realData | number[] | Actual metric values |
-| previewData | number[] \| null | Synthetic values (if showToggle) |
+| timeline | string[] | Shared X-axis timestamps for all line charts |
+| metadata | (MetadataPoint \| null)[] | Shared commit SHA/run per build position |
+| lineCharts | LineChartData[] | Minimal per-chart data for line charts |
+| barCharts | BarChartData[] | Label distribution charts |
+| buildCount | number | Total builds (for toggle decision) |
+| preview | PreviewData \| undefined | Only present when buildCount < 10 |
 
-**Usage**: Embedded in `<script>` tag for client-side chart management
+**Size Optimization**: Timeline and metadata are shared across all charts via index alignment, not duplicated per chart.
+
+**LineChartData**:
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | DOM element ID |
+| name | string | Metric display name |
+| unit | UnitType \| null | For value formatting |
+| values | (number \| null)[] | Aligned to timeline, null for gaps |
+| dataPointCount | number | Non-null count for zoom enable check |
+
+**PreviewData** (only when buildCount < 10):
+| Field | Type | Description |
+|-------|------|-------------|
+| timeline | string[] | 20 timestamps spanning 60 days |
+| lineCharts | { id, values, stats }[] | Synthetic values per metric |
+
+**Usage**: Chart.js configs are built client-side from this minimal data, not stored.
+
+---
+
+### 6. ZoomPanState
+
+Runtime state for synchronized zoom/pan across charts.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| isZoomed | boolean | True if any zoom/pan applied |
+| xMin | number \| undefined | Current X-axis minimum (timestamp) |
+| xMax | number \| undefined | Current X-axis maximum (timestamp) |
+
+**Behavior**:
+- Synchronized across all charts
+- Reset restores to current filter's range
+- Disabled for charts with < 3 data points
+
+---
+
+### 7. DateFilterState
+
+Runtime state for date range filtering.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| activeFilter | '7d' \| '30d' \| '90d' \| 'all' | Currently selected filter |
+| baseTimestamp | number | Most recent build timestamp (filter anchor) |
+
+**Behavior**:
+- Default is 'all' on page load
+- Filter is calculated relative to most recent build
+- Zoom operates within filtered range
+
+---
+
+### 8. TooltipSyncState
+
+Runtime state for synchronized tooltips.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| activeIndex | number \| null | Currently hovered data point index |
+| sourceChartId | string \| null | Chart that triggered the hover |
+
+**Behavior**:
+- All charts show tooltip for same build index
+- Charts with no data at index show "No data for this build"
+- Cleared when mouse leaves all chart areas
 
 ---
 
@@ -124,6 +198,15 @@ NormalizedBuildData
 │  ChartRender     │──── passed to client JS
 │    Context[]     │
 └──────────────────┘
+         │
+         │ runtime state
+         ▼
+┌──────────────────────────────────────────┐
+│  Client-Side Runtime State               │
+│  ├── ZoomPanState (synchronized)         │
+│  ├── DateFilterState                     │
+│  └── TooltipSyncState                    │
+└──────────────────────────────────────────┘
 ```
 
 ---
@@ -137,11 +220,23 @@ NormalizedBuildData
 
 ### SyntheticDataSet
 - `values.length` MUST equal 20
+- `timestamps.length` MUST equal 20
+- Timestamps MUST span 60 days (approximately 3-day intervals)
 - All values MUST be finite numbers (no NaN/Infinity)
 - Values MUST respect metric type constraints:
   - Numeric with unit '%': 0-100
   - Numeric without unit: no lower bound enforced
   - Label metrics: N/A (no synthetic data)
+
+### ZoomPanState
+- `isZoomed` MUST be true if `xMin` or `xMax` differs from filter range
+- When `isZoomed` is true, "Reset zoom" button MUST be visible
+- Charts with < 3 data points MUST have zoom disabled
+
+### DateFilterState
+- `activeFilter` MUST be one of: '7d', '30d', '90d', 'all'
+- `baseTimestamp` MUST be the most recent build timestamp in database
+- When filter is 'all', xMin/xMax MUST be undefined (show all data)
 
 ### ReportRenderData
 - `showToggle` MUST be true if `metadata.buildCount < 10`
@@ -160,26 +255,32 @@ NormalizedBuildData
 ### Client-Side (Runtime)
 - Toggle state stored in DOM checkbox `checked` property
 - Chart instances stored in JavaScript object by ID
-- State resets on page reload (no persistence)
+- Zoom/pan state synchronized via callbacks
+- Date filter state stored in activeFilter variable
+- All state resets on page reload (no persistence)
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                  HTML Report                         │
-│                                                      │
-│  ┌─────────────────────────────────────────────┐    │
-│  │ <script>                                     │    │
-│  │   const reportData = { /* embedded JSON */ } │    │
-│  │   const chartInstances = {};                 │    │
-│  │   let showingPreview = false;                │    │
-│  └─────────────────────────────────────────────┘    │
-│                                                      │
-│  ┌─────────────────────────────────────────────┐    │
-│  │ Toggle Event Handler                         │    │
-│  │   → Updates showingPreview                   │    │
-│  │   → Calls chart.update() for each chart      │    │
-│  │   → Updates stats display elements           │    │
-│  └─────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        HTML Report                               │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ <script>                                                 │    │
+│  │   const reportData = { /* embedded JSON */ }             │    │
+│  │   const chartInstances = {};                             │    │
+│  │   let showingPreview = false;                            │    │
+│  │   let activeFilter = 'all';                              │    │
+│  │   let zoomState = { isZoomed: false, xMin: null, ... }   │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Event Handlers                                           │    │
+│  │   Preview Toggle → Updates charts + stats                │    │
+│  │   Date Filter    → Updates scale limits + zoom reset     │    │
+│  │   Zoom/Pan       → Syncs all charts + shows reset btn    │    │
+│  │   Chart Hover    → Broadcasts tooltip to all charts      │    │
+│  │   Export PNG     → Canvas toDataURL + download           │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -190,9 +291,11 @@ This feature extends existing types without breaking changes:
 
 | Existing Type | Change |
 |---------------|--------|
-| `ReportData` | Extended with `showToggle`, `previewData` |
-| `MetricReportData` | Values normalized to full build count |
-| `ChartConfig` | No schema change, data array may contain nulls |
-| `TimeSeriesData` | No change (input type) |
+| `ChartsData` | Add `buildCount`, optional `preview` |
+| `LineChartData` | Add `dataPointCount` field |
+| `ReportData` | No change (server-side only) |
+| `MetricReportData` | Add `dataPointCount` field |
+
+**Key Design Decision**: Chart.js configurations are NOT stored in the embedded JSON. They are built client-side from minimal data (id, name, unit, values) plus style constants. This keeps the payload small and allows runtime customization (zoom enable/disable based on dataPointCount).
 
 Backward compatibility maintained - existing report generation continues to work.

@@ -1,58 +1,40 @@
 # Implementation Plan: Metrics Report
 
-**Branch**: `006-metrics-report` | **Date**: 2025-11-29 | **Spec**: [spec.md](./spec.md)
+**Branch**: `006-metrics-report` | **Date**: 2025-12-07 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/006-metrics-report/spec.md`
 
 ## Summary
 
-Enhance the existing HTML report template to support normalized build history across all metric charts, add a preview data toggle for sparse datasets (<10 builds), and improve handling of missing data points. This builds on the MVP report infrastructure (Preact components, Chart.js visualization, Tailwind CSS styling) to deliver a more polished and useful metrics visualization experience.
+Enhance the HTML report template with interactive visualization features: synchronized tooltips across charts, zoom/pan with chartjs-plugin-zoom, date range filtering (7/30/90 days/All), dummy data toggle for sparse data preview, and PNG export for individual charts. All features are client-side rendered using embedded JSON data.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.9+ with Bun runtime  
-**Primary Dependencies**: Preact (server-side rendering), Chart.js 4.x (visualization), Tailwind CSS (styling via CDN), serialize-javascript  
-**Storage**: SQLite via existing storage/repository abstraction  
-**Testing**: Bun test runner, visual review fixtures in `tests/fixtures/visual-review/`  
-**Target Platform**: Static HTML files viewable in modern browsers (Chrome 90+, Firefox 88+, Safari 14+)  
-**Project Type**: Single project - extends existing `src/reporter/` module  
-**Performance Goals**: Charts render within 2 seconds, toggle responds within 100ms  
-**Constraints**: Self-contained HTML (CDN resources only), offline-viewable after initial load  
-**Scale/Scope**: Reports with 1-100+ metrics, 1-1000+ builds
+**Language/Version**: TypeScript 5.x (Bun runtime)  
+**Primary Dependencies**: Preact (SSR to static HTML), Chart.js 4.4.0, chartjs-plugin-zoom, chartjs-adapter-date-fns, Tailwind CSS (CDN)  
+**Storage**: SQLite (read-only during report generation)  
+**Testing**: Bun test (unit, integration), visual review fixtures  
+**Target Platform**: Static HTML file, any modern browser  
+**Project Type**: Single project (src/, tests/)  
+**Performance Goals**: Charts render <2s, tooltip sync <50ms, zoom/filter response <300ms  
+**Constraints**: Self-contained HTML, CDN dependencies, no framework runtime  
+**Scale/Scope**: Reports with 1-100+ builds, 1-20 metrics
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### Pre-Design Check (Phase 0)
-
 | Principle | Status | Notes |
 |-----------|--------|-------|
-| I. Serverless Architecture | PASS | HTML reports are static files generated within GitHub Actions; no external servers |
-| II. Technology Stack Consistency | PASS | Uses existing stack: Bun, TypeScript, SQLite, Chart.js, Preact |
-| III. Code Quality Standards | PASS | Will follow strict TypeScript, Prettier formatting, minimal comments |
-| IV. Security Best Practices | PASS | No secrets involved; HTML escaping already implemented for XSS prevention |
-| V. Testing Discipline | PASS | Visual test fixtures cover all scenarios; will extend existing fixtures |
+| I. Serverless Architecture | ✅ PASS | Report is static HTML, no server required |
+| II. Technology Stack Consistency | ✅ PASS | Uses Bun, TypeScript, Chart.js per constitution |
+| III. Code Quality Standards | ✅ PASS | Strict TypeScript, Prettier, minimal comments |
+| IV. Security Best Practices | ✅ PASS | No secrets involved in report generation |
+| V. Testing Discipline | ✅ PASS | Visual fixtures + unit/integration tests |
 
 **Additional Constraints Check**:
-- Lightweight and self-contained: PASS (single HTML file output)
-- Runs within GitHub Actions: PASS (report generation is a workflow step)
-- No persistent servers: PASS (static file generation only)
-
-### Post-Design Check (Phase 1)
-
-| Principle | Status | Notes |
-|-----------|--------|-------|
-| I. Serverless Architecture | PASS | No changes - synthetic data generated at report generation time, not runtime |
-| II. Technology Stack Consistency | PASS | Added serialize-javascript (already a dependency), no new frameworks |
-| III. Code Quality Standards | PASS | Data model uses strict TypeScript interfaces |
-| IV. Security Best Practices | PASS | No new attack surfaces; toggle is client-side only |
-| V. Testing Discipline | PASS | research.md includes test cases; quickstart.md has checklist |
-
-**Design Review**:
-- New files: 1 (PreviewToggle.tsx component)
-- Modified files: 6 (generator.ts, types.ts, charts.ts, Header.tsx, HtmlDocument.tsx, ChartScripts.tsx)
-- No external service integrations added
-- All client-side state is ephemeral (resets on page reload)
+- ✅ Lightweight and self-contained (static HTML)
+- ✅ No external servers (CDN for libraries only, graceful fallback)
+- ✅ CI/CD compatible (report generated in GitHub Actions)
 
 ## Project Structure
 
@@ -61,12 +43,15 @@ Enhance the existing HTML report template to support normalized build history ac
 ```text
 specs/006-metrics-report/
 ├── plan.md              # This file
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output
-├── quickstart.md        # Phase 1 output
-├── contracts/           # Phase 1 output
-│   └── config-schema.md # Toggle/display configuration options
-└── tasks.md             # Phase 2 output (NOT created by /speckit.plan)
+├── research.md          # Phase 0 output - technical decisions
+├── data-model.md        # Phase 1 output - entity definitions
+├── quickstart.md        # Phase 1 output - implementation guide
+├── contracts/           # Phase 1 output - interface definitions
+│   ├── report-data-schema.md # Embedded JSON structure
+│   └── report-layout.md      # Visual/behavioral spec for UX review
+├── checklists/
+│   └── requirements.md  # FR tracking
+└── tasks.md             # Phase 2 output - implementation tasks
 ```
 
 ### Source Code (repository root)
@@ -74,39 +59,38 @@ specs/006-metrics-report/
 ```text
 src/
 ├── reporter/
-│   ├── charts.ts                    # Chart.js config builders (MODIFY)
-│   ├── generator.ts                 # Report generation (MODIFY)
-│   ├── types.ts                     # Report data types (MODIFY)
-│   └── templates/
-│       └── default/
-│           └── components/
-│               ├── Header.tsx       # Add toggle component (MODIFY)
-│               ├── HtmlDocument.tsx # Pass build count context (MODIFY)
-│               ├── ChartScripts.tsx # Add toggle logic, synthetic data (MODIFY)
-│               ├── PreviewToggle.tsx # NEW: Toggle switch component
-│               └── index.ts         # Export new component (MODIFY)
+│   ├── templates/
+│   │   └── default/
+│   │       ├── components/
+│   │       │   ├── Header.tsx           # + date filter buttons, toggle
+│   │       │   ├── MetricCard.tsx       # + export button, zoom reset
+│   │       │   ├── ChartCanvas.tsx      # Existing
+│   │       │   ├── PreviewToggle.tsx    # NEW: dummy data toggle
+│   │       │   ├── DateRangeFilter.tsx  # NEW: filter buttons
+│   │       │   └── ChartScripts.tsx     # + sync, zoom, filter, export logic
+│   │       └── HtmlDocument.tsx
+│   ├── synthetic.ts      # NEW: dummy data generation
+│   ├── charts.ts         # Chart.js configuration
+│   ├── generator.ts      # Report generation orchestration
+│   └── types.ts          # + new interfaces
+└── ...
 
 tests/
 ├── fixtures/
-│   └── visual-review/
-│       ├── minimal/           # 5 builds - toggle visible
-│       ├── full-featured/     # 25 builds - toggle hidden
-│       ├── sparse-data/       # 3 builds - toggle visible
-│       └── edge-cases/        # Various edge cases
-├── unit/
-│   └── reporter/
-│       ├── charts.test.ts     # Test normalized axis, gaps
-│       └── generator.test.ts  # Test toggle threshold logic
-└── integration/
-    └── reporting.test.ts      # End-to-end report generation
+│   └── visual-review/    # 4 fixture scenarios
+├── integration/
+│   └── reporting.test.ts # + new feature tests
+└── unit/
+    └── reporter/
+        ├── synthetic.test.ts      # NEW
+        └── generator.test.ts      # + toggle/filter tests
 ```
 
-**Structure Decision**: Extends existing single-project structure. All changes contained within `src/reporter/` module and `tests/` directories.
+**Structure Decision**: Single project structure - all report code in `src/reporter/`, tests mirror structure in `tests/`.
 
 ## Complexity Tracking
 
-> No violations - all requirements align with existing architecture and technology stack.
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| N/A | - | - |
+No violations requiring justification. All features use:
+- Existing Chart.js ecosystem (plugin for zoom)
+- Standard DOM APIs (event listeners, canvas export)
+- CSS-only toggle styling (Tailwind peer utilities)

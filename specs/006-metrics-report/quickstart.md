@@ -1,11 +1,12 @@
 # Quickstart: Metrics Report Enhancements
 
 **Feature**: 006-metrics-report  
-**Date**: 2025-11-29
+**Date**: 2025-11-29  
+**Updated**: 2025-12-07
 
 ## Overview
 
-This guide provides quick implementation steps for enhancing the Metrics Report with normalized build history, missing data handling, and the preview data toggle.
+This guide provides quick implementation steps for enhancing the Metrics Report with normalized build history, missing data handling, preview data toggle, synchronized tooltips, zoom/pan, date range filtering, and chart export.
 
 ---
 
@@ -77,19 +78,37 @@ export function generateSyntheticData(
 
 ### Step 2: Update Types
 
-Add to `src/reporter/types.ts`:
+Extend existing types in `src/reporter/types.ts`:
 
 ```typescript
-export interface ReportData {
-  metadata: ReportMetadata;
-  metrics: MetricReportData[];
-  showToggle: boolean;          // NEW
-  previewData: PreviewDataSet[]; // NEW
+// Extend existing LineChartData
+export interface LineChartData {
+  id: string;
+  name: string;
+  unit: UnitType | null;
+  values: (number | null)[];
+  dataPointCount: number;        // NEW: for zoom enable check
 }
 
-export interface PreviewDataSet {
-  metricId: string;
-  values: number[];
+// Extend existing ChartsData
+export interface ChartsData {
+  timeline: string[];
+  metadata: (MetadataPoint | null)[];
+  lineCharts: LineChartData[];
+  barCharts: BarChartData[];
+  buildCount: number;            // NEW: for toggle decision
+  preview?: PreviewData;         // NEW: only when buildCount < 10
+}
+
+// NEW: Preview data structure
+export interface PreviewData {
+  timeline: string[];            // 20 timestamps spanning 60 days
+  lineCharts: PreviewLineChart[];
+}
+
+export interface PreviewLineChart {
+  id: string;                    // Matches LineChartData.id
+  values: number[];              // 20 synthetic values
   stats: SummaryStats;
 }
 ```
@@ -174,117 +193,112 @@ export function Header({ metadata, showToggle }: HeaderProps): JSX.Element {
 
 ### Step 5: Update ChartScripts for Toggle
 
-Modify `src/reporter/templates/default/components/ChartScripts.tsx`:
+The existing `ChartScripts.tsx` already uses an optimized data structure. Extend the client-side script in `src/reporter/templates/default/scripts/charts.js` to handle preview data:
 
-```tsx
-import type { JSX } from "preact";
-import serialize from "serialize-javascript";
-import type { MetricReportData, PreviewDataSet } from "../../../types";
-
-interface ChartScriptsProps {
-  metrics: MetricReportData[];
-  previewData: PreviewDataSet[];
-  showToggle: boolean;
-}
-
-export function ChartScripts({
-  metrics,
-  previewData,
-  showToggle,
-}: ChartScriptsProps): JSX.Element {
-  const chartsData = metrics.map((m, i) => ({
-    id: m.id,
-    config: m.chartConfig,
-    realData: m.chartConfig.data.datasets[0]?.data ?? [],
-    previewData: showToggle ? previewData[i]?.values ?? null : null,
-    realStats: m.stats,
-    previewStats: showToggle ? previewData[i]?.stats ?? null : null,
-  }));
-
-  const scriptContent = `
-    const chartsData = ${serialize(chartsData)};
-    const chartInstances = {};
-
-    chartsData.forEach(function(chartData) {
-      const ctx = document.getElementById('chart-' + chartData.id);
-      if (ctx) {
-        chartInstances[chartData.id] = new Chart(ctx, chartData.config);
+```javascript
+// Add to existing initializeCharts function or create new function
+function initializeChartsWithPreview(timeline, metadata, lineCharts, barCharts, preview) {
+  var chartInstances = {};
+  var showingPreview = false;
+  
+  // Build and initialize line charts
+  lineCharts.forEach(function (chart) {
+    var ctx = document.getElementById("chart-" + chart.id);
+    if (ctx) {
+      var config = buildLineChart(chart, timeline, metadata);
+      // Disable zoom if sparse
+      if (chart.dataPointCount < 3) {
+        config.options.plugins.zoom = { zoom: { enabled: false }, pan: { enabled: false } };
       }
-    });
-
-    const toggle = document.getElementById('preview-toggle');
-    if (toggle) {
-      toggle.addEventListener('change', function(e) {
-        const showPreview = e.target.checked;
-
-        chartsData.forEach(function(chartData) {
-          const chart = chartInstances[chartData.id];
-          if (chart && chartData.previewData) {
-            chart.data.datasets[0].data = showPreview
-              ? chartData.previewData
-              : chartData.realData;
-            chart.update('none');
-          }
-
-          const statsEl = document.getElementById('stats-' + chartData.id);
-          if (statsEl) {
-            const stats = showPreview ? chartData.previewStats : chartData.realStats;
-            // Update stats DOM elements
-          }
-        });
-      });
+      chartInstances[chart.id] = new Chart(ctx, config);
     }
-  `;
+  });
 
-  return <script dangerouslySetInnerHTML={{ __html: scriptContent }} />;
+  // Build and initialize bar charts
+  barCharts.forEach(function (chart) {
+    var ctx = document.getElementById("chart-" + chart.id);
+    if (ctx) {
+      chartInstances[chart.id] = new Chart(ctx, buildBarChart(chart));
+    }
+  });
+
+  // Preview toggle handler (only if preview data exists)
+  var toggle = document.getElementById('preview-toggle');
+  if (toggle && preview) {
+    toggle.addEventListener('change', function(e) {
+      showingPreview = e.target.checked;
+      
+      lineCharts.forEach(function(chart, i) {
+        var instance = chartInstances[chart.id];
+        if (instance) {
+          if (showingPreview) {
+            // Switch to preview data
+            instance.data.labels = preview.timeline;
+            instance.data.datasets[0].data = preview.lineCharts[i].values;
+          } else {
+            // Switch back to real data
+            instance.data.labels = timeline;
+            instance.data.datasets[0].data = chart.values;
+          }
+          instance.update('none');
+        }
+        
+        // Update stats display
+        var statsEl = document.getElementById('stats-' + chart.id);
+        if (statsEl) {
+          // Update stat values from preview.lineCharts[i].stats or original
+        }
+      });
+    });
+  }
+  
+  return chartInstances;
 }
 ```
 
-### Step 6: Normalize Build Data in Generator
+### Step 6: Update Generator for Preview Data
 
-Update `src/reporter/generator.ts`:
+The generator already builds `ChartsData` with shared timeline. Extend it to include `buildCount` and optional `preview`:
 
 ```typescript
-import type { Storage } from "../storage/storage";
-import type {
-  GenerateReportOptions,
-  ReportData,
-  MetricReportData,
-  PreviewDataSet,
-} from "./types";
+// In src/reporter/generator.ts - extend buildChartsData function
 
-export function generateReport(
-  db: Storage,
-  options: GenerateReportOptions = {}
-): string {
-  const allBuilds = db.getRepository().getAllBuildContexts();
-  const buildCount = allBuilds.length;
-  const threshold = options.previewThreshold ?? 10;
-  const showToggle = options.enablePreviewToggle ?? buildCount < threshold;
-
-  const metrics: MetricReportData[] = [];
-  // ... existing metric processing ...
-
-  for (const metric of metrics) {
-    metric.chartConfig.data.labels = allBuilds.map((b) => b.timestamp);
-    metric.chartConfig.data.datasets[0].data = normalizeToBuilds(
-      allBuilds,
-      originalDataPoints
-    );
-  }
-
-  const previewData: PreviewDataSet[] = showToggle
-    ? metrics.map((m) => generatePreviewDataSet(m))
-    : [];
-
-  const reportData: ReportData = {
+function buildChartsData(/* existing params */): ChartsData {
+  // ... existing logic ...
+  
+  const buildCount = timeline.length;
+  const showToggle = buildCount < 10;
+  
+  // Add dataPointCount to each lineChart
+  const lineChartsWithCount = lineCharts.map(chart => ({
+    ...chart,
+    dataPointCount: chart.values.filter(v => v !== null).length
+  }));
+  
+  // Generate preview data only when needed
+  const preview = showToggle ? generatePreviewData(lineChartsWithCount) : undefined;
+  
+  return {
+    timeline,
     metadata,
-    metrics,
-    showToggle,
-    previewData,
+    lineCharts: lineChartsWithCount,
+    barCharts,
+    buildCount,
+    preview
   };
+}
 
-  // ... render JSX ...
+function generatePreviewData(lineCharts: LineChartData[]): PreviewData {
+  const previewTimeline = generateSyntheticTimestamps(new Date(), 60, 20);
+  
+  return {
+    timeline: previewTimeline,
+    lineCharts: lineCharts.map(chart => ({
+      id: chart.id,
+      values: generateSyntheticData(chart.name, /* existing stats */, chart.unit),
+      stats: calculateSyntheticStats(/* synthetic values */)
+    }))
+  };
 }
 ```
 
@@ -320,8 +334,301 @@ bun run visual-review
 
 ---
 
+---
+
+## Step 7: Add Date Range Filter Component
+
+Create `src/reporter/templates/default/components/DateRangeFilter.tsx`:
+
+```tsx
+import type { JSX } from "preact";
+
+export function DateRangeFilter(): JSX.Element {
+  const filters = [
+    { key: '7d', label: '7 days' },
+    { key: '30d', label: '30 days' },
+    { key: '90d', label: '90 days' },
+    { key: 'all', label: 'All' },
+  ];
+
+  return (
+    <div class="flex gap-2">
+      {filters.map(({ key, label }) => (
+        <button
+          data-filter={key}
+          class={[
+            "px-3 py-1 text-sm rounded transition-colors",
+            key === 'all'
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600",
+          ].join(" ")}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## Step 8: Add Export Button to MetricCard
+
+Update `src/reporter/templates/default/components/MetricCard.tsx`:
+
+```tsx
+// Add to the card header area
+<button
+  data-export={metricId}
+  class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+  title="Download PNG"
+>
+  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+  </svg>
+</button>
+
+// Add reset zoom button (hidden by default)
+<button
+  id={`reset-zoom-${metricId}`}
+  class="hidden px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300"
+>
+  Reset zoom
+</button>
+```
+
+---
+
+## Step 9: Update ChartScripts with All Features
+
+Update `src/reporter/templates/default/components/ChartScripts.tsx` to include:
+
+```javascript
+// === Tooltip Synchronization ===
+function syncTooltips(sourceChart, dataIndex) {
+  Object.values(chartInstances).forEach(chart => {
+    const data = chart.data.datasets[0]?.data;
+    if (data && data[dataIndex] !== null) {
+      chart.setActiveElements([{ datasetIndex: 0, index: dataIndex }]);
+      chart.tooltip.setActiveElements([{ datasetIndex: 0, index: dataIndex }]);
+    }
+    chart.update('none');
+  });
+}
+
+// Attach hover handlers
+chartsData.forEach(({ id }) => {
+  const chart = chartInstances[id];
+  chart.options.onHover = (event, elements) => {
+    if (elements.length > 0) {
+      syncTooltips(chart, elements[0].index);
+    }
+  };
+});
+
+// === Zoom Synchronization ===
+function syncZoom(sourceChart) {
+  const { min, max } = sourceChart.scales.x;
+  Object.entries(chartInstances).forEach(([id, chart]) => {
+    if (chart !== sourceChart) {
+      chart.zoomScale('x', { min, max }, 'none');
+    }
+    // Show/hide reset button
+    const resetBtn = document.getElementById('reset-zoom-' + id);
+    if (resetBtn) {
+      resetBtn.classList.toggle('hidden', !chart.isZoomedOrPanned());
+    }
+  });
+}
+
+// === Date Range Filter ===
+const FILTER_DAYS = { '7d': 7, '30d': 30, '90d': 90, 'all': null };
+let activeFilter = 'all';
+
+document.querySelectorAll('[data-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const filterKey = btn.dataset.filter;
+    activeFilter = filterKey;
+    applyDateFilter(filterKey);
+    
+    // Update button styles
+    document.querySelectorAll('[data-filter]').forEach(b => {
+      const isActive = b.dataset.filter === filterKey;
+      b.classList.toggle('bg-blue-600', isActive);
+      b.classList.toggle('text-white', isActive);
+      b.classList.toggle('bg-gray-200', !isActive);
+    });
+  });
+});
+
+function applyDateFilter(filterKey) {
+  const days = FILTER_DAYS[filterKey];
+  const maxTs = Math.max(...reportData.allTimestamps);
+  
+  Object.values(chartInstances).forEach(chart => {
+    if (days === null) {
+      chart.options.scales.x.min = undefined;
+      chart.options.scales.x.max = undefined;
+    } else {
+      chart.options.scales.x.min = maxTs - (days * 24 * 60 * 60 * 1000);
+      chart.options.scales.x.max = maxTs;
+    }
+    chart.resetZoom();
+    chart.update('none');
+  });
+}
+
+// === PNG Export ===
+document.querySelectorAll('[data-export]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const chartId = btn.dataset.export;
+    const chartData = chartsData.find(c => c.id === chartId);
+    exportChartAsPng(chartId, chartData?.metricName || chartId);
+  });
+});
+
+function exportChartAsPng(chartId, metricName) {
+  const chart = chartInstances[chartId];
+  const canvas = chart.canvas;
+  
+  const exportCanvas = document.createElement('canvas');
+  const ctx = exportCanvas.getContext('2d');
+  const titleHeight = 40;
+  
+  exportCanvas.width = canvas.width;
+  exportCanvas.height = canvas.height + titleHeight;
+  
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+  
+  ctx.fillStyle = '#1f2937';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(metricName, exportCanvas.width / 2, 25);
+  
+  if (showingPreview) {
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('(Preview Data)', exportCanvas.width / 2, titleHeight - 5);
+  }
+  
+  ctx.drawImage(canvas, 0, titleHeight);
+  
+  const link = document.createElement('a');
+  link.download = metricName.replace(/[^a-z0-9]/gi, '-') + '-chart.png';
+  link.href = exportCanvas.toDataURL('image/png');
+  link.click();
+}
+
+// === Reset Zoom Handlers ===
+chartsData.forEach(({ id }) => {
+  const resetBtn = document.getElementById('reset-zoom-' + id);
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      Object.values(chartInstances).forEach(chart => chart.resetZoom());
+      document.querySelectorAll('[id^="reset-zoom-"]').forEach(b => b.classList.add('hidden'));
+    });
+  }
+});
+```
+
+---
+
+## Step 10: Update Header to Include Date Filter
+
+Update `src/reporter/templates/default/components/Header.tsx`:
+
+```tsx
+import { DateRangeFilter } from "./DateRangeFilter";
+
+export function Header({ metadata, showToggle }: HeaderProps): JSX.Element {
+  return (
+    <header class="bg-white dark:bg-gray-800 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-bold">{metadata.repository}</h1>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Builds: {metadata.buildCount}
+            </p>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <DateRangeFilter />
+            <PreviewToggle visible={showToggle} />
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+```
+
+---
+
+## Step 11: Add Zoom Plugin CDN
+
+Update `src/reporter/templates/default/HtmlDocument.tsx` to include the zoom plugin:
+
+```tsx
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+```
+
+---
+
+## Testing
+
+### Visual Review
+
+```bash
+# Generate fixtures and open in browser
+bun run visual-review
+```
+
+### Test Cases to Verify
+
+1. **Toggle Visibility**
+   - Open `sparse-data` fixture → toggle should appear
+   - Open `full-featured` fixture → toggle should NOT appear
+
+2. **Toggle Functionality**
+   - Click toggle → charts should switch to preview data (60-day span)
+   - Statistics should update to reflect preview values
+
+3. **Gap Handling**
+   - Create a metric with missing builds
+   - Verify gap appears in chart (not connected line)
+
+4. **Synchronized Tooltips**
+   - Hover over chart A → all charts show tooltips for same build
+   - Charts with no data show "No data for this build"
+
+5. **Zoom and Pan**
+   - Mouse wheel zoom → all charts zoom together
+   - Click-drag → all charts pan together
+   - Reset zoom button appears when zoomed
+   - Charts with <3 points → zoom disabled
+
+6. **Date Range Filter**
+   - Click "7 days" → all charts show last 7 days
+   - Click "All" → all charts show full range
+   - Active filter is highlighted
+
+7. **PNG Export**
+   - Click export button → PNG downloads with metric name
+   - Export while preview active → includes "(Preview Data)" watermark
+
+8. **Accessibility**
+   - Tab to toggle → should have visible focus ring
+   - Space/Enter → should toggle state
+   - Screen reader should announce "Show preview data, switch"
+
+---
+
 ## Checklist
 
+### Existing (from original spec)
 - [ ] `src/reporter/synthetic.ts` created
 - [ ] `src/reporter/types.ts` updated with new interfaces
 - [ ] `PreviewToggle.tsx` component created
@@ -331,3 +638,16 @@ bun run visual-review
 - [ ] Visual fixtures updated/verified
 - [ ] Unit tests added for synthetic generation
 - [ ] Integration tests added for toggle functionality
+
+### New (from 2025-12-07 update)
+- [ ] `DateRangeFilter.tsx` component created
+- [ ] Export button added to MetricCard
+- [ ] Reset zoom button added to MetricCard
+- [ ] Tooltip synchronization implemented in ChartScripts
+- [ ] Zoom/pan synchronization implemented in ChartScripts
+- [ ] Date filter logic implemented in ChartScripts
+- [ ] PNG export logic implemented in ChartScripts
+- [ ] chartjs-plugin-zoom CDN added to HtmlDocument
+- [ ] Synthetic data updated to span 60 days
+- [ ] Visual fixtures updated for new features
+- [ ] Integration tests added for zoom/filter/export

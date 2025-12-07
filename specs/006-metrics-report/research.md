@@ -1,11 +1,12 @@
 # Research: Metrics Report
 
 **Feature**: 006-metrics-report  
-**Date**: 2025-11-29
+**Date**: 2025-11-29  
+**Updated**: 2025-12-07
 
 ## Overview
 
-This document consolidates research findings for implementing the Metrics Report enhancements: normalized build history across charts, missing data handling, and the preview data toggle.
+This document consolidates research findings for implementing the Metrics Report enhancements: normalized build history across charts, missing data handling, preview data toggle, synchronized tooltips, zoom/pan, date range filtering, and chart export.
 
 ---
 
@@ -260,6 +261,270 @@ toggle?.addEventListener('change', function(e) {
 
 ---
 
+---
+
+## 6. Synchronized Tooltips Across Charts
+
+### Decision
+Use Chart.js external tooltip mode with custom event broadcasting to synchronize tooltips across all charts when hovering over any single chart.
+
+### Rationale
+- Chart.js `interaction.mode: 'index'` only works within a single chart
+- Cross-chart synchronization requires custom JavaScript event handling
+- Using `chart.setActiveElements()` and `chart.tooltip.setActiveElements()` APIs
+- Broadcasting mouse events via custom event system ensures all charts respond
+
+### Implementation Approach
+
+```javascript
+// Global tooltip synchronization
+const charts = Object.values(chartInstances);
+
+function syncTooltips(sourceChart, dataIndex) {
+  charts.forEach(chart => {
+    if (chart.data.datasets[0]?.data[dataIndex] !== null) {
+      chart.setActiveElements([{ datasetIndex: 0, index: dataIndex }]);
+      chart.tooltip.setActiveElements([{ datasetIndex: 0, index: dataIndex }]);
+    } else {
+      // Show "No data" tooltip at position
+      showNoDataTooltip(chart, dataIndex);
+    }
+    chart.update('none');
+  });
+}
+
+// Attach to each chart's hover event
+chartsData.forEach(({ id }) => {
+  const chart = chartInstances[id];
+  chart.options.onHover = (event, elements) => {
+    if (elements.length > 0) {
+      syncTooltips(chart, elements[0].index);
+    }
+  };
+});
+```
+
+### Alternatives Considered
+| Option | Pros | Cons | Decision |
+|--------|------|------|----------|
+| Chart.js built-in `mode: 'index'` | Simple | Only works within single chart | Rejected |
+| Custom tooltip plugin | Full control | Complex, maintenance overhead | Rejected |
+| Event broadcasting + setActiveElements | Works cross-chart, uses official API | Requires coordination code | **Selected** |
+
+---
+
+## 7. Zoom and Pan with chartjs-plugin-zoom
+
+### Decision
+Use `chartjs-plugin-zoom` loaded from CDN with synchronized zoom state across all charts.
+
+### Rationale
+- Official Chart.js plugin, well-maintained
+- Supports mouse wheel zoom and drag-to-pan
+- Provides programmatic API for synchronization
+- Small bundle size (~15KB gzipped)
+
+### CDN Integration
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+```
+
+### Configuration
+
+```javascript
+const zoomOptions = {
+  zoom: {
+    wheel: { enabled: true },
+    pinch: { enabled: true },
+    mode: 'x',
+    onZoom: ({ chart }) => syncZoom(chart),
+  },
+  pan: {
+    enabled: true,
+    mode: 'x',
+    onPan: ({ chart }) => syncZoom(chart),
+  },
+  limits: {
+    x: { min: 'original', max: 'original' },
+  },
+};
+
+function syncZoom(sourceChart) {
+  const { min, max } = sourceChart.scales.x;
+  charts.forEach(chart => {
+    if (chart !== sourceChart) {
+      chart.zoomScale('x', { min, max }, 'none');
+    }
+  });
+}
+```
+
+### Reset Zoom Button
+- Appears when `chart.isZoomedOrPanned()` returns true
+- Calls `chart.resetZoom()` on all charts
+- Hidden at default zoom level
+
+### Disable for Sparse Charts
+```javascript
+if (dataPointCount < 3) {
+  chartConfig.options.plugins.zoom.zoom.wheel.enabled = false;
+  chartConfig.options.plugins.zoom.pan.enabled = false;
+}
+```
+
+---
+
+## 8. Date Range Filtering
+
+### Decision
+Implement client-side filtering using Chart.js scale min/max limits, preserving original data in memory.
+
+### Rationale
+- No server round-trip needed
+- Data is already loaded; just change visible range
+- Filter buttons are simpler than date pickers
+- Integrates well with zoom (filter sets base range, zoom within it)
+
+### Implementation Approach
+
+```javascript
+const FILTER_DAYS = {
+  '7d': 7,
+  '30d': 30,
+  '90d': 90,
+  'all': null,
+};
+
+function applyDateFilter(filterKey) {
+  const days = FILTER_DAYS[filterKey];
+  const maxTimestamp = Math.max(...allTimestamps);
+  
+  charts.forEach(chart => {
+    if (days === null) {
+      chart.options.scales.x.min = undefined;
+      chart.options.scales.x.max = undefined;
+    } else {
+      const minTimestamp = maxTimestamp - (days * 24 * 60 * 60 * 1000);
+      chart.options.scales.x.min = minTimestamp;
+      chart.options.scales.x.max = maxTimestamp;
+    }
+    chart.update('none');
+  });
+  
+  // Update button states
+  document.querySelectorAll('[data-filter]').forEach(btn => {
+    btn.classList.toggle('bg-blue-600', btn.dataset.filter === filterKey);
+    btn.classList.toggle('text-white', btn.dataset.filter === filterKey);
+  });
+}
+```
+
+### Button Component (Tailwind)
+
+```html
+<div class="flex gap-2">
+  <button data-filter="7d" class="px-3 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300">7 days</button>
+  <button data-filter="30d" class="px-3 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300">30 days</button>
+  <button data-filter="90d" class="px-3 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300">90 days</button>
+  <button data-filter="all" class="px-3 py-1 text-sm rounded bg-blue-600 text-white">All</button>
+</div>
+```
+
+### Empty Range Handling
+When filter results in no visible data points, display inline message:
+```javascript
+if (visiblePoints === 0) {
+  showEmptyRangeMessage(chart, 'No data in selected range');
+}
+```
+
+---
+
+## 9. Chart Export as PNG
+
+### Decision
+Use native Canvas `toDataURL()` API with dynamic download link creation.
+
+### Rationale
+- Built into browser, no additional libraries
+- Chart.js renders to canvas, which supports direct export
+- Can include title by drawing on canvas before export
+
+### Implementation
+
+```javascript
+function exportChartAsPng(chartId, metricName) {
+  const chart = chartInstances[chartId];
+  const canvas = chart.canvas;
+  
+  // Create temporary canvas with title
+  const exportCanvas = document.createElement('canvas');
+  const ctx = exportCanvas.getContext('2d');
+  const titleHeight = 40;
+  
+  exportCanvas.width = canvas.width;
+  exportCanvas.height = canvas.height + titleHeight;
+  
+  // Draw white background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+  
+  // Draw title
+  ctx.fillStyle = '#1f2937';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(metricName, exportCanvas.width / 2, 25);
+  
+  // Draw preview watermark if active
+  if (showingPreview) {
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('(Preview Data)', exportCanvas.width / 2, titleHeight - 5);
+  }
+  
+  // Draw chart
+  ctx.drawImage(canvas, 0, titleHeight);
+  
+  // Trigger download
+  const link = document.createElement('a');
+  link.download = `${metricName.replace(/[^a-z0-9]/gi, '-')}-chart.png`;
+  link.href = exportCanvas.toDataURL('image/png');
+  link.click();
+}
+```
+
+### Button Placement
+- Small icon button in top-right of each MetricCard
+- Uses download icon (SVG inline)
+- Tooltip: "Download PNG"
+
+---
+
+## 10. Synthetic Data Generation Update
+
+### Decision
+Update synthetic data to span 60 days (per spec update) instead of arbitrary 20 points.
+
+### Updated Implementation
+
+```javascript
+function generateSyntheticTimestamps(endDate: Date): string[] {
+  const timestamps: string[] = [];
+  const msPerDay = 24 * 60 * 60 * 1000;
+  
+  // Generate 20 points spread across 60 days (every 3 days)
+  for (let i = 19; i >= 0; i--) {
+    const date = new Date(endDate.getTime() - (i * 3 * msPerDay));
+    timestamps.push(date.toISOString());
+  }
+  
+  return timestamps;
+}
+```
+
+---
+
 ## Summary of Technical Decisions
 
 | Area | Decision | Rationale |
@@ -267,5 +532,9 @@ toggle?.addEventListener('change', function(e) {
 | Gap display | `null` values + `spanGaps: false` | Clear, accurate representation |
 | X-axis normalization | Shared labels array from all builds | Visual consistency across charts |
 | Toggle component | Native checkbox + Tailwind `peer` | Accessible, no JS framework needed |
-| Synthetic data | Mulberry32 + mean-reverting algorithm | Deterministic, realistic patterns |
+| Synthetic data | Mulberry32 + mean-reverting, 60-day span | Deterministic, realistic patterns |
 | State management | Vanilla JS + Chart.js `update()` | Minimal footprint, static HTML compatible |
+| Synchronized tooltips | Event broadcasting + `setActiveElements()` | Cross-chart coordination via official API |
+| Zoom/pan | chartjs-plugin-zoom with sync callbacks | Official plugin, good API for synchronization |
+| Date range filter | Scale min/max limits, client-side | No server needed, integrates with zoom |
+| Chart export | Canvas `toDataURL()` + dynamic link | Native browser API, no dependencies |
