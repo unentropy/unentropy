@@ -18,6 +18,67 @@ var BAR_STYLE = {
   borderWidth: 1,
 };
 
+// Global tooltip synchronization manager
+var tooltipSync = {
+  charts: {},
+  lastHoveredIndex: null,
+
+  registerChart: function (chartId, chartInstance) {
+    this.charts[chartId] = chartInstance;
+  },
+
+  syncTooltips: function (dataIndex) {
+    if (dataIndex === null || dataIndex === undefined) {
+      this.clearAllTooltips();
+      return;
+    }
+
+    this.lastHoveredIndex = dataIndex;
+    var charts = this.charts;
+
+    // Show tooltips at the same data index on all charts
+    Object.keys(charts).forEach(function (chartId) {
+      var chart = charts[chartId];
+      if (!chart || !chart.tooltip) return;
+
+      try {
+        // Build active elements array for all datasets
+        var activeElements = [];
+        if (chart.data.datasets && chart.data.datasets.length > 0) {
+          for (var i = 0; i < chart.data.datasets.length; i++) {
+            activeElements.push({ datasetIndex: i, index: dataIndex });
+          }
+          // Set the active elements
+          chart.setActiveElements(activeElements);
+          // Force tooltip to update
+          chart.tooltip.update(true);
+        }
+      } catch (e) {
+        // Ignore errors silently
+      }
+    });
+  },
+
+  clearAllTooltips: function () {
+    this.lastHoveredIndex = null;
+    var charts = this.charts;
+
+    Object.keys(charts).forEach(function (chartId) {
+      var chart = charts[chartId];
+      if (!chart) return;
+
+      try {
+        chart.setActiveElements([]);
+        if (chart.tooltip) {
+          chart.tooltip.update(true);
+        }
+      } catch (e) {
+        // Ignore errors silently
+      }
+    });
+  },
+};
+
 var COMMON_OPTIONS = {
   responsive: true,
   maintainAspectRatio: false,
@@ -239,6 +300,11 @@ function buildBarChart(chart) {
   };
 }
 
+function setupTooltipSync(chart, chartId) {
+  // Register this chart with the tooltip sync manager
+  tooltipSync.registerChart(chartId, chart);
+}
+
 function initializeCharts(
   timeline,
   metadata,
@@ -251,8 +317,9 @@ function initializeCharts(
 ) {
   var chartInstances = {};
 
-  // Register crosshair plugin globally with Chart.js
+  // Register plugins globally with Chart.js
   Chart.register(crosshairPlugin);
+  Chart.register(tooltipSyncPlugin);
 
   // Render REAL charts
   lineCharts.forEach(function (chart) {
@@ -260,8 +327,9 @@ function initializeCharts(
     if (ctx) {
       var chartInstance = new Chart(ctx, buildLineChart(chart, timeline, metadata));
       chartInstances[chart.id] = chartInstance;
-      // Register chart with sync manager
+      // Register chart with sync managers
       crosshairGroupSync.registerChart(1, chartInstance);
+      setupTooltipSync(chartInstance, chart.id);
     }
   });
 
@@ -270,8 +338,9 @@ function initializeCharts(
     if (ctx) {
       var chartInstance = new Chart(ctx, buildBarChart(chart));
       chartInstances[chart.id] = chartInstance;
-      // Register chart with sync manager
+      // Register chart with sync managers
       crosshairGroupSync.registerChart(1, chartInstance);
+      setupTooltipSync(chartInstance, chart.id);
     }
   });
 
@@ -283,8 +352,9 @@ function initializeCharts(
         var previewTimeline = previewData[index]?.timestamps || timeline;
         var chartInstance = new Chart(ctx, buildLineChart(chart, previewTimeline, null));
         chartInstances[chart.id] = chartInstance;
-        // Register chart with sync manager
+        // Register chart with sync managers
         crosshairGroupSync.registerChart(1, chartInstance);
+        setupTooltipSync(chartInstance, chart.id);
       }
     });
 
@@ -293,8 +363,9 @@ function initializeCharts(
       if (ctx) {
         var chartInstance = new Chart(ctx, buildBarChart(chart));
         chartInstances[chart.id] = chartInstance;
-        // Register chart with sync manager
+        // Register chart with sync managers
         crosshairGroupSync.registerChart(1, chartInstance);
+        setupTooltipSync(chartInstance, chart.id);
       }
     });
   }

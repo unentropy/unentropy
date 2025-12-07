@@ -1,6 +1,7 @@
 import type { ChartsData } from "../../../types";
 import serialize from "serialize-javascript";
 import crosshairPluginScript from "../scripts/crosshair-plugin.js" with { type: "text" };
+import tooltipSyncPluginScript from "../scripts/tooltip-sync-plugin.js" with { type: "text" };
 import chartInitScript from "../scripts/charts.js" with { type: "text" };
 
 interface ChartScriptsProps {
@@ -34,6 +35,7 @@ export function ChartScripts({ chartsData }: ChartScriptsProps) {
   return (
     <>
       <script dangerouslySetInnerHTML={{ __html: crosshairPluginScript }} />
+      <script dangerouslySetInnerHTML={{ __html: tooltipSyncPluginScript }} />
       <script dangerouslySetInnerHTML={{ __html: chartInitScript }} />
       <script dangerouslySetInnerHTML={{ __html: dataScript }} />
     </>
