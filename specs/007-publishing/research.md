@@ -241,14 +241,14 @@ git push -f origin "v0"
 **Version strategy:**
 ```bash
 # Beta release
-npm version 0.1.0
+bun pm version 0.1.0
 npm publish --tag beta
 
 # Users install beta
 bunx unentropy@beta init
 
 # When stable
-npm version 1.0.0
+bun pm version 1.0.0
 npm publish  # Goes to 'latest' tag
 ```
 

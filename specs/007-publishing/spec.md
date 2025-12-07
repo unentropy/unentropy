@@ -2,9 +2,10 @@
 
 **Feature Branch**: `007-publishing`  
 **Created**: 2025-01-03  
-**Updated**: 2025-12-07  
+**Updated**: 2025-12-08  
 **Status**: Draft  
 **Input**: User description: "Complete publishing story for Unentropy covering npm registry (CLI via bunx) and GitHub Marketplace (Actions)"
+**Approach**: Hybrid automation (Option C) - Tag-based publishing with streamlined version management
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -86,9 +87,9 @@ As a developer browsing the GitHub Marketplace, I want to discover Unentropy act
 **npm Publishing:**
 - **FR-001**: System MUST build the CLI using Bun bundler before publishing to npm
 - **FR-002**: System MUST include a `bin` field in package.json pointing to the CLI entry point
-- **FR-003**: System MUST publish the package to npm when a release is created in the main repository
+- **FR-003**: System MUST publish the package to npm when a version tag is pushed to the main repository
 - **FR-004**: System MUST include only necessary files in the npm package (`dist/`, `README.md`, `LICENSE`)
-- **FR-005**: System MUST generate the CLI bundle with proper shebang for Bun runtime (`#!/usr/bin/env bun`)
+- **FR-005**: System MUST generate the CLI bundle with proper shebang for Node.js runtime (`#!/usr/bin/env node`) for maximum compatibility
 - **FR-006**: System MUST validate package version matches release tag before publishing
 - **FR-007**: System MUST tag beta versions (0.x) with `beta` dist-tag on npm
 - **FR-008**: System MUST include keywords in package.json for npm search discoverability
@@ -99,7 +100,9 @@ As a developer browsing the GitHub Marketplace, I want to discover Unentropy act
 - **FR-011**: System MUST update floating minor tags (e.g., `v0.1`) to latest patch release
 - **FR-012**: System MUST update floating major tags (e.g., `v0`) to latest release in that major version during beta
 - **FR-013**: System MUST use PAT stored as repository secret to authenticate pushes to target repos
-- **FR-014**: System MUST validate release tag follows semantic versioning before proceeding
+- **FR-014**: System MUST validate git tag follows semantic versioning (vMAJOR.MINOR.PATCH) before proceeding
+- **FR-021**: System MUST provide npm scripts for streamlined version bumping (`version:patch`, `version:minor`, `version:major`)
+- **FR-022**: System MUST automatically push version tags after version bump to trigger publishing workflow
 - **FR-015**: System MUST publish both `track-metrics` and `quality-gate` actions to their respective repos
 - **FR-016**: System MUST clear existing files in target repos (except `.git`) before copying new files
 

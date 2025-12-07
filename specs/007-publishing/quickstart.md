@@ -53,7 +53,7 @@ Ensure these fields are configured:
 }
 ```
 
-## Publishing a Release
+## Publishing a Release (Simplified Workflow)
 
 ### Step 1: Build and Test Locally
 
@@ -62,33 +62,42 @@ Ensure these fields are configured:
 bun run check
 bun test
 
-# Build CLI
+# Build CLI (optional - workflow will rebuild)
 bun run build:cli
 
-# Build actions
+# Build actions (optional - workflow will rebuild)
 bun run build:actions
 
 # Test CLI locally
 bun dist/index.js --version
 ```
 
-### Step 2: Update Version
+### Step 2: Bump Version and Publish (One Command!)
 
 ```bash
-# Bump version in package.json
-# For beta: 0.1.0 → 0.2.0
-# For patch: 0.1.0 → 0.1.1
-npm version minor  # or patch, major
+# For patch release (0.1.0 → 0.1.1)
+bun run version:patch
+
+# For minor release (0.1.0 → 0.2.0)
+bun run version:minor
+
+# For major release (0.1.0 → 1.0.0)
+bun run version:major
 ```
 
-### Step 3: Create GitHub Release
+**That's it!** The script will:
+- Bump version in package.json
+- Create a git commit
+- Create a version tag (e.g., v0.1.1)
+- Push commit and tag to GitHub
+- Trigger the publishing workflow automatically
 
+### Step 3: Monitor Workflow
+
+Watch the workflow run:
 ```bash
-# Push version commit and tag
-git push && git push --tags
-
-# Create release on GitHub
-gh release create v0.1.0 --title "v0.1.0" --notes "Release notes here"
+gh run list --workflow publish.yml
+gh run watch
 ```
 
 ### Step 4: Verify Publishing
@@ -191,9 +200,7 @@ jobs:
 
 The version is already published. Bump version and try again:
 ```bash
-npm version patch
-git push && git push --tags
-gh release create v0.1.1 --title "v0.1.1"
+bun run version:patch
 ```
 
 ### PAT authentication error
@@ -219,6 +226,32 @@ Check for:
 - GitHub API rate limits
 - Large bundle sizes
 
+## Development Workflow Summary
+
+**Daily development:**
+```bash
+git commit -m "feat: add new feature"
+git push
+# No publishing - just normal development
+```
+
+**When ready to release:**
+```bash
+bun run version:patch  # or minor/major
+# Done! Workflow handles everything else
+```
+
+## Alternative: Manual Version Bump
+
+If you prefer manual control, you can still use traditional workflow:
+
+```bash
+bun pm version patch    # Bumps version, creates tag locally
+git push --follow-tags  # Pushes and triggers workflow
+```
+
+The automated scripts are just convenience wrappers around this!
+
 ## Next Steps
 
 After publishing:
@@ -227,3 +260,14 @@ After publishing:
 2. **Monitor adoption** - Check npm download stats
 3. **Gather feedback** - Watch for GitHub issues
 4. **Plan next release** - Triage issues, prioritize features
+
+## Future: Migration to Changesets (Post-Beta)
+
+When ready for more sophisticated automation (approaching v1.0):
+
+1. Install changesets: `bun add -D @changesets/cli`
+2. Initialize: `npx changeset init`
+3. Update workflow to use `changesets/action`
+4. New workflow: Create changeset → Merge PR → Bot publishes
+
+This provides a clear path to industry best practices while keeping beta workflow simple.
