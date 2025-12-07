@@ -156,6 +156,10 @@ export class SqliteS3StorageProvider implements StorageProvider {
     return this.tempDbPath;
   }
 
+  getDatabasePath(): string {
+    return this.tempDbPath;
+  }
+
   getDb(): Database {
     if (!this.db) throw new Error("Database not initialized");
     return this.db;

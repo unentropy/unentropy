@@ -38,7 +38,7 @@ export function getMetricTimeSeries(db: Storage, metricName: string): TimeSeries
   }));
 
   return {
-    metricName: metricDef.name,
+    metricName: metricDef.id,
     metricType: metricDef.type,
     unit: metricDef.unit,
     description: metricDef.description,
@@ -209,7 +209,7 @@ export function generateReport(db: Storage, options: GenerateReportOptions = {})
     }
   } else {
     // No config provided, use all metrics (backward compatibility)
-    metricNames = options.metricNames || allMetrics.map((m) => m.name);
+    metricNames = options.metricNames || allMetrics.map((m) => m.id);
   }
 
   const metrics: MetricReportData[] = [];

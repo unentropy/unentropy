@@ -21,23 +21,11 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
   insertBuildContext(data: InsertBuildContext): number {
     const stmt = this.db.query<
       { id: number },
-      [
-        string,
-        string,
-        string,
-        number,
-        string | null,
-        string | null,
-        string,
-        number | null,
-        string | null,
-        string | null,
-      ]
+      [string, string, string, number, string | null, string]
     >(`
       INSERT INTO build_contexts (
-        commit_sha, branch, run_id, run_number, actor, event_name, timestamp,
-        pull_request_number, pull_request_base, pull_request_head
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        commit_sha, branch, run_id, run_number, event_name, timestamp
+      ) VALUES (?, ?, ?, ?, ?, ?)
       RETURNING id
     `);
 
@@ -46,12 +34,8 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
       data.branch,
       data.run_id,
       data.run_number,
-      data.actor ?? null,
       data.event_name ?? null,
-      data.timestamp,
-      data.pull_request_number ?? null,
-      data.pull_request_base ?? null,
-      data.pull_request_head ?? null
+      data.timestamp
     );
 
     if (!result) throw new Error("Failed to insert build context");
@@ -60,33 +44,28 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
 
   upsertMetricDefinition(data: InsertMetricDefinition): MetricDefinition {
     const stmt = this.db.query<MetricDefinition, [string, string, string | null, string | null]>(`
-      INSERT INTO metric_definitions (name, type, unit, description)
+      INSERT INTO metric_definitions (id, type, unit, description)
       VALUES (?, ?, ?, ?)
-      ON CONFLICT(name) DO UPDATE SET
+      ON CONFLICT(id) DO UPDATE SET
         unit = excluded.unit,
         description = excluded.description
-      RETURNING id, name, type, unit, description, created_at
+      RETURNING id, type, unit, description
     `);
 
-    const result = stmt.get(data.name, data.type, data.unit ?? null, data.description ?? null);
+    const result = stmt.get(data.id, data.type, data.unit ?? null, data.description ?? null);
 
     if (!result) throw new Error("Failed to upsert metric definition");
     return result;
   }
 
   insertMetricValue(data: InsertMetricValue): number {
-    const stmt = this.db.query<
-      { id: number },
-      [number, number, number | null, string | null, string, number | null]
-    >(`
+    const stmt = this.db.query<{ id: number }, [string, number, number | null, string | null]>(`
       INSERT INTO metric_values (
-        metric_id, build_id, value_numeric, value_label, collected_at, collection_duration_ms
-      ) VALUES (?, ?, ?, ?, ?, ?)
+        metric_id, build_id, value_numeric, value_label
+      ) VALUES (?, ?, ?, ?)
       ON CONFLICT(metric_id, build_id) DO UPDATE SET
         value_numeric = excluded.value_numeric,
-        value_label = excluded.value_label,
-        collected_at = excluded.collected_at,
-        collection_duration_ms = excluded.collection_duration_ms
+        value_label = excluded.value_label
       RETURNING id
     `);
 
@@ -94,9 +73,7 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
       data.metric_id,
       data.build_id,
       data.value_numeric ?? null,
-      data.value_label ?? null,
-      data.collected_at,
-      data.collection_duration_ms ?? null
+      data.value_label ?? null
     );
 
     if (!result) throw new Error("Failed to insert metric value");
@@ -108,15 +85,15 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
     return stmt.get(id) ?? undefined;
   }
 
-  getMetricDefinition(name: string): MetricDefinition | undefined {
+  getMetricDefinition(id: string): MetricDefinition | undefined {
     const stmt = this.db.query<MetricDefinition, [string]>(
-      "SELECT * FROM metric_definitions WHERE name = ?"
+      "SELECT * FROM metric_definitions WHERE id = ?"
     );
-    return stmt.get(name) ?? undefined;
+    return stmt.get(id) ?? undefined;
   }
 
-  getMetricValues(metricId: number, buildId: number): MetricValue | undefined {
-    const stmt = this.db.query<MetricValue, [number, number]>(
+  getMetricValues(metricId: string, buildId: number): MetricValue | undefined {
+    const stmt = this.db.query<MetricValue, [string, number]>(
       "SELECT * FROM metric_values WHERE metric_id = ? AND build_id = ?"
     );
     return stmt.get(metricId, buildId) ?? undefined;
@@ -124,28 +101,28 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
 
   getMetricValuesByBuildId(buildId: number): (MetricValue & { metric_name: string })[] {
     const stmt = this.db.query<MetricValue & { metric_name: string }, [number]>(`
-      SELECT mv.*, md.name as metric_name
+      SELECT mv.*, md.id as metric_name
       FROM metric_values mv
       JOIN metric_definitions md ON mv.metric_id = md.id
       WHERE mv.build_id = ?
-      ORDER BY md.name
+      ORDER BY md.id
     `);
     return stmt.all(buildId);
   }
 
   getAllMetricDefinitions(): MetricDefinition[] {
     const stmt = this.db.query<MetricDefinition, []>(
-      "SELECT * FROM metric_definitions ORDER BY name"
+      "SELECT * FROM metric_definitions ORDER BY id"
     );
     return stmt.all();
   }
 
   getAllMetricValues(): (MetricValue & { metric_name: string })[] {
     const stmt = this.db.query<MetricValue & { metric_name: string }, []>(`
-      SELECT mv.*, md.name as metric_name
+      SELECT mv.*, md.id as metric_name
       FROM metric_values mv
       JOIN metric_definitions md ON mv.metric_id = md.id
-      ORDER BY mv.build_id, md.name
+      ORDER BY mv.build_id, md.id
     `);
     return stmt.all();
   }
@@ -169,7 +146,7 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
     >(`
       SELECT 
         mv.*,
-        md.name as metric_name,
+        md.id as metric_name,
         bc.commit_sha,
         bc.branch,
         bc.run_number,
@@ -177,7 +154,7 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
       FROM metric_values mv
       JOIN metric_definitions md ON mv.metric_id = md.id
       JOIN build_contexts bc ON mv.build_id = bc.id
-      WHERE md.name = ? AND bc.event_name = 'push'
+      WHERE md.id = ? AND bc.event_name = 'push'
       ORDER BY bc.timestamp ASC
     `);
     return stmt.all(metricName);
@@ -207,7 +184,7 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
       FROM metric_values mv
       JOIN metric_definitions md ON mv.metric_id = md.id
       JOIN build_contexts bc ON mv.build_id = bc.id
-      WHERE md.name = ? 
+      WHERE md.id = ? 
         AND bc.branch = ?
         AND bc.event_name = 'push'
         AND bc.timestamp >= datetime('now', '-' || ? || ' days')
@@ -228,7 +205,7 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
       SELECT mv.value_numeric
       FROM metric_values mv
       JOIN metric_definitions md ON mv.metric_id = md.id
-      WHERE md.name = ? 
+      WHERE md.id = ? 
         AND mv.build_id = ?
         AND mv.value_numeric IS NOT NULL
     `);

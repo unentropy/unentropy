@@ -45,13 +45,11 @@ describe("SqliteDatabaseAdapter", () => {
         branch: "feature",
         run_id: "12346",
         run_number: 2,
-        actor: "test-user",
         event_name: "push",
         timestamp: new Date().toISOString(),
       });
 
       const result = adapter.getBuildContext(id);
-      expect(result?.actor).toBe("test-user");
       expect(result?.event_name).toBe("push");
     });
   });
@@ -59,14 +57,13 @@ describe("SqliteDatabaseAdapter", () => {
   describe("upsertMetricDefinition", () => {
     it("inserts a new metric definition", () => {
       const metric = adapter.upsertMetricDefinition({
-        name: "test-coverage",
+        id: "test-coverage",
         type: "numeric",
         unit: "percent",
         description: "Code coverage percentage",
       });
 
-      expect(metric.id).toBeGreaterThan(0);
-      expect(metric.name).toBe("test-coverage");
+      expect(metric.id).toBe("test-coverage");
       expect(metric.type).toBe("numeric");
       expect(metric.unit).toBe("percent");
       expect(metric.description).toBe("Code coverage percentage");
@@ -74,13 +71,13 @@ describe("SqliteDatabaseAdapter", () => {
 
     it("updates existing metric definition on conflict", () => {
       const metric1 = adapter.upsertMetricDefinition({
-        name: "size",
+        id: "size",
         type: "numeric",
         unit: "bytes",
       });
 
       const metric2 = adapter.upsertMetricDefinition({
-        name: "size",
+        id: "size",
         type: "numeric",
         unit: "integer",
         description: "Updated description",
@@ -93,7 +90,7 @@ describe("SqliteDatabaseAdapter", () => {
 
     it("inserts label type metric", () => {
       const metric = adapter.upsertMetricDefinition({
-        name: "build-status",
+        id: "build-status",
         type: "label",
       });
 
@@ -113,7 +110,7 @@ describe("SqliteDatabaseAdapter", () => {
       });
 
       const metric = adapter.upsertMetricDefinition({
-        name: "test-metric",
+        id: "test-metric",
         type: "numeric",
       });
 
@@ -121,7 +118,6 @@ describe("SqliteDatabaseAdapter", () => {
         metric_id: metric.id,
         build_id: buildId,
         value_numeric: 42.5,
-        collected_at: new Date().toISOString(),
       });
 
       expect(valueId).toBeGreaterThan(0);
@@ -141,7 +137,7 @@ describe("SqliteDatabaseAdapter", () => {
       });
 
       const metric = adapter.upsertMetricDefinition({
-        name: "status-metric",
+        id: "status-metric",
         type: "label",
       });
 
@@ -149,7 +145,6 @@ describe("SqliteDatabaseAdapter", () => {
         metric_id: metric.id,
         build_id: buildId,
         value_label: "passing",
-        collected_at: new Date().toISOString(),
       });
 
       expect(valueId).toBeGreaterThan(0);
@@ -169,7 +164,7 @@ describe("SqliteDatabaseAdapter", () => {
       });
 
       const metric = adapter.upsertMetricDefinition({
-        name: "update-test",
+        id: "update-test",
         type: "numeric",
       });
 
@@ -177,57 +172,28 @@ describe("SqliteDatabaseAdapter", () => {
         metric_id: metric.id,
         build_id: buildId,
         value_numeric: 10,
-        collected_at: new Date().toISOString(),
       });
 
-      const newTime = new Date().toISOString();
       adapter.insertMetricValue({
         metric_id: metric.id,
         build_id: buildId,
         value_numeric: 20,
-        collected_at: newTime,
       });
 
       const value = adapter.getMetricValues(metric.id, buildId);
       expect(value?.value_numeric).toBe(20);
     });
-
-    it("stores collection duration", () => {
-      const buildId = adapter.insertBuildContext({
-        commit_sha: "f".repeat(40),
-        branch: "main",
-        run_id: "12350",
-        run_number: 6,
-        timestamp: new Date().toISOString(),
-      });
-
-      const metric = adapter.upsertMetricDefinition({
-        name: "duration-test",
-        type: "numeric",
-      });
-
-      adapter.insertMetricValue({
-        metric_id: metric.id,
-        build_id: buildId,
-        value_numeric: 100,
-        collected_at: new Date().toISOString(),
-        collection_duration_ms: 1500,
-      });
-
-      const value = adapter.getMetricValues(metric.id, buildId);
-      expect(value?.collection_duration_ms).toBe(1500);
-    });
   });
 
   describe("getMetricDefinition", () => {
-    it("retrieves metric by name", () => {
+    it("retrieves metric by id", () => {
       adapter.upsertMetricDefinition({
-        name: "lookup-test",
+        id: "lookup-test",
         type: "numeric",
       });
 
       const metric = adapter.getMetricDefinition("lookup-test");
-      expect(metric?.name).toBe("lookup-test");
+      expect(metric?.id).toBe("lookup-test");
     });
 
     it("returns undefined for non-existent metric", () => {
@@ -237,16 +203,16 @@ describe("SqliteDatabaseAdapter", () => {
   });
 
   describe("getAllMetricDefinitions", () => {
-    it("returns all metrics sorted by name", () => {
-      adapter.upsertMetricDefinition({ name: "zebra", type: "numeric" });
-      adapter.upsertMetricDefinition({ name: "alpha", type: "label" });
-      adapter.upsertMetricDefinition({ name: "beta", type: "numeric" });
+    it("returns all metrics sorted by id", () => {
+      adapter.upsertMetricDefinition({ id: "zebra", type: "numeric" });
+      adapter.upsertMetricDefinition({ id: "alpha", type: "label" });
+      adapter.upsertMetricDefinition({ id: "beta", type: "numeric" });
 
       const metrics = adapter.getAllMetricDefinitions();
       expect(metrics).toHaveLength(3);
-      expect(metrics[0]?.name).toBe("alpha");
-      expect(metrics[1]?.name).toBe("beta");
-      expect(metrics[2]?.name).toBe("zebra");
+      expect(metrics[0]?.id).toBe("alpha");
+      expect(metrics[1]?.id).toBe("beta");
+      expect(metrics[2]?.id).toBe("zebra");
     });
 
     it("returns empty array when no metrics exist", () => {
@@ -257,14 +223,13 @@ describe("SqliteDatabaseAdapter", () => {
 
   describe("getBaselineMetricValues", () => {
     it("returns baseline values for metric from reference branch", () => {
-      // Create reference branch builds
       const refBuild1 = adapter.insertBuildContext({
         commit_sha: "ref1".repeat(10),
         branch: "main",
         run_id: "ref1",
         run_number: 1,
         event_name: "push",
-        timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        timestamp: new Date(Date.now() - 86400000).toISOString(),
       });
 
       const refBuild2 = adapter.insertBuildContext({
@@ -273,32 +238,29 @@ describe("SqliteDatabaseAdapter", () => {
         run_id: "ref2",
         run_number: 2,
         event_name: "push",
-        timestamp: new Date(Date.now() - 43200000).toISOString(), // 12 hours ago
+        timestamp: new Date(Date.now() - 43200000).toISOString(),
       });
 
       const metric = adapter.upsertMetricDefinition({
-        name: "test-metric",
+        id: "test-metric",
         type: "numeric",
       });
 
-      // Insert baseline values
       adapter.insertMetricValue({
         metric_id: metric.id,
         build_id: refBuild1,
         value_numeric: 85.5,
-        collected_at: new Date().toISOString(),
       });
 
       adapter.insertMetricValue({
         metric_id: metric.id,
         build_id: refBuild2,
         value_numeric: 87.2,
-        collected_at: new Date().toISOString(),
       });
 
       const baselineValue = adapter.getBaselineMetricValue("test-metric", "main");
 
-      expect(baselineValue).toBe(87.2); // Most recent value
+      expect(baselineValue).toBe(87.2);
     });
 
     it("filters by reference branch", () => {
@@ -321,7 +283,7 @@ describe("SqliteDatabaseAdapter", () => {
       });
 
       const metric = adapter.upsertMetricDefinition({
-        name: "branch-test",
+        id: "branch-test",
         type: "numeric",
       });
 
@@ -329,14 +291,12 @@ describe("SqliteDatabaseAdapter", () => {
         metric_id: metric.id,
         build_id: mainBuild,
         value_numeric: 100,
-        collected_at: new Date().toISOString(),
       });
 
       adapter.insertMetricValue({
         metric_id: metric.id,
         build_id: featureBuild,
         value_numeric: 200,
-        collected_at: new Date().toISOString(),
       });
 
       const baselineValue = adapter.getBaselineMetricValue("branch-test", "main");
@@ -351,7 +311,7 @@ describe("SqliteDatabaseAdapter", () => {
         run_id: "old1",
         run_number: 1,
         event_name: "push",
-        timestamp: new Date(Date.now() - 86400000 * 100).toISOString(), // 100 days ago
+        timestamp: new Date(Date.now() - 86400000 * 100).toISOString(),
       });
 
       const prBuild = adapter.insertBuildContext({
@@ -364,7 +324,7 @@ describe("SqliteDatabaseAdapter", () => {
       });
 
       const metric = adapter.upsertMetricDefinition({
-        name: "filter-test",
+        id: "filter-test",
         type: "numeric",
       });
 
@@ -372,19 +332,17 @@ describe("SqliteDatabaseAdapter", () => {
         metric_id: metric.id,
         build_id: oldBuild,
         value_numeric: 50,
-        collected_at: new Date().toISOString(),
       });
 
       adapter.insertMetricValue({
         metric_id: metric.id,
         build_id: prBuild,
         value_numeric: 75,
-        collected_at: new Date().toISOString(),
       });
 
       const baselineValue = adapter.getBaselineMetricValue("filter-test", "main", 90);
 
-      expect(baselineValue).toBeUndefined(); // Both filtered out
+      expect(baselineValue).toBeUndefined();
     });
   });
 
@@ -430,7 +388,7 @@ describe("SqliteDatabaseAdapter", () => {
       });
 
       const metric = adapter.upsertMetricDefinition({
-        name: "test-metric",
+        id: "test-metric",
         type: "numeric",
       });
 
@@ -438,7 +396,6 @@ describe("SqliteDatabaseAdapter", () => {
         metric_id: metric.id,
         build_id: buildWithMetrics,
         value_numeric: 42,
-        collected_at: new Date().toISOString(),
       });
 
       const builds = adapter.getAllBuildContexts({ onlyWithMetrics: true });
@@ -457,7 +414,7 @@ describe("SqliteDatabaseAdapter", () => {
       });
 
       const metric = adapter.upsertMetricDefinition({
-        name: "test-metric",
+        id: "test-metric",
         type: "numeric",
       });
 
@@ -465,7 +422,6 @@ describe("SqliteDatabaseAdapter", () => {
         metric_id: metric.id,
         build_id: prBuild,
         value_numeric: 42,
-        collected_at: new Date().toISOString(),
       });
 
       const builds = adapter.getAllBuildContexts({ onlyWithMetrics: true });
@@ -506,7 +462,7 @@ describe("SqliteDatabaseAdapter", () => {
       });
 
       const metric = adapter.upsertMetricDefinition({
-        name: "test-metric",
+        id: "test-metric",
         type: "numeric",
       });
 
@@ -514,14 +470,12 @@ describe("SqliteDatabaseAdapter", () => {
         metric_id: metric.id,
         build_id: newerBuild,
         value_numeric: 100,
-        collected_at: new Date().toISOString(),
       });
 
       adapter.insertMetricValue({
         metric_id: metric.id,
         build_id: olderBuild,
         value_numeric: 50,
-        collected_at: new Date().toISOString(),
       });
 
       const builds = adapter.getAllBuildContexts({ onlyWithMetrics: true });
@@ -543,7 +497,7 @@ describe("SqliteDatabaseAdapter", () => {
       });
 
       const metric = adapter.upsertMetricDefinition({
-        name: "pr-test",
+        id: "pr-test",
         type: "numeric",
       });
 
@@ -551,7 +505,6 @@ describe("SqliteDatabaseAdapter", () => {
         metric_id: metric.id,
         build_id: prBuild,
         value_numeric: 42.5,
-        collected_at: new Date().toISOString(),
       });
 
       const value = adapter.getPullRequestMetricValue("pr-test", prBuild);
@@ -585,15 +538,14 @@ describe("SqliteDatabaseAdapter", () => {
       });
 
       const metric = adapter.upsertMetricDefinition({
-        name: "null-test",
+        id: "null-test",
         type: "numeric",
       });
 
       adapter.insertMetricValue({
         metric_id: metric.id,
         build_id: prBuild,
-        value_label: "some-label", // No numeric value
-        collected_at: new Date().toISOString(),
+        value_label: "some-label",
       });
 
       const value = adapter.getPullRequestMetricValue("null-test", prBuild);

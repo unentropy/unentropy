@@ -1,12 +1,13 @@
 import type { MetricsRepository } from "../storage/repository.js";
 import type { MetricSample } from "./types.js";
+import type { UnitType } from "../metrics/types.js";
 
 export function buildMetricSamples(
   collectedMetrics: {
     definition: {
-      name: string;
+      id: string;
       type: "numeric" | "label";
-      unit?: string;
+      unit?: UnitType;
       description?: string;
     };
     value_numeric?: number;
@@ -25,10 +26,10 @@ export function buildMetricSamples(
       continue;
     }
 
-    const baselineValue = repository.getBaselineMetricValue(def.name, referenceBranch, maxAgeDays);
+    const baselineValue = repository.getBaselineMetricValue(def.id, referenceBranch, maxAgeDays);
 
     samples.push({
-      name: def.name,
+      name: def.id,
       unit: def.unit,
       type: "numeric",
       baselineValue,

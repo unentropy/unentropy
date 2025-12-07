@@ -17,7 +17,6 @@ describe("extractBuildContext", () => {
     process.env.GITHUB_REF = "refs/heads/main";
     process.env.GITHUB_RUN_ID = "12345";
     process.env.GITHUB_RUN_NUMBER = "42";
-    process.env.GITHUB_ACTOR = "octocat";
     process.env.GITHUB_EVENT_NAME = "push";
 
     const context = extractBuildContext();
@@ -26,7 +25,6 @@ describe("extractBuildContext", () => {
     expect(context.branch).toBe("main");
     expect(context.run_id).toBe("12345");
     expect(context.run_number).toBe(42);
-    expect(context.actor).toBe("octocat");
     expect(context.event_name).toBe("push");
   });
 
@@ -68,7 +66,6 @@ describe("extractBuildContext", () => {
     process.env.GITHUB_REF = "refs/heads/main";
     process.env.GITHUB_RUN_ID = "12345";
     process.env.GITHUB_RUN_NUMBER = "42";
-    delete process.env.GITHUB_ACTOR;
     delete process.env.GITHUB_EVENT_NAME;
 
     const context = extractBuildContext();
@@ -77,7 +74,6 @@ describe("extractBuildContext", () => {
     expect(context.branch).toBe("main");
     expect(context.run_id).toBe("12345");
     expect(context.run_number).toBe(42);
-    expect(context.actor).toBeUndefined();
     expect(context.event_name).toBeUndefined();
   });
 
@@ -136,59 +132,5 @@ describe("extractBuildContext", () => {
     process.env.GITHUB_RUN_NUMBER = "not-a-number";
 
     expect(() => extractBuildContext()).toThrow("GITHUB_RUN_NUMBER");
-  });
-
-  test("extracts pull request context from GitHub Actions environment variables", () => {
-    process.env.GITHUB_SHA = "abc123def456abc123def456abc123def456abcd";
-    process.env.GITHUB_REF = "refs/pull/123/merge";
-    process.env.GITHUB_RUN_ID = "12345";
-    process.env.GITHUB_RUN_NUMBER = "42";
-    process.env.GITHUB_EVENT_NAME = "pull_request";
-    process.env.GITHUB_BASE_REF = "main";
-    process.env.GITHUB_HEAD_REF = "feature/new-feature";
-
-    const context = extractBuildContext();
-
-    expect(context.commit_sha).toBe("abc123def456abc123def456abc123def456abcd");
-    expect(context.branch).toBe("refs/pull/123/merge");
-    expect(context.run_id).toBe("12345");
-    expect(context.run_number).toBe(42);
-    expect(context.event_name).toBe("pull_request");
-    expect(context.pull_request_number).toBe(123);
-    expect(context.pull_request_base).toBe("main");
-    expect(context.pull_request_head).toBe("feature/new-feature");
-  });
-
-  test("handles pull request context without base and head refs", () => {
-    process.env.GITHUB_SHA = "abc123def456abc123def456abc123def456abcd";
-    process.env.GITHUB_REF = "refs/pull/456/merge";
-    process.env.GITHUB_RUN_ID = "12345";
-    process.env.GITHUB_RUN_NUMBER = "42";
-    process.env.GITHUB_EVENT_NAME = "pull_request";
-    // Explicitly clear GITHUB_BASE_REF and GITHUB_HEAD_REF
-    delete process.env.GITHUB_BASE_REF;
-    delete process.env.GITHUB_HEAD_REF;
-
-    const context = extractBuildContext();
-
-    expect(context.pull_request_number).toBe(456);
-    expect(context.pull_request_base).toBeUndefined();
-    expect(context.pull_request_head).toBeUndefined();
-  });
-
-  test("does not extract PR fields for non-PR events", () => {
-    process.env.GITHUB_SHA = "abc123def456abc123def456abc123def456abcd";
-    process.env.GITHUB_REF = "refs/heads/main";
-    process.env.GITHUB_RUN_ID = "12345";
-    process.env.GITHUB_RUN_NUMBER = "42";
-    process.env.GITHUB_EVENT_NAME = "push";
-    process.env.GITHUB_BASE_REF = "main";
-    process.env.GITHUB_HEAD_REF = "feature/new-feature";
-
-    const context = extractBuildContext();
-
-    expect(context.pull_request_number).toBeUndefined();
-    expect(context.pull_request_base).toBeUndefined();
-    expect(context.pull_request_head).toBeUndefined();
   });
 });
