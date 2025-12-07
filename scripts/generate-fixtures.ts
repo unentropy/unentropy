@@ -5,6 +5,7 @@ import { SqliteDatabaseAdapter } from "../src/storage/adapters/sqlite";
 import { generateReport } from "../src/reporter/generator";
 import { writeFileSync, mkdirSync } from "fs";
 import { dirname } from "path";
+import type { UnitType } from "../src/metrics/types";
 
 interface FixtureConfig {
   name: string;
@@ -15,7 +16,7 @@ interface FixtureConfig {
     name: string;
     type: "numeric" | "label";
     description: string;
-    unit?: string;
+    unit?: UnitType;
     valueGenerator: (buildIndex: number) => number | string | null;
   }[];
 }
@@ -197,14 +198,13 @@ async function generateFixture(config: FixtureConfig): Promise<void> {
       branch: "main",
       run_id: `run-${i + 1000}`,
       run_number: i + 1,
-      actor: "test-bot",
       event_name: "push",
       timestamp: buildTimestamp,
     });
 
     for (const metricGen of config.metricGenerators) {
       const metricDef = adapter.upsertMetricDefinition({
-        name: metricGen.name,
+        id: metricGen.name,
         type: metricGen.type,
         description: metricGen.description,
         unit: metricGen.unit || null,
@@ -212,22 +212,15 @@ async function generateFixture(config: FixtureConfig): Promise<void> {
 
       const value = metricGen.valueGenerator(i);
 
-      // Skip inserting metric value if generator returns null (sparse data simulation)
       if (value === null) {
         continue;
       }
-
-      const collectedAt = new Date(
-        new Date(buildTimestamp).getTime() + Math.random() * 60000
-      ).toISOString();
 
       adapter.insertMetricValue({
         metric_id: metricDef.id,
         build_id: buildId,
         value_numeric: metricGen.type === "numeric" ? Number(value) : null,
         value_label: metricGen.type === "label" ? String(value) : null,
-        collected_at: collectedAt,
-        collection_duration_ms: Math.floor(Math.random() * 5000) + 100,
       });
     }
   }

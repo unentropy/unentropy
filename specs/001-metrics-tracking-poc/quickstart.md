@@ -225,9 +225,9 @@ export class SqliteLocalStorageProvider implements StorageProvider {
 // 3. Database adapter interface in src/storage/adapters/interface.ts
 export interface DatabaseAdapter {
   insertBuildContext(context: BuildContext): Promise<number>;
-  upsertMetricDefinition(metric: MetricDefinition): Promise<number>;
+  upsertMetricDefinition(metric: MetricDefinition): Promise<string>;
   insertMetricValue(value: MetricValue): Promise<void>;
-  getMetricTimeSeries(name: string, options?: TimeSeriesOptions): Promise<MetricValue[]>;
+  getMetricTimeSeries(metricId: string, options?: TimeSeriesOptions): Promise<MetricValue[]>;
   // ... other query methods
 }
 
@@ -237,31 +237,30 @@ export class SqliteDatabaseAdapter implements DatabaseAdapter {
   
   async insertBuildContext(context: BuildContext): Promise<number> {
     const stmt = this.db.prepare(`
-      INSERT INTO build_contexts (commit_sha, branch, run_id, run_number, actor, event_name, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO build_contexts (commit_sha, branch, run_id, run_number, event_name, event_timestamp)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
     const result = stmt.run(
       context.commitSha,
       context.branch,
       context.runId,
       context.runNumber,
-      context.actor,
       context.eventName,
-      context.createdAt
+      context.eventTimestamp
     );
     return result.lastInsertRowid as number;
   }
   
-  async upsertMetricDefinition(metric: MetricDefinition): Promise<number> {
+  async upsertMetricDefinition(metric: MetricDefinition): Promise<string> {
     const stmt = this.db.prepare(`
-      INSERT INTO metric_definitions (name, type, unit, description)
+      INSERT INTO metric_definitions (id, type, unit, description)
       VALUES (?, ?, ?, ?)
-      ON CONFLICT(name) DO UPDATE SET
+      ON CONFLICT(id) DO UPDATE SET
         unit = excluded.unit,
         description = excluded.description
       RETURNING id
     `);
-    const row = stmt.get(metric.name, metric.type, metric.unit, metric.description) as { id: number };
+    const row = stmt.get(metric.id, metric.type, metric.unit, metric.description) as { id: string };
     return row.id;
   }
   // ... other query methods
@@ -341,12 +340,10 @@ export class Storage {
 export function initializeSchema(db: Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS metric_definitions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE,
+      id TEXT PRIMARY KEY,
       type TEXT NOT NULL CHECK(type IN ('numeric', 'label')),
       unit TEXT,
-      description TEXT,
-      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      description TEXT
     );
     
     CREATE TABLE IF NOT EXISTS build_contexts (
@@ -355,24 +352,24 @@ export function initializeSchema(db: Database): void {
       branch TEXT NOT NULL,
       run_id TEXT NOT NULL,
       run_number INTEGER NOT NULL,
-      actor TEXT,
       event_name TEXT,
-      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      event_timestamp TEXT NOT NULL,
       UNIQUE(commit_sha, run_id)
     );
     
     CREATE TABLE IF NOT EXISTS metric_values (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      metric_id INTEGER NOT NULL,
+      metric_id TEXT NOT NULL,
       build_id INTEGER NOT NULL,
       value_numeric REAL,
       value_label TEXT,
-      collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      collection_duration_ms INTEGER,
       FOREIGN KEY (metric_id) REFERENCES metric_definitions(id),
       FOREIGN KEY (build_id) REFERENCES build_contexts(id),
       UNIQUE(metric_id, build_id)
     );
+    
+    CREATE INDEX IF NOT EXISTS idx_build_event_timestamp 
+      ON build_contexts(event_timestamp);
   `);
 }
 ```
@@ -414,9 +411,8 @@ export function getBuildContext(): BuildContext {
     branch: process.env.GITHUB_REF!.replace('refs/heads/', ''),
     runId: process.env.GITHUB_RUN_ID!,
     runNumber: parseInt(process.env.GITHUB_RUN_NUMBER!),
-    actor: process.env.GITHUB_ACTOR,
     eventName: process.env.GITHUB_EVENT_NAME,
-    timestamp: new Date().toISOString(),
+    eventTimestamp: new Date().toISOString(),
   };
 }
 
@@ -453,20 +449,17 @@ export async function collectMetrics(
   
   const metricValues = await Promise.allSettled(
     config.metrics.map(async (metric) => {
-      const startTime = Date.now();
       const output = await executeMetricCommand(
         metric.command,
         context,
-        metric.name,
+        metric.id,
         metric.type
       );
-      const duration = Date.now() - startTime;
       
       const value = parseMetricValue(output, metric.type);
       return {
         definition: metric,
         value,
-        collectionDurationMs: duration,
       };
     })
   );

@@ -20,21 +20,21 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     adapter = new SqliteDatabaseAdapter(db.getConnection());
 
     const coverageMetric = adapter.upsertMetricDefinition({
-      name: "test-coverage",
+      id: "test-coverage",
       type: "numeric",
       unit: "percent",
       description: "Code coverage percentage",
     });
 
     const bundleSizeMetric = adapter.upsertMetricDefinition({
-      name: "size",
+      id: "size",
       type: "numeric",
       unit: "bytes",
       description: "Total bundle size",
     });
 
     const statusMetric = adapter.upsertMetricDefinition({
-      name: "build-status",
+      id: "build-status",
       type: "label",
       description: "Build status result",
     });
@@ -53,21 +53,18 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
         metric_id: coverageMetric.id,
         build_id: buildId,
         value_numeric: 80 + Math.random() * 10,
-        collected_at: new Date(Date.UTC(2025, 9, i + 1, 12, 0, 0)).toISOString(),
       });
 
       adapter.insertMetricValue({
         metric_id: bundleSizeMetric.id,
         build_id: buildId,
         value_numeric: 450 + Math.random() * 50,
-        collected_at: new Date(Date.UTC(2025, 9, i + 1, 12, 0, 0)).toISOString(),
       });
 
       adapter.insertMetricValue({
         metric_id: statusMetric.id,
         build_id: buildId,
         value_label: i % 10 === 0 ? "failure" : "success",
-        collected_at: new Date(Date.UTC(2025, 9, i + 1, 12, 0, 0)).toISOString(),
       });
     }
   });
@@ -149,7 +146,6 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     });
 
     expect(html).not.toContain("<script>alert");
-    // Check that HTML is escaped (Preact uses proper HTML escaping)
     expect(html).toContain("&lt;");
   });
 

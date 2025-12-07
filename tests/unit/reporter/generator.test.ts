@@ -54,14 +54,14 @@ describe("getMetricTimeSeries", () => {
     });
 
     const coverageMetric = adapter.upsertMetricDefinition({
-      name: "test-coverage",
+      id: "test-coverage",
       type: "numeric",
       unit: "percent",
       description: "Test coverage percentage",
     });
 
     const statusMetric = adapter.upsertMetricDefinition({
-      name: "build-status",
+      id: "build-status",
       type: "label",
       description: "Build status",
     });
@@ -70,42 +70,36 @@ describe("getMetricTimeSeries", () => {
       metric_id: coverageMetric.id,
       build_id: buildId1,
       value_numeric: 85.2,
-      collected_at: "2025-10-01T12:00:00Z",
     });
 
     adapter.insertMetricValue({
       metric_id: coverageMetric.id,
       build_id: buildId2,
       value_numeric: 86.1,
-      collected_at: "2025-10-02T12:00:00Z",
     });
 
     adapter.insertMetricValue({
       metric_id: coverageMetric.id,
       build_id: buildId3,
       value_numeric: 87.5,
-      collected_at: "2025-10-03T12:00:00Z",
     });
 
     adapter.insertMetricValue({
       metric_id: statusMetric.id,
       build_id: buildId1,
       value_label: "success",
-      collected_at: "2025-10-01T12:00:00Z",
     });
 
     adapter.insertMetricValue({
       metric_id: statusMetric.id,
       build_id: buildId2,
       value_label: "success",
-      collected_at: "2025-10-02T12:00:00Z",
     });
 
     adapter.insertMetricValue({
       metric_id: statusMetric.id,
       build_id: buildId3,
       value_label: "failure",
-      collected_at: "2025-10-03T12:00:00Z",
     });
   });
 
@@ -129,7 +123,7 @@ describe("getMetricTimeSeries", () => {
       });
 
       const sparseMetric = adapter.upsertMetricDefinition({
-        name: "sparse-metric",
+        id: "sparse-metric",
         type: "numeric",
         description: "Metric with few data points",
       });
@@ -148,7 +142,6 @@ describe("getMetricTimeSeries", () => {
           metric_id: sparseMetric.id,
           build_id: bid,
           value_numeric: 50 + i,
-          collected_at: `2025-10-0${i + 1}T12:00:00Z`,
         });
       }
 
@@ -172,7 +165,7 @@ describe("getMetricTimeSeries", () => {
       const adapter = new SqliteDatabaseAdapter(db.getConnection());
 
       const nonSparseMetric = adapter.upsertMetricDefinition({
-        name: "non-sparse-metric",
+        id: "non-sparse-metric",
         type: "numeric",
         description: "Metric with sufficient data points",
       });
@@ -191,7 +184,6 @@ describe("getMetricTimeSeries", () => {
           metric_id: nonSparseMetric.id,
           build_id: bid,
           value_numeric: 50 + i,
-          collected_at: `2025-10-${String(i + 1).padStart(2, "0")}T12:00:00Z`,
         });
       }
 
@@ -255,7 +247,7 @@ describe("getMetricTimeSeries", () => {
 
   test("returns empty data points for metric with no values", () => {
     adapter.upsertMetricDefinition({
-      name: "empty-metric",
+      id: "empty-metric",
       type: "numeric",
       description: "No data",
     });
@@ -498,13 +490,8 @@ describe("normalizeMetricToBuilds", () => {
     branch: "main",
     run_id: `run-${id}`,
     run_number: runNumber,
-    actor: null,
     event_name: "push",
     timestamp,
-    created_at: timestamp,
-    pull_request_number: null,
-    pull_request_base: null,
-    pull_request_head: null,
   });
 
   const createTimeSeries = (

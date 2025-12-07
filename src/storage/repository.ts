@@ -24,14 +24,10 @@ export class MetricsRepository {
       definition: InsertMetricDefinition;
       value_numeric?: number;
       value_label?: string;
-      collected_at: string;
-      collection_duration_ms?: number;
     }[]
   ): Promise<number> {
-    // Insert build context
     const buildId = this.adapter.insertBuildContext(buildContext);
 
-    // Insert each metric definition and value
     for (const metric of metrics) {
       const metricDef = this.adapter.upsertMetricDefinition(metric.definition);
 
@@ -40,8 +36,6 @@ export class MetricsRepository {
         build_id: buildId,
         value_numeric: metric.value_numeric,
         value_label: metric.value_label,
-        collected_at: metric.collected_at,
-        collection_duration_ms: metric.collection_duration_ms,
       };
 
       this.adapter.insertMetricValue(valueData);

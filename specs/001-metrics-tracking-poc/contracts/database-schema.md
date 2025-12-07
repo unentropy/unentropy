@@ -2,8 +2,8 @@
 
 **Feature**: 001-metrics-tracking-poc  
 **Database**: SQLite 3.x  
-**Schema Version**: 1.0.0  
-**Last Updated**: Thu Oct 16 2025
+**Schema Version**: 2.0.0  
+**Last Updated**: Sat Dec 07 2025
 
 ## Overview
 
@@ -21,45 +21,37 @@ CREATE TABLE IF NOT EXISTS schema_version (
 );
 
 INSERT INTO schema_version (version, description) 
-VALUES ('1.0.0', 'Initial MVP schema');
+VALUES ('2.0.0', 'Clean schema with string metric IDs');
 ```
 
 ## Core Tables
 
 ### Table: `metric_definitions`
 
-Stores metric metadata and configuration.
+Stores metric metadata and configuration. The `id` is the metric key from the configuration file (e.g., `test-coverage`, `bundle-size`).
 
 ```sql
 CREATE TABLE IF NOT EXISTS metric_definitions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL UNIQUE,
+  id TEXT PRIMARY KEY CHECK(id GLOB '[a-z0-9-]*'),
   type TEXT NOT NULL CHECK(type IN ('numeric', 'label')),
   unit TEXT,
-  description TEXT,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  description TEXT
 );
-
-CREATE UNIQUE INDEX idx_metric_name ON metric_definitions(name);
 ```
 
 **Columns**:
 
 | Column | Type | Nullable | Default | Constraints | Description |
 |--------|------|----------|---------|-------------|-------------|
-| `id` | INTEGER | No | Auto-increment | PRIMARY KEY | Internal identifier |
-| `name` | TEXT | No | - | UNIQUE, matches `^[a-z0-9-]+$` | Metric name from config |
+| `id` | TEXT | No | - | PRIMARY KEY, matches `^[a-z0-9-]+$` | Metric key from config |
 | `type` | TEXT | No | - | CHECK: 'numeric' or 'label' | Metric type |
-| `unit` | TEXT | Yes | NULL | Max 10 chars | Display unit |
+| `unit` | TEXT | Yes | NULL | enum: percent, integer, bytes, duration, decimal | Display unit |
 | `description` | TEXT | Yes | NULL | Max 256 chars | Human description |
-| `created_at` | DATETIME | No | CURRENT_TIMESTAMP | - | First seen timestamp |
-
-**Indexes**:
-- `idx_metric_name` (UNIQUE): Fast lookup by name
 
 **Constraints**:
-- `name` must be unique
+- `id` is the primary key (no separate auto-increment id)
 - `type` must be 'numeric' or 'label'
+- `id` must match the pattern `[a-z0-9-]*`
 
 ---
 
@@ -74,16 +66,15 @@ CREATE TABLE IF NOT EXISTS build_contexts (
   branch TEXT NOT NULL,
   run_id TEXT NOT NULL,
   run_number INTEGER NOT NULL,
-  actor TEXT,
   event_name TEXT,
   timestamp DATETIME NOT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(commit_sha, run_id)
 );
 
 CREATE INDEX idx_build_timestamp ON build_contexts(timestamp);
 CREATE INDEX idx_build_branch ON build_contexts(branch);
 CREATE INDEX idx_build_commit ON build_contexts(commit_sha);
+CREATE INDEX idx_build_event_timestamp ON build_contexts(event_name, timestamp);
 ```
 
 **Columns**:
@@ -95,15 +86,14 @@ CREATE INDEX idx_build_commit ON build_contexts(commit_sha);
 | `branch` | TEXT | No | - | Max 255 chars | Git branch name |
 | `run_id` | TEXT | No | - | Max 64 chars | GitHub Actions run ID |
 | `run_number` | INTEGER | No | - | Positive | GitHub Actions run number |
-| `actor` | TEXT | Yes | NULL | Max 64 chars | User/bot who triggered |
 | `event_name` | TEXT | Yes | NULL | Max 32 chars | GitHub event type |
 | `timestamp` | DATETIME | No | - | ISO 8601 | Build start time |
-| `created_at` | DATETIME | No | CURRENT_TIMESTAMP | - | Record creation time |
 
 **Indexes**:
 - `idx_build_timestamp`: Fast time-range queries
 - `idx_build_branch`: Fast branch filtering
 - `idx_build_commit`: Fast commit lookup
+- `idx_build_event_timestamp`: Optimizes `WHERE event_name = 'push' ORDER BY timestamp` queries
 
 **Constraints**:
 - (`commit_sha`, `run_id`) must be unique together
@@ -117,12 +107,10 @@ Stores individual metric measurements.
 ```sql
 CREATE TABLE IF NOT EXISTS metric_values (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  metric_id INTEGER NOT NULL,
+  metric_id TEXT NOT NULL,
   build_id INTEGER NOT NULL,
   value_numeric REAL,
   value_label TEXT,
-  collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  collection_duration_ms INTEGER,
   FOREIGN KEY (metric_id) REFERENCES metric_definitions(id),
   FOREIGN KEY (build_id) REFERENCES build_contexts(id),
   UNIQUE(metric_id, build_id),
@@ -132,7 +120,6 @@ CREATE TABLE IF NOT EXISTS metric_values (
   )
 );
 
-CREATE INDEX idx_metric_value_metric_time ON metric_values(metric_id, collected_at);
 CREATE INDEX idx_metric_value_build ON metric_values(build_id);
 ```
 
@@ -141,15 +128,12 @@ CREATE INDEX idx_metric_value_build ON metric_values(build_id);
 | Column | Type | Nullable | Default | Constraints | Description |
 |--------|------|----------|---------|-------------|-------------|
 | `id` | INTEGER | No | Auto-increment | PRIMARY KEY | Internal identifier |
-| `metric_id` | INTEGER | No | - | FK to metric_definitions | Which metric |
+| `metric_id` | TEXT | No | - | FK to metric_definitions | Which metric (string key) |
 | `build_id` | INTEGER | No | - | FK to build_contexts | Which build |
 | `value_numeric` | REAL | Yes | NULL | Mutually exclusive with label | Numeric value |
 | `value_label` | TEXT | Yes | NULL | Max 256 chars, exclusive | Text value |
-| `collected_at` | DATETIME | No | CURRENT_TIMESTAMP | ISO 8601 | Collection timestamp |
-| `collection_duration_ms` | INTEGER | Yes | NULL | Positive | Command execution time |
 
 **Indexes**:
-- `idx_metric_value_metric_time`: Time-series queries per metric
 - `idx_metric_value_build`: All metrics for a build
 
 **Constraints**:
@@ -192,8 +176,6 @@ PRAGMA temp_store = MEMORY;         -- Use memory for temp tables
 - **5s busy timeout**: Handles concurrent GitHub Actions writes
 - **2MB cache**: Improves query performance for reports
 
-**Note**: These PRAGMA statements are applied by the storage provider, not by the generic Storage class, ensuring proper separation of concerns between storage-specific configuration and generic storage operations.
-
 ---
 
 ## Query Patterns
@@ -203,88 +185,64 @@ PRAGMA temp_store = MEMORY;         -- Use memory for temp tables
 **Insert new build context**:
 ```sql
 INSERT INTO build_contexts (
-  commit_sha, branch, run_id, run_number, actor, event_name, timestamp
-) VALUES (?, ?, ?, ?, ?, ?, ?)
+  commit_sha, branch, run_id, run_number, event_name, timestamp
+) VALUES (?, ?, ?, ?, ?, ?)
 RETURNING id;
 ```
 
-**Insert or get metric definition**:
+**Insert or update metric definition**:
 ```sql
-INSERT INTO metric_definitions (name, type, unit, description)
+INSERT INTO metric_definitions (id, type, unit, description)
 VALUES (?, ?, ?, ?)
-ON CONFLICT(name) DO UPDATE SET
+ON CONFLICT(id) DO UPDATE SET
   unit = excluded.unit,
   description = excluded.description
-RETURNING id, type;
+RETURNING id, type, unit, description;
 ```
 
 **Insert metric value**:
 ```sql
 INSERT INTO metric_values (
-  metric_id, build_id, value_numeric, value_label, collected_at, collection_duration_ms
-) VALUES (?, ?, ?, ?, ?, ?)
+  metric_id, build_id, value_numeric, value_label
+) VALUES (?, ?, ?, ?)
 ON CONFLICT(metric_id, build_id) DO UPDATE SET
   value_numeric = excluded.value_numeric,
-  value_label = excluded.value_label,
-  collected_at = excluded.collected_at,
-  collection_duration_ms = excluded.collection_duration_ms;
+  value_label = excluded.value_label
+RETURNING id;
 ```
 
 **Get time-series data for report**:
 ```sql
 SELECT 
-  md.name,
+  md.id as metric_name,
   md.type,
   md.unit,
   md.description,
   mv.value_numeric,
   mv.value_label,
-  mv.collected_at,
   bc.commit_sha,
   bc.branch,
-  bc.timestamp
+  bc.timestamp as build_timestamp
 FROM metric_values mv
 INNER JOIN metric_definitions md ON mv.metric_id = md.id
 INNER JOIN build_contexts bc ON mv.build_id = bc.id
-WHERE bc.timestamp >= ? AND bc.timestamp <= ?
-ORDER BY md.name, bc.timestamp ASC;
+WHERE md.id = ? AND bc.event_name = 'push'
+ORDER BY bc.timestamp ASC;
 ```
 
-**Get latest value per metric**:
+**Get baseline metric value**:
 ```sql
-WITH latest_builds AS (
-  SELECT id, timestamp
-  FROM build_contexts
-  ORDER BY timestamp DESC
-  LIMIT 10
-)
-SELECT 
-  md.name,
-  md.type,
-  md.unit,
-  mv.value_numeric,
-  mv.value_label,
-  bc.timestamp
+SELECT mv.value_numeric
 FROM metric_values mv
-INNER JOIN metric_definitions md ON mv.metric_id = md.id
-INNER JOIN latest_builds bc ON mv.build_id = bc.id
-ORDER BY bc.timestamp DESC, md.name;
-```
-
-**Get metric statistics** (for numeric metrics):
-```sql
-SELECT 
-  md.name,
-  md.unit,
-  COUNT(mv.value_numeric) as count,
-  MIN(mv.value_numeric) as min,
-  MAX(mv.value_numeric) as max,
-  AVG(mv.value_numeric) as avg,
-  SUM(mv.value_numeric) as sum
-FROM metric_values mv
-INNER JOIN metric_definitions md ON mv.metric_id = md.id
-WHERE md.type = 'numeric' AND md.name = ?
-GROUP BY md.id;
+JOIN metric_definitions md ON mv.metric_id = md.id
+JOIN build_contexts bc ON mv.build_id = bc.id
+WHERE md.id = ? 
+  AND bc.branch = ?
+  AND bc.event_name = 'push'
+  AND bc.timestamp >= datetime('now', '-' || ? || ' days')
+  AND mv.value_numeric IS NOT NULL
+ORDER BY bc.timestamp DESC
+LIMIT 1;
 ```
 
 ---
@@ -301,7 +259,7 @@ INSERT INTO build_contexts (...) VALUES (...) RETURNING id;
 
 -- For each metric:
 INSERT INTO metric_definitions (...) VALUES (...)
-  ON CONFLICT(name) DO UPDATE ... RETURNING id;
+  ON CONFLICT(id) DO UPDATE ... RETURNING id;
 
 INSERT INTO metric_values (...) VALUES (...);
 
@@ -345,8 +303,6 @@ COMMIT;
 - Job B wrote build Y + metrics
 - No overlap in data (different builds)
 
-**Edge Case**: If Job A's artifact upload fails, Job B's artifact becomes the latest and Job A's data is lost. This is acceptable for metrics (not critical data).
-
 ### Read Conflicts
 
 **Scenario**: Report generation while collection is running
@@ -374,6 +330,11 @@ PRAGMA foreign_keys = ON;
 CHECK(type IN ('numeric', 'label'))
 ```
 
+**Metric ID format**:
+```sql
+CHECK(id GLOB '[a-z0-9-]*')
+```
+
 **Value exclusivity**:
 ```sql
 CHECK(
@@ -384,9 +345,9 @@ CHECK(
 
 ### Unique Constraints
 
-**Metric names**:
+**Metric IDs** (primary key):
 ```sql
-UNIQUE(name)  -- in metric_definitions
+PRIMARY KEY (id)  -- in metric_definitions
 ```
 
 **Build identity**:
@@ -401,40 +362,16 @@ UNIQUE(metric_id, build_id)  -- in metric_values
 
 ---
 
-## Migration Strategy
-
-### Version 1.0.0 → 1.1.0 (Example)
-
-```sql
--- Check current version
-SELECT version FROM schema_version ORDER BY applied_at DESC LIMIT 1;
-
--- Apply migration if needed
-ALTER TABLE metric_definitions ADD COLUMN tags TEXT;
-
--- Update version
-INSERT INTO schema_version (version, description)
-VALUES ('1.1.0', 'Added tags support to metrics');
-```
-
-**Migration Rules**:
-- All migrations must be idempotent (safe to run multiple times)
-- Additive changes only (no column drops)
-- Default values for new columns
-- Backward compatible with old code reading new schema
-
----
-
 ## Performance Characteristics
 
 ### Expected Data Volume
 
 | Entity | Count (1 year) | Size per Row | Total Size |
 |--------|----------------|--------------|------------|
-| metric_definitions | 20 | 100 bytes | 2 KB |
-| build_contexts | 5,000 | 200 bytes | 1 MB |
-| metric_values | 100,000 | 50 bytes | 5 MB |
-| **Total** | - | - | **~6 MB** |
+| metric_definitions | 20 | 80 bytes | 1.6 KB |
+| build_contexts | 5,000 | 150 bytes | 750 KB |
+| metric_values | 100,000 | 40 bytes | 4 MB |
+| **Total** | - | - | **~5 MB** |
 
 **Assumptions**:
 - 20 metrics defined
@@ -450,19 +387,6 @@ VALUES ('1.1.0', 'Added tags support to metrics');
 | Time range query | O(log n + k) | <10ms | Index seek + scan results |
 | Latest values | O(n) | <50ms | Full scan acceptable for small data |
 | Report generation | O(n) | <100ms | Full table scan, 100K rows |
-
-### Index Usage
-
-```sql
-EXPLAIN QUERY PLAN
-SELECT * FROM metric_values 
-WHERE metric_id = 1 AND collected_at > '2025-01-01';
-```
-
-Expected plan:
-```
-SEARCH metric_values USING INDEX idx_metric_value_metric_time (metric_id=? AND collected_at>?)
-```
 
 ---
 
@@ -511,7 +435,6 @@ PRAGMA table_info(metric_values);
 ### Get index information
 ```sql
 PRAGMA index_list(metric_values);
-PRAGMA index_info(idx_metric_value_metric_time);
 ```
 
 ---
@@ -525,25 +448,11 @@ PRAGMA index_info(idx_metric_value_metric_time);
 3. Check constraints prevent invalid data
 4. Unique constraints prevent duplicates
 5. Indexes exist and are used by queries
+6. Metric ID uses TEXT primary key
 
 ### Integration Test Requirements
 
 1. Concurrent writes don't corrupt database
 2. WAL mode enables concurrent reads
 3. Transactions rollback on error
-4. Migrations apply successfully
-5. Backup/restore preserves data integrity
-
----
-
-## Backward Compatibility
-
-**Schema v1.0.0** (MVP):
-- All tables and columns defined above
-- No breaking changes in future versions
-
-**Future Versions**:
-- New tables/columns added as optional
-- Existing columns never removed or renamed
-- Type changes avoided (new column + migration)
-- Old code can read new schema (ignore new fields)
+4. Backup/restore preserves data integrity

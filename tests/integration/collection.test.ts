@@ -11,7 +11,6 @@ describe("End-to-end collection workflow", () => {
   let testDbPath: string;
 
   beforeEach(async () => {
-    // Generate unique database name for each test to avoid conflicts
     const uniqueSuffix = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
     testDbPath = `/tmp/unentropy-test-${uniqueSuffix}.db`;
 
@@ -23,7 +22,6 @@ describe("End-to-end collection workflow", () => {
       GITHUB_RUN_ID: "42",
       GITHUB_RUN_NUMBER: "1",
       GITHUB_EVENT_NAME: "push",
-      GITHUB_ACTOR: "testuser",
     };
 
     storage = new Storage({
@@ -67,7 +65,6 @@ describe("End-to-end collection workflow", () => {
       branch: "test-branch",
       run_id: "999",
       run_number: 1,
-      actor: "test-user",
       event_name: "push",
       timestamp: new Date().toISOString(),
     };
@@ -90,7 +87,7 @@ describe("End-to-end collection workflow", () => {
     const status = values.find((v) => v.metric_name === "build-status");
     expect(status).toBeDefined();
     expect(status?.value_label).toBe("passing");
-  }, 10000); // 10 second timeout
+  }, 10000);
 
   test("creates metric definitions on first collection", async () => {
     const metrics: Record<string, ResolvedMetricConfig> = {
@@ -114,7 +111,7 @@ describe("End-to-end collection workflow", () => {
 
     const metricDef = db.getRepository().getMetricDefinition("new-metric");
     expect(metricDef).toBeDefined();
-    expect(metricDef?.name).toBe("new-metric");
+    expect(metricDef?.id).toBe("new-metric");
     expect(metricDef?.type).toBe("numeric");
   });
 
@@ -123,7 +120,6 @@ describe("End-to-end collection workflow", () => {
       "existing-metric": { id: "existing-metric", type: "numeric", command: 'echo "1"' },
     };
 
-    // Use unique path for this specific test to avoid conflicts
     const uniqueSuffix = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
     const testPath = `/tmp/unentropy-reuse-${uniqueSuffix}.db`;
     const db = new Storage({ type: "sqlite-local", path: testPath });
@@ -159,7 +155,7 @@ describe("End-to-end collection workflow", () => {
       await repository.recordBuild(buildContext2, result2.collectedMetrics);
 
       const allDefs = db.getRepository().getAllMetricDefinitions();
-      const existingMetrics = allDefs.filter((d: { name: string }) => d.name === "existing-metric");
+      const existingMetrics = allDefs.filter((d: { id: string }) => d.id === "existing-metric");
       expect(existingMetrics).toHaveLength(1);
 
       const values = db.getRepository().getAllMetricValues();
@@ -173,7 +169,7 @@ describe("End-to-end collection workflow", () => {
         await unlink(testPath);
       }
     }
-  }, 10000); // 10 second timeout
+  }, 10000);
 
   test("handles mixed success and failure gracefully", async () => {
     const metrics: Record<string, ResolvedMetricConfig> = {
@@ -182,7 +178,6 @@ describe("End-to-end collection workflow", () => {
       success2: { id: "success2", type: "label", command: 'echo "ok"' },
     };
 
-    // Use unique path for this specific test to avoid conflicts
     const uniqueSuffix = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
     const testPath = `/tmp/unentropy-mixed-${uniqueSuffix}.db`;
     const db = new Storage({ type: "sqlite-local", path: testPath });
@@ -214,14 +209,13 @@ describe("End-to-end collection workflow", () => {
         await unlink(testPath);
       }
     }
-  }, 10000); // 10 second timeout
+  }, 10000);
 
   test("associates metrics with correct build context", async () => {
     const metrics: Record<string, ResolvedMetricConfig> = {
       metric: { id: "metric", type: "numeric", command: 'echo "5"' },
     };
 
-    // Use unique path for this specific test to avoid conflicts
     const uniqueSuffix = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
     const testPath = `/tmp/unentropy-context-${uniqueSuffix}.db`;
     const db = new Storage({ type: "sqlite-local", path: testPath });
@@ -233,7 +227,6 @@ describe("End-to-end collection workflow", () => {
         branch: "feature-branch",
         run_id: "12345",
         run_number: 42,
-        actor: "developer",
         event_name: "pull_request",
         timestamp: new Date().toISOString(),
       };
@@ -251,40 +244,5 @@ describe("End-to-end collection workflow", () => {
         await unlink(testPath);
       }
     }
-  }, 10000); // 10 second timeout
+  }, 10000);
 });
-
-test("stores collection duration for successful metrics", async () => {
-  const metrics: Record<string, ResolvedMetricConfig> = {
-    "timed-metric": { id: "timed-metric", type: "numeric", command: 'echo "100"' },
-  };
-
-  // Use unique path for this specific test to avoid conflicts
-  const uniqueSuffix = Date.now() + "-" + Math.random().toString(36).substr(2, 9);
-  const testPath = `/tmp/unentropy-duration-${uniqueSuffix}.db`;
-  const storage = new Storage({ type: "sqlite-local", path: testPath });
-  await storage.initialize();
-
-  try {
-    const buildContext = {
-      commit_sha: "abc123def456abc123def456abc123def456abcd",
-      branch: "test-branch",
-      run_id: "999",
-      run_number: 1,
-      timestamp: new Date().toISOString(),
-    };
-
-    const repository = storage.getRepository();
-    const result = await collectMetrics(metrics);
-    const buildId = await repository.recordBuild(buildContext, result.collectedMetrics);
-
-    const values = storage.getRepository().getMetricValuesByBuildId(buildId);
-    expect(values).toHaveLength(1);
-    expect(values[0]?.collection_duration_ms).toBeGreaterThan(0);
-  } finally {
-    await storage.close();
-    if (existsSync(testPath)) {
-      await unlink(testPath);
-    }
-  }
-}, 10000); // 10 second timeout

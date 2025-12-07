@@ -63,15 +63,13 @@ export async function collectMetrics(metrics: Record<string, ResolvedMetricConfi
   CollectionResult & {
     collectedMetrics: {
       definition: {
-        name: string;
+        id: string;
         type: "numeric" | "label";
         unit?: UnitType;
         description?: string;
       };
       value_numeric?: number;
       value_label?: string;
-      collected_at: string;
-      collection_duration_ms?: number;
     }[];
   }
 > {
@@ -80,15 +78,13 @@ export async function collectMetrics(metrics: Record<string, ResolvedMetricConfi
   const result: CollectionResult & {
     collectedMetrics: {
       definition: {
-        name: string;
+        id: string;
         type: "numeric" | "label";
         unit?: UnitType;
         description?: string;
       };
       value_numeric?: number;
       value_label?: string;
-      collected_at: string;
-      collection_duration_ms?: number;
     }[];
   } = {
     total: metricEntries.length,
@@ -134,15 +130,13 @@ export async function collectMetrics(metrics: Record<string, ResolvedMetricConfi
 
       result.collectedMetrics.push({
         definition: {
-          name: metricId,
+          id: metricId,
           type: metric.type,
           unit: metric.unit,
           description: metric.description,
         },
         value_numeric: parseResult.numericValue,
         value_label: parseResult.labelValue,
-        collected_at: new Date().toISOString(),
-        collection_duration_ms: commandResult.durationMs,
       });
 
       result.successful++;

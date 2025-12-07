@@ -22,8 +22,8 @@ export interface DatabaseAdapter {
 
   // Read operations - single record
   getBuildContext(id: number): BuildContext | undefined;
-  getMetricDefinition(name: string): MetricDefinition | undefined;
-  getMetricValues(metricId: number, buildId: number): MetricValue | undefined;
+  getMetricDefinition(id: string): MetricDefinition | undefined;
+  getMetricValues(metricId: string, buildId: number): MetricValue | undefined;
 
   // Read operations - collections
   getMetricValuesByBuildId(buildId: number): (MetricValue & { metric_name: string })[];

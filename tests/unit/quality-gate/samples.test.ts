@@ -23,9 +23,9 @@ describe("buildMetricSamples", () => {
     const collectedMetrics = [
       {
         definition: {
-          name: "coverage",
+          id: "coverage",
           type: "numeric" as const,
-          unit: "percent",
+          unit: "percent" as const,
           description: "Code coverage",
         },
         value_numeric: 85,
@@ -48,7 +48,7 @@ describe("buildMetricSamples", () => {
     const collectedMetrics = [
       {
         definition: {
-          name: "status",
+          id: "status",
           type: "label" as const,
           description: "Build status",
         },
@@ -56,9 +56,9 @@ describe("buildMetricSamples", () => {
       },
       {
         definition: {
-          name: "coverage",
+          id: "coverage",
           type: "numeric" as const,
-          unit: "percent",
+          unit: "percent" as const,
           description: "Code coverage",
         },
         value_numeric: 85,
@@ -75,9 +75,9 @@ describe("buildMetricSamples", () => {
     const collectedMetrics = [
       {
         definition: {
-          name: "new-metric",
+          id: "new-metric",
           type: "numeric" as const,
-          unit: "count",
+          unit: "integer" as const,
           description: "New metric",
         },
         value_numeric: 100,
@@ -95,18 +95,18 @@ describe("buildMetricSamples", () => {
     const collectedMetrics = [
       {
         definition: {
-          name: "coverage",
+          id: "coverage",
           type: "numeric" as const,
-          unit: "percent",
+          unit: "percent" as const,
           description: "Code coverage",
         },
         value_numeric: 85,
       },
       {
         definition: {
-          name: "size",
+          id: "size",
           type: "numeric" as const,
-          unit: "bytes",
+          unit: "bytes" as const,
           description: "Bundle size",
         },
         value_numeric: 520,
@@ -135,9 +135,9 @@ describe("buildMetricSamples", () => {
     const collectedMetrics = [
       {
         definition: {
-          name: "coverage",
+          id: "coverage",
           type: "numeric" as const,
-          unit: "percent",
+          unit: "percent" as const,
           description: "Code coverage",
         },
         value_numeric: 85,

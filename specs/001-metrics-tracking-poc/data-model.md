@@ -2,7 +2,7 @@
 
 **Feature**: 001-metrics-tracking-poc  
 **Date**: Thu Oct 16 2025  
-**Updated**: 2025-12-06  
+**Updated**: 2025-12-07  
 **Status**: Implemented
 
 ## Overview
@@ -16,22 +16,20 @@ This document defines the data entities, their relationships, validation rules, 
 **Description**: Represents a user-defined metric that can be tracked over time.
 
 **Attributes**:
-- `id` (integer, primary key): Auto-generated unique identifier
-- `name` (string, unique, required): Metric name (e.g., "test-coverage", "size")
+- `id` (string, primary key): Metric identifier from config (e.g., "test-coverage", "bundle-size")
 - `type` (enum, required): Either 'numeric' or 'label'
-- `unit` (string, optional): Display unit for numeric metrics (e.g., "%", "ms", "KB", "LOC")
+- `unit` (string, optional): Display unit for numeric metrics (percent, integer, bytes, duration, decimal)
 - `description` (string, optional): Human-readable description of what this metric measures
-- `created_at` (timestamp, required): When this metric was first defined
 
 **Validation Rules**:
-- `name`: Must match pattern `^[a-z0-9-]+$` (lowercase alphanumeric with hyphens)
-- `name`: Length 1-64 characters
+- `id`: Must match pattern `^[a-z0-9-]+$` (lowercase alphanumeric with hyphens)
+- `id`: Length 1-64 characters
 - `type`: Must be either 'numeric' or 'label'
-- `unit`: Max 10 characters if provided
+- `unit`: Must be one of: percent, integer, bytes, duration, decimal
 - `description`: Max 256 characters if provided
 
 **Uniqueness Constraints**:
-- `name` must be unique across all metrics
+- `id` is the primary key (unique by definition)
 
 **Relationships**:
 - Has many `MetricValue` records (one-to-many)
@@ -53,16 +51,14 @@ This document defines the data entities, their relationships, validation rules, 
 - `branch` (string, required): Git branch name
 - `run_id` (string, required): GitHub Actions run ID
 - `run_number` (integer, required): GitHub Actions run number
-- `actor` (string, optional): User/bot that triggered the run
 - `event_name` (string, optional): GitHub event type (push, pull_request, schedule, etc.)
-- `created_at` (timestamp, required): When this record was inserted
+- `timestamp` (datetime, required): When the build started
 
 **Validation Rules**:
 - `commit_sha`: Must be 40-character hexadecimal string
 - `branch`: Max 255 characters
 - `run_id`: Max 64 characters
 - `run_number`: Positive integer
-- `actor`: Max 64 characters if provided
 - `event_name`: Max 32 characters if provided
 
 **Uniqueness Constraints**:
@@ -84,18 +80,15 @@ This document defines the data entities, their relationships, validation rules, 
 
 **Attributes**:
 - `id` (integer, primary key): Auto-generated unique identifier
-- `metric_id` (integer, foreign key, required): References `MetricDefinition.id`
+- `metric_id` (string, foreign key, required): References `MetricDefinition.id`
 - `build_id` (integer, foreign key, required): References `BuildContext.id`
 - `value_numeric` (float, optional): Numeric value (populated when metric type is 'numeric')
 - `value_label` (string, optional): Text value (populated when metric type is 'label')
-- `collected_at` (timestamp, required): When this specific metric was collected
-- `collection_duration_ms` (integer, optional): How long the collection command took to execute
 
 **Validation Rules**:
 - Exactly one of `value_numeric` or `value_label` must be populated (based on metric type)
 - `value_numeric`: Any valid float (including negative, zero, infinity)
 - `value_label`: Max 256 characters
-- `collection_duration_ms`: Positive integer if provided
 
 **Uniqueness Constraints**:
 - (`metric_id`, `build_id`) combination must be unique (one value per metric per build)
@@ -150,14 +143,14 @@ MetricConfig {
 }
 ```
 
-**Note**: The object key serves as the metric identifier and maps to `MetricDefinition.name` in the database.
+**Note**: The object key serves as the metric identifier and maps directly to `MetricDefinition.id` in the database.
 
 **Validation Rules** (enforced by Zod schema):
 - `metrics`: Object with at least 1 property, max 50 properties
 - Object keys: Must match pattern `^[a-z0-9-]+$`, length 1-64 characters
 - `metrics[key].type`: Must be 'numeric' or 'label'
 - `metrics[key].command`: Non-empty string, max 1024 characters
-- `metrics[key].unit`: Max 10 characters if provided
+- `metrics[key].unit`: Must be one of: percent, integer, bytes, duration, decimal
 - `metrics[key].description`: Max 256 characters if provided
 - `metrics[key].name`: Max 256 characters if provided (optional display name)
 
@@ -289,19 +282,20 @@ Abstracts query execution engine.
 ```typescript
 interface DatabaseAdapter {
   // Write operations
-  insertBuildContext(context: BuildContext): Promise<number>;
-  upsertMetricDefinition(metric: MetricDefinition): Promise<number>;
-  insertMetricValue(value: MetricValue): Promise<void>;
+  insertBuildContext(context: BuildContext): number;
+  upsertMetricDefinition(metric: MetricDefinition): MetricDefinition;
+  insertMetricValue(value: MetricValue): number;
   
   // Read operations
-  getMetricTimeSeries(metricName: string, options?: TimeSeriesOptions): Promise<MetricValue[]>;
-  getAllMetricDefinitions(): Promise<MetricDefinition[]>;
-  getBuildContext(buildId: number): Promise<BuildContext | null>;
-  getAllBuildContexts(): Promise<BuildContext[]>;
+  getMetricTimeSeries(metricName: string): MetricValue[];
+  getAllMetricDefinitions(): MetricDefinition[];
+  getBuildContext(buildId: number): BuildContext | undefined;
+  getAllBuildContexts(options?: { onlyWithMetrics?: boolean }): BuildContext[];
+  getMetricDefinition(id: string): MetricDefinition | undefined;
   
-  // Query helpers
-  getLatestValueForMetric(metricName: string): Promise<MetricValue | null>;
-  getValueForBuild(metricName: string, buildId: number): Promise<MetricValue | null>;
+  // Quality gate queries
+  getBaselineMetricValue(metricName: string, referenceBranch: string, maxAgeDays?: number): number | undefined;
+  getPullRequestMetricValue(metricName: string, pullRequestBuildId: number): { value_numeric: number } | undefined;
 }
 ```
 
@@ -320,14 +314,17 @@ class MetricsRepository {
   constructor(private adapter: DatabaseAdapter) {}
   
   // Domain operations
-  async recordBuild(buildContext: BuildContext, metrics: MetricValue[]): Promise<number>;
-  async getMetricComparison(name: string, baseCommit: string, currentCommit: string): Promise<Comparison>;
-  async getMetricHistory(name: string, options?: HistoryOptions): Promise<MetricHistory>;
+  async recordBuild(buildContext: InsertBuildContext, metrics: { 
+    definition: InsertMetricDefinition; 
+    value_numeric?: number; 
+    value_label?: string 
+  }[]): Promise<number>;
   
-  // For test assertions only
-  get queries(): DatabaseAdapter {
-    return this.adapter;
-  }
+  getAllMetricDefinitions(): MetricDefinition[];
+  getAllBuildContexts(options?: { onlyWithMetrics?: boolean }): BuildContext[];
+  getMetricDefinition(id: string): MetricDefinition | undefined;
+  getMetricTimeSeries(metricName: string): MetricValue[];
+  getBaselineMetricValue(metricName: string, referenceBranch: string, maxAgeDays?: number): number | undefined;
 }
 ```
 
@@ -335,7 +332,6 @@ class MetricsRepository {
 - Clean API for application code
 - No SQL knowledge required for users of repository
 - Easy to mock for testing
-- Adapter accessible via `queries` for test assertions
 
 #### 4. Storage (Orchestrator)
 
@@ -363,10 +359,6 @@ class Storage {
     await this.provider.persist();
     this.provider.cleanup();
   }
-  
-  async transaction<T>(fn: () => Promise<T>): Promise<T> {
-    // Delegates to provider's database transaction
-  }
 }
 ```
 
@@ -375,10 +367,8 @@ class Storage {
 ```typescript
 // Initialize storage
 const storage = new Storage({
-  provider: {
-    type: 'sqlite-local',
-    path: './metrics.db'
-  }
+  type: 'sqlite-local',
+  path: './metrics.db'
 });
 await storage.initialize();
 
@@ -386,16 +376,13 @@ await storage.initialize();
 const repo = storage.getRepository();
 
 // Record a build with metrics
-const buildId = await repo.recordBuild(buildContext, metricValues);
+const buildId = await repo.recordBuild(buildContext, [
+  { definition: { id: 'test-coverage', type: 'numeric', unit: 'percent' }, value_numeric: 85.5 },
+  { definition: { id: 'build-status', type: 'label' }, value_label: 'success' }
+]);
 
 // Query metric history
-const history = await repo.getMetricHistory('test_coverage', {
-  limit: 100,
-  branch: 'main'
-});
-
-// For test assertions, access adapter directly
-const latestValue = await repo.queries.getLatestValueForMetric('test_coverage');
+const timeSeries = repo.getMetricTimeSeries('test-coverage');
 
 // Clean up
 await storage.close();
@@ -407,7 +394,7 @@ await storage.close();
 - Adapter abstracts query execution (enables PostgreSQL support)
 - Repository provides clean domain API
 - Storage orchestrates all layers
-- Repository exposes `queries` accessor for test assertions
+- Metric IDs are strings matching the config key
 - No SQL in application code (only in adapter implementations)
 
 ---
@@ -421,9 +408,9 @@ await storage.close();
    └─> Validate schema (fail fast on error)
    
 2. Initialize Storage Provider
-   └─> Create SqliteLocalStorageProvider (MVP)
+   └─> Create StorageProvider based on config
    └─> Initialize database connection
-   └─> Create tables if not exist
+   └─> Create tables if not exist (migration)
    └─> Enable WAL mode
    
 3. Create Build Context
@@ -431,8 +418,7 @@ await storage.close();
    └─> Capture git metadata (commit, branch, etc.)
    
 4. For each metric in configuration:
-   ├─> Check if MetricDefinition exists
-   │   └─> If not, create new MetricDefinition
+   ├─> Upsert MetricDefinition (create or update)
    │
    ├─> Execute collection command
    │   ├─> Success: Parse output
@@ -442,7 +428,7 @@ await storage.close();
        └─> Insert MetricValue with parsed value
        
 5. Finalize
-   └─> Persist storage (no-op for local in MVP)
+   └─> Persist storage (upload to S3 if applicable)
    └─> Close database connection
    └─> Cleanup resources
 ```
@@ -451,12 +437,12 @@ await storage.close();
 
 ```
 1. Initialize Storage Provider
-   └─> Create SqliteLocalStorageProvider (MVP)
-   └─> Open database in read-only mode
+   └─> Download database from S3 if applicable
+   └─> Open database
    
 2. Query Data
    ├─> Load all MetricDefinitions
-   ├─> Load BuildContexts (optionally filtered by time range)
+   ├─> Load BuildContexts (filtered by event_name = 'push')
    └─> Load MetricValues for selected builds
    
 3. Transform Data
@@ -476,21 +462,17 @@ await storage.close();
 
 ---
 
-## Database Schema (SQLite)
+## Database Schema (SQLite v2.0.0)
 
 ### Table: `metric_definitions`
 
 ```sql
 CREATE TABLE metric_definitions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL UNIQUE,
+  id TEXT PRIMARY KEY CHECK(id GLOB '[a-z0-9-]*'),
   type TEXT NOT NULL CHECK(type IN ('numeric', 'label')),
   unit TEXT,
-  description TEXT,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  description TEXT
 );
-
-CREATE INDEX idx_metric_name ON metric_definitions(name);
 ```
 
 ### Table: `build_contexts`
@@ -502,14 +484,15 @@ CREATE TABLE build_contexts (
   branch TEXT NOT NULL,
   run_id TEXT NOT NULL,
   run_number INTEGER NOT NULL,
-  actor TEXT,
   event_name TEXT,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  timestamp DATETIME NOT NULL,
   UNIQUE(commit_sha, run_id)
 );
 
 CREATE INDEX idx_build_timestamp ON build_contexts(timestamp);
 CREATE INDEX idx_build_branch ON build_contexts(branch);
+CREATE INDEX idx_build_commit ON build_contexts(commit_sha);
+CREATE INDEX idx_build_event_timestamp ON build_contexts(event_name, timestamp);
 ```
 
 ### Table: `metric_values`
@@ -517,12 +500,10 @@ CREATE INDEX idx_build_branch ON build_contexts(branch);
 ```sql
 CREATE TABLE metric_values (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  metric_id INTEGER NOT NULL,
+  metric_id TEXT NOT NULL,
   build_id INTEGER NOT NULL,
   value_numeric REAL,
   value_label TEXT,
-  collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  collection_duration_ms INTEGER,
   FOREIGN KEY (metric_id) REFERENCES metric_definitions(id),
   FOREIGN KEY (build_id) REFERENCES build_contexts(id),
   UNIQUE(metric_id, build_id),
@@ -532,7 +513,6 @@ CREATE TABLE metric_values (
   )
 );
 
-CREATE INDEX idx_metric_value_metric ON metric_values(metric_id, collected_at);
 CREATE INDEX idx_metric_value_build ON metric_values(build_id);
 ```
 
@@ -550,19 +530,12 @@ CREATE INDEX idx_metric_value_build ON metric_values(build_id);
 - **Isolation Level**: Read Uncommitted (acceptable for metrics)
 - **No Lock Contention**: WAL mode allows concurrent reads during writes
 
-### MVP Concurrency (Local Storage)
-For the MVP with local file storage:
-- Single workflow writes to database at a time
-- Database file is stored in repository or mounted volume
-- Standard SQLite WAL mode provides ACID guarantees
-- No special merge strategy needed
-
-**Future: Artifact/S3 Storage** (not implemented in MVP):
-When multiple concurrent jobs need to write to the database, the provider pattern will handle:
-1. Download latest database artifact/file
+### S3 Storage Concurrency
+When multiple concurrent jobs need to write to the database:
+1. Download latest database from S3
 2. Apply local writes (new build + metric values)
 3. Upload updated database
-4. Conflict resolution handled by storage backend (last-write-wins for artifacts)
+4. Conflict resolution: last-write-wins
 
 ---
 
@@ -574,10 +547,10 @@ When multiple concurrent jobs need to write to the database, the provider patter
 - Database size management is user responsibility
 
 **Estimated Storage**:
-- Metric definition: ~100 bytes
-- Build context: ~200 bytes
-- Metric value: ~50 bytes
-- 1000 builds × 10 metrics = ~500KB (negligible)
+- Metric definition: ~80 bytes
+- Build context: ~150 bytes
+- Metric value: ~40 bytes
+- 1000 builds × 10 metrics = ~400KB (negligible)
 
 ---
 
@@ -602,13 +575,15 @@ When multiple concurrent jobs need to write to the database, the provider patter
 
 ## Migration Strategy
 
-**Initial Schema**: Version 1 (MVP)
+**Current Schema**: Version 2.0.0
 
-**Future Migrations**:
+**Migration History**:
+- v2.0.0: Clean schema with string metric IDs, removed unused columns
+
+**Migration Rules**:
 - Handled via migration scripts in `src/storage/migrations.ts`
 - Version tracking table: `schema_version`
 - Apply migrations on storage initialization
-- No breaking changes to existing data
 
 ---
 
@@ -616,44 +591,38 @@ When multiple concurrent jobs need to write to the database, the provider patter
 
 ### Common Queries
 
-**Get all metrics for a time range**:
+**Get time-series data for a metric**:
 ```sql
 SELECT 
-  md.name,
-  md.type,
-  md.unit,
-  mv.value_numeric,
-  mv.value_label,
-  mv.collected_at,
+  mv.*,
+  md.id as metric_name,
   bc.commit_sha,
-  bc.branch
+  bc.branch,
+  bc.run_number,
+  bc.timestamp as build_timestamp
 FROM metric_values mv
 JOIN metric_definitions md ON mv.metric_id = md.id
 JOIN build_contexts bc ON mv.build_id = bc.id
-WHERE bc.timestamp >= ? AND bc.timestamp <= ?
-ORDER BY md.name, bc.timestamp;
+WHERE md.id = ? AND bc.event_name = 'push'
+ORDER BY bc.timestamp ASC;
 ```
 
-**Get latest value for each metric**:
+**Get baseline metric value**:
 ```sql
-SELECT 
-  md.name,
-  mv.value_numeric,
-  mv.value_label,
-  mv.collected_at
+SELECT mv.value_numeric
 FROM metric_values mv
 JOIN metric_definitions md ON mv.metric_id = md.id
 JOIN build_contexts bc ON mv.build_id = bc.id
-WHERE (md.id, bc.timestamp) IN (
-  SELECT md2.id, MAX(bc2.timestamp)
-  FROM metric_definitions md2
-  JOIN metric_values mv2 ON md2.id = mv2.metric_id
-  JOIN build_contexts bc2 ON mv2.build_id = bc2.id
-  GROUP BY md2.id
-);
+WHERE md.id = ? 
+  AND bc.branch = ?
+  AND bc.event_name = 'push'
+  AND bc.timestamp >= datetime('now', '-' || ? || ' days')
+  AND mv.value_numeric IS NOT NULL
+ORDER BY bc.timestamp DESC
+LIMIT 1;
 ```
 
 **Performance Characteristics**:
 - Time range queries: O(log n) with timestamp index
-- Metric lookup: O(1) with name index
+- Metric lookup: O(1) with primary key
 - Full scan for reports: O(n) acceptable for MVP scale (<1000 builds)

@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { Database } from "bun:sqlite";
 import { Storage } from "../../../src/storage/storage";
 import { initializeSchema } from "../../../src/storage/migrations";
 import { rm } from "fs/promises";
@@ -52,7 +51,7 @@ describe("Schema Initialization", () => {
       .all();
     const columnNames = columns.map((c) => c.name);
 
-    expect(columnNames).toEqual(["id", "name", "type", "unit", "description", "created_at"]);
+    expect(columnNames).toEqual(["id", "type", "unit", "description"]);
   });
 
   it("creates build_contexts table with correct schema", () => {
@@ -70,13 +69,8 @@ describe("Schema Initialization", () => {
       "branch",
       "run_id",
       "run_number",
-      "actor",
       "event_name",
       "timestamp",
-      "created_at",
-      "pull_request_number",
-      "pull_request_base",
-      "pull_request_head",
     ]);
   });
 
@@ -89,15 +83,7 @@ describe("Schema Initialization", () => {
       .all();
     const columnNames = columns.map((c) => c.name);
 
-    expect(columnNames).toEqual([
-      "id",
-      "metric_id",
-      "build_id",
-      "value_numeric",
-      "value_label",
-      "collected_at",
-      "collection_duration_ms",
-    ]);
+    expect(columnNames).toEqual(["id", "metric_id", "build_id", "value_numeric", "value_label"]);
   });
 
   it("creates indexes", () => {
@@ -109,11 +95,10 @@ describe("Schema Initialization", () => {
       .all();
 
     const indexNames = indexes.map((i) => i.name).sort();
-    expect(indexNames).toContain("idx_metric_name");
     expect(indexNames).toContain("idx_build_timestamp");
     expect(indexNames).toContain("idx_build_branch");
     expect(indexNames).toContain("idx_build_commit");
-    expect(indexNames).toContain("idx_metric_value_metric_time");
+    expect(indexNames).toContain("idx_build_event_timestamp");
     expect(indexNames).toContain("idx_metric_value_build");
   });
 
@@ -128,68 +113,7 @@ describe("Schema Initialization", () => {
       >("SELECT version FROM schema_version ORDER BY version DESC LIMIT 1")
       .get();
 
-    expect(version?.version).toBe("1.1.0");
-  });
-
-  it("migrates from 1.0.0 to 1.1.0", () => {
-    // Create a fresh database for this test
-    const db = new Database("./test-migration.db");
-
-    try {
-      // Create a mock storage object that returns our database
-      const mockStorage = {
-        getConnection: () => db,
-      } as Storage;
-
-      // Initialize to version 1.0.0 only
-      initializeSchema(mockStorage, "1.0.0");
-
-      // Verify we're at 1.0.0
-      const version = db
-        .query<
-          { version: string },
-          []
-        >("SELECT version FROM schema_version ORDER BY version DESC LIMIT 1")
-        .get();
-      expect(version?.version).toBe("1.0.0");
-
-      // Verify pull request columns don't exist yet
-      const columns = db
-        .query<{ name: string; type: string }, []>("PRAGMA table_info(build_contexts)")
-        .all();
-      const columnNames = columns.map((c) => c.name);
-
-      expect(columnNames).not.toContain("pull_request_number");
-      expect(columnNames).not.toContain("pull_request_base");
-      expect(columnNames).not.toContain("pull_request_head");
-
-      // Now migrate to 1.1.0
-      initializeSchema(mockStorage, "1.1.0");
-
-      // Check new columns were added
-      const updatedColumns = db
-        .query<{ name: string; type: string }, []>("PRAGMA table_info(build_contexts)")
-        .all();
-      const updatedColumnNames = updatedColumns.map((c) => c.name);
-
-      expect(updatedColumnNames).toContain("pull_request_number");
-      expect(updatedColumnNames).toContain("pull_request_base");
-      expect(updatedColumnNames).toContain("pull_request_head");
-
-      // Check version was updated
-      const finalVersion = db
-        .query<
-          { version: string },
-          []
-        >("SELECT version FROM schema_version ORDER BY version DESC LIMIT 1")
-        .get();
-      expect(finalVersion?.version).toBe("1.1.0");
-    } finally {
-      db.close();
-      rm("./test-migration.db", { force: true });
-      rm("./test-migration.db-shm", { force: true });
-      rm("./test-migration.db-wal", { force: true });
-    }
+    expect(version?.version).toBe("2.0.0");
   });
 
   it("is idempotent", () => {
@@ -201,6 +125,34 @@ describe("Schema Initialization", () => {
       .query<{ count: number }, []>("SELECT COUNT(*) as count FROM schema_version")
       .get();
 
-    expect(versions?.count).toBe(2);
+    expect(versions?.count).toBe(1);
+  });
+
+  it("uses TEXT primary key for metric_definitions", () => {
+    initializeSchema(client);
+    const db = client.getConnection();
+
+    const columns = db
+      .query<
+        { name: string; type: string; pk: number },
+        []
+      >("PRAGMA table_info(metric_definitions)")
+      .all();
+
+    const idColumn = columns.find((c) => c.name === "id");
+    expect(idColumn?.type).toBe("TEXT");
+    expect(idColumn?.pk).toBe(1);
+  });
+
+  it("uses TEXT for metric_id in metric_values", () => {
+    initializeSchema(client);
+    const db = client.getConnection();
+
+    const columns = db
+      .query<{ name: string; type: string }, []>("PRAGMA table_info(metric_values)")
+      .all();
+
+    const metricIdColumn = columns.find((c) => c.name === "metric_id");
+    expect(metricIdColumn?.type).toBe("TEXT");
   });
 });
