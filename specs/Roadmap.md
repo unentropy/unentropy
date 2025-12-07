@@ -23,6 +23,7 @@
 * [x] Simplify the config schema when using $ref. Will likely need to introduce the notion of "id", so that metric can be referenced in a quality gate.
 * [x] Support for @collect command
 * [x] Integrate find-artifact action into S3-artifact storage
+* [x] unentropy preview command
 * [ ] Use Drizzle ORM and proper migration system
 * [ ] In-repository docs
 * [ ] Polish quality gate comment, introduce some sort of internal templating

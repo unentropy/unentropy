@@ -109,6 +109,27 @@ A developer wants to verify that all metrics can be collected successfully befor
 
 ---
 
+### User Story 7 - Preview Report Locally (Priority: P2)
+
+A developer wants to see what their metrics report will look like before running metric collection or pushing to CI. They run `bunx unentropy preview` to generate an HTML report showing all configured metrics with placeholder/empty data, and optionally open it in their browser.
+
+**Why this priority**: Shortens feedback loop between config creation and seeing the report structure. Helps users understand what Unentropy can do before investing time in metric collection setup.
+
+**Independent Test**: Run `bunx unentropy preview` in a project with valid `unentropy.json` and verify HTML report is generated with all configured metrics listed (no data) and opens in browser.
+
+**Acceptance Scenarios**:
+
+1. **Given** a valid `unentropy.json` with 3 metrics, **When** user runs `bunx unentropy preview`, **Then** HTML report is generated in new directory showing all 3 metrics with empty state and opens in default browser
+2. **Given** a valid config, **When** user runs `bunx unentropy preview --no-open`, **Then** report is generated but browser is not opened
+3. **Given** a valid config, **When** user runs `bunx unentropy preview --output custom-dir`, **Then** report is written to `custom-dir/index.html` (directory created if needed)
+4. **Given** an existing non-empty output directory, **When** user runs `bunx unentropy preview`, **Then** command exits with error suggesting --force flag
+5. **Given** an existing non-empty output directory, **When** user runs `bunx unentropy preview --force`, **Then** directory is cleared and report is generated with a warning message
+6. **Given** an invalid config schema, **When** user runs `bunx unentropy preview`, **Then** schema validation error is displayed and exit code is 1
+7. **Given** no browser available (headless environment), **When** user runs `bunx unentropy preview`, **Then** report is generated successfully and error is caught silently
+8. **Given** a successful `init`, **When** the output is displayed, **Then** it includes a suggestion to run `bunx unentropy preview` to see the report structure
+
+---
+
 ### Edge Cases
 
 #### Init Command
@@ -120,6 +141,11 @@ A developer wants to verify that all metrics can be collected successfully befor
 - What happens when `unentropy.json` does not exist? Command displays an error suggesting to run `init` first.
 - What happens when a metric command times out? Command displays timeout error for that metric and continues to next.
 - What happens when all metrics fail? Command displays all errors and exits with code 2.
+
+#### Preview Command
+- What happens when `unentropy.json` does not exist? Command displays an error suggesting to run `init` first.
+- What happens when output directory parent doesn't exist? Command displays a permission/path error.
+- What happens when browser opening fails (headless environment)? Error is caught silently, report is still generated successfully.
 
 ## Requirements *(mandatory)*
 
@@ -188,6 +214,29 @@ A developer wants to verify that all metrics can be collected successfully befor
 - **FR-041**: System MUST continue collecting remaining metrics after a failure (not fail-fast)
 - **FR-042**: System MUST display clear error message for each failed metric
 
+#### Preview Command
+
+- **FR-043**: System MUST provide `preview` command to generate empty HTML report from config
+- **FR-044**: System MUST validate config schema before generating preview
+- **FR-045**: System MUST generate report showing all configured metrics with no data
+- **FR-046**: System MUST support `--config` / `-c` option to specify alternate config file path (default: `unentropy.json`)
+- **FR-047**: System MUST support `--output` / `-o` option to specify output directory (default: `unentropy-preview`)
+- **FR-048**: System MUST support `--no-open` flag to prevent browser from opening automatically
+- **FR-049**: System MUST support `--force` / `-f` flag to overwrite existing non-empty output directory
+- **FR-050**: System MUST create output directory if it does not exist
+- **FR-051**: System MUST error if output directory exists and is not empty (unless `--force` is used)
+- **FR-052**: System MUST open report in default browser unless `--no-open` is specified
+- **FR-053**: System MUST catch browser opening errors silently (for headless/CI environments)
+- **FR-054**: System MUST display path to generated report file
+
+#### Preview Error Handling
+
+- **FR-055**: System MUST exit with code 0 if preview generated successfully
+- **FR-056**: System MUST exit with code 1 if config validation fails
+- **FR-057**: System MUST exit with code 1 if output directory exists and is not empty (without `--force`)
+- **FR-058**: System MUST exit with code 1 if report generation fails
+- **FR-059**: System MUST exit with code 1 if config file not found
+
 ### Key Entities
 
 - **Project Type**: One of four supported types (javascript, php, go, python) with associated detection rules and configuration templates
@@ -207,6 +256,8 @@ A developer wants to verify that all metrics can be collected successfully befor
 - **SC-006**: 90% of users can complete initial setup (init + first successful metric collection) without needing to manually edit the generated configuration
 - **SC-007**: Users can verify all metrics collect successfully in under 60 seconds using the test command
 - **SC-008**: Test command clearly identifies which metrics failed and why, enabling users to fix issues without external documentation
+- **SC-009**: Users can preview report structure within 5 seconds of running preview command
+- **SC-010**: Preview command generates valid HTML report displaying all configured metrics with no data in 100% of cases
 
 ## Assumptions
 

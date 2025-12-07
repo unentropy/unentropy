@@ -124,9 +124,10 @@ export const InitCommand = cmd({
       }
 
       console.log("Next steps:");
-      console.log("  1. Run your tests with coverage (see commands below)");
-      console.log("  2. Verify metrics collect: bunx unentropy test");
-      console.log("  3. Add the workflows below to your CI");
+      console.log("  1. Preview report structure: bunx unentropy preview");
+      console.log("  2. Run your tests with coverage (see commands below)");
+      console.log("  3. Verify metrics collect: bunx unentropy test");
+      console.log("  4. Add the workflows below to your CI");
       console.log();
 
       const metricsWorkflow = generateMetricsWorkflow(projectType, storageType);

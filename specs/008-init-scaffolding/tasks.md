@@ -182,17 +182,51 @@
 
 ---
 
-## Phase 9: Polish & Cross-Cutting Concerns
+## Phase 9: User Story 7 - Preview Report Locally (Priority: P2)
+
+**Goal**: Users can generate and view an HTML report preview showing their configured metrics without collecting data
+
+**Independent Test**: Run `bunx unentropy preview` in a project with valid `unentropy.json` and verify HTML report is generated with all metrics shown in empty state and opens in browser
+
+### Implementation for User Story 7
+
+- [x] T067 [US7] Create PreviewCommand with command structure and arguments interface (PreviewArgs) in src/cli/cmd/preview.ts
+- [x] T068 [US7] Implement config loading and schema validation in src/cli/cmd/preview.ts
+- [x] T069 [US7] Implement generateEmptyReport function in src/reporter/generator.ts to create report with no data
+- [ ] T070 [US7] Add --config option for custom config file path in src/cli/cmd/preview.ts
+- [x] T071 [US7] Add --output option for custom output directory in src/cli/cmd/preview.ts
+- [ ] T072 [US7] Add --no-open option to skip browser launch in src/cli/cmd/preview.ts
+- [ ] T073 [US7] Add --force option to overwrite non-empty directories in src/cli/cmd/preview.ts
+- [ ] T074 [US7] Implement output directory validation (exists, empty check) in src/cli/cmd/preview.ts
+- [x] T075 [US7] Implement directory creation if not exists in src/cli/cmd/preview.ts
+- [ ] T076 [US7] Implement directory clearing when --force is used in src/cli/cmd/preview.ts
+- [x] T077 [US7] Implement browser opening logic with silent error catching in src/cli/cmd/preview.ts
+- [x] T078 [US7] Implement console output showing metrics list and report path in src/cli/cmd/preview.ts
+- [x] T079 [US7] Register PreviewCommand in src/index.ts
+- [x] T080 [US7] Add "run bunx unentropy preview" suggestion to init output in src/cli/cmd/init.ts
+- [ ] T081 [US7] Create integration test for successful preview with new directory in tests/integration/cli-preview.test.ts
+- [ ] T082 [US7] Create integration test for --no-open flag in tests/integration/cli-preview.test.ts
+- [ ] T083 [US7] Create integration test for custom output directory creation in tests/integration/cli-preview.test.ts
+- [ ] T084 [US7] Create integration test for non-empty directory error in tests/integration/cli-preview.test.ts
+- [ ] T085 [US7] Create integration test for --force flag overwriting in tests/integration/cli-preview.test.ts
+- [ ] T086 [US7] Create integration test for config validation failure in tests/integration/cli-preview.test.ts
+
+**Checkpoint**: User Story 7 complete - users can preview report structure before collecting metrics
+
+---
+
+## Phase 10: Polish & Cross-Cutting Concerns
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T067 [P] Create unit tests for project type detector in tests/unit/cli/init/detector.test.ts
-- [ ] T068 [P] Create unit tests for config templates in tests/unit/cli/init/templates.test.ts
-- [ ] T069 [P] Create unit tests for test command result formatter in tests/unit/cli/test/test-command.test.ts
-- [ ] T070 Verify all generated configs pass `bunx unentropy verify`
-- [ ] T071 Run complete integration test suite with all project types
-- [ ] T072 Validate quickstart.md scenarios match implementation
-- [ ] T073 Run build, lint, typecheck, and full test suite
+- [ ] T087 [P] Create unit tests for project type detector in tests/unit/cli/init/detector.test.ts
+- [ ] T088 [P] Create unit tests for config templates in tests/unit/cli/init/templates.test.ts
+- [ ] T089 [P] Create unit tests for test command result formatter in tests/unit/cli/test/test-command.test.ts
+- [ ] T090 [P] Create unit tests for empty report generation in tests/unit/reporter/generator.test.ts
+- [ ] T091 Verify all generated configs pass `bunx unentropy verify`
+- [ ] T092 Run complete integration test suite with all project types
+- [ ] T093 Validate quickstart.md scenarios match implementation
+- [ ] T094 Run build, lint, typecheck, and full test suite
 
 ---
 
@@ -206,7 +240,8 @@
   - US1 (P1) - MVP, must complete first
   - US2, US3, US6 (P2) - Can proceed after US1, recommended for complete MVP experience
   - US4, US5 (P3) - Can proceed after US1, nice-to-have features
-- **Polish (Phase 9)**: Depends on all desired user stories being complete
+- **User Story 7 (Phase 9)**: Can proceed after US1, recommended for complete onboarding experience
+- **Polish (Phase 10)**: Depends on all desired user stories being complete
 
 ### User Story Dependencies
 
@@ -216,6 +251,7 @@
 - **User Story 4 (P3)**: Can start after US1 - Adds safety features - Independently testable
 - **User Story 5 (P3)**: Can start after US1 - Adds storage options - Independently testable
 - **User Story 6 (P2)**: Can start after Foundational (Phase 2) - Completely independent of init command - Parallel to US1
+- **User Story 7 (P2)**: Can start after US1 - Generates preview from config - Independently testable
 
 ### Within Each User Story
 
@@ -228,10 +264,11 @@
 
 - **Setup Phase**: T001 and T002 can run in parallel (different directories)
 - **Foundational Phase**: T003, T004, T005 can run in parallel (different files); T007-T010 can run in parallel (different project types)
-- **After US1 Complete**: US2, US3, US4, US5 can all proceed in parallel (different features)
+- **After US1 Complete**: US2, US3, US4, US5, US7 can all proceed in parallel (different features)
 - **US6 Independent**: Can be developed completely in parallel to US1-US5 (separate command)
+- **US7 Independent**: Can be developed completely in parallel to US2-US6 (separate command, only depends on US1 for config)
 - **Within US3**: T028-T031 can run in parallel (different project types)
-- **Polish Phase**: T067-T069 can run in parallel (different test files)
+- **Polish Phase**: T087-T090 can run in parallel (different test files)
 
 ---
 
@@ -264,27 +301,29 @@ Task: "Implement workflow template generator for Python in src/cli/init/output.t
 
 ## Implementation Strategy
 
-### MVP First (User Story 1 + User Story 6)
+### MVP First (User Story 1 + User Story 6 + User Story 7)
 
 1. Complete Phase 1: Setup
 2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
 3. Complete Phase 3: User Story 1 (auto-detection and config generation)
 4. Complete Phase 8: User Story 6 (test command for validation)
-5. **STOP and VALIDATE**: Test both commands work together
-6. Deploy/demo if ready
+5. Complete Phase 9: User Story 7 (preview command for report visualization)
+6. **STOP and VALIDATE**: Test all three commands work together
+7. Deploy/demo if ready
 
-**Rationale**: US1 + US6 provide complete onboarding flow: generate config → validate it works. This is the minimum viable experience.
+**Rationale**: US1 + US6 + US7 provide complete onboarding flow: generate config → preview report → validate collection. This gives users the full picture of what Unentropy offers.
 
 ### Incremental Delivery
 
 1. Complete Setup + Foundational → Foundation ready
 2. Add User Story 1 → Test independently → Basic init works (minimal MVP)
 3. Add User Story 6 → Test independently → Complete validation workflow (recommended MVP)
-4. Add User Story 3 → Test independently → Users get CI/CD guidance
-5. Add User Story 2 → Test independently → Override detection when needed
-6. Add User Story 4 → Test independently → Protect from overwrites
-7. Add User Story 5 → Test independently → Support different storage backends
-8. Each story adds value without breaking previous stories
+4. Add User Story 7 → Test independently → Visual preview of reports (enhanced MVP)
+5. Add User Story 3 → Test independently → Users get CI/CD guidance
+6. Add User Story 2 → Test independently → Override detection when needed
+7. Add User Story 4 → Test independently → Protect from overwrites
+8. Add User Story 5 → Test independently → Support different storage backends
+9. Each story adds value without breaking previous stories
 
 ### Parallel Team Strategy
 
@@ -297,7 +336,10 @@ With multiple developers after Foundational phase completes:
 **Track B - Test Command**:
 - Developer B: User Story 6 (P2) - Test command (completely independent)
 
-Both tracks can proceed in parallel, then integrate at the end.
+**Track C - Preview Command**:
+- Developer C: User Story 7 (P2) - Preview command (depends only on US1 completion)
+
+All tracks can proceed in parallel, then integrate at the end.
 
 ---
 

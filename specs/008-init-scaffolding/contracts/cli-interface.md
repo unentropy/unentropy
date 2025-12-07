@@ -42,9 +42,10 @@ Detected project type: javascript (found: package.json, tsconfig.json)
   - size (Bundle Size)
 
 Next steps:
-  1. Run your tests with coverage: npm test -- --coverage
-  2. Verify metrics collect: bunx unentropy test
-  3. Add the workflows below to your CI
+  1. Preview report structure: bunx unentropy preview
+  2. Run your tests with coverage: npm test -- --coverage
+  3. Verify metrics collect: bunx unentropy test
+  4. Add the workflows below to your CI
 
 ────────────────────────────────────────────────────────────
 TRACK METRICS (add to your CI for main branch)
@@ -321,3 +322,123 @@ Example layout:
   ✓ lines-of-code (integer)	4,521         0.8s
   ✓ test-coverage (percent)	87.3%         2.1s
 ```
+
+---
+
+# `unentropy preview`
+
+## Command Signature
+
+```
+bunx unentropy preview [options]
+```
+
+## Options
+
+| Option | Alias | Type | Default | Description |
+|--------|-------|------|---------|-------------|
+| `--config` | `-c` | string | `unentropy.json` | Path to config file |
+| `--output` | `-o` | string | `unentropy-preview` | Output directory for report |
+| `--no-open` | - | boolean | `false` | Don't open browser automatically |
+| `--force` | `-f` | boolean | `false` | Overwrite existing non-empty directory |
+
+## Exit Codes
+
+| Code | Condition |
+|------|-----------|
+| `0` | Success - report generated |
+| `1` | Error - config invalid, directory exists, or report generation failed |
+
+## Console Output
+
+### Success Output
+
+```
+Checking unentropy.json...
+
+✓ Config schema valid
+
+Generating preview report with 3 metrics:
+  - lines-of-code (Lines of Code)
+  - test-coverage (Test Coverage)
+  - size (Bundle Size)
+
+✓ Preview report generated: unentropy-preview/index.html
+🌐 Opening in browser...
+```
+
+### With --no-open Flag
+
+```
+Checking unentropy.json...
+
+✓ Config schema valid
+
+Generating preview report with 3 metrics:
+  - lines-of-code (Lines of Code)
+  - test-coverage (Test Coverage)
+  - size (Bundle Size)
+
+✓ Preview report generated: unentropy-preview/index.html
+
+To view: open unentropy-preview/index.html
+```
+
+### With --force Flag (Overwriting)
+
+```
+Checking unentropy.json...
+
+✓ Config schema valid
+
+⚠️  Overwriting existing directory: unentropy-preview
+
+Generating preview report with 3 metrics:
+  - lines-of-code (Lines of Code)
+  - test-coverage (Test Coverage)
+  - size (Bundle Size)
+
+✓ Preview report generated: unentropy-preview/index.html
+🌐 Opening in browser...
+```
+
+### Error Outputs
+
+**Config not found:**
+```
+Error: Config file not found: unentropy.json
+Run 'bunx unentropy init' to create one.
+```
+
+**Schema validation error:**
+```
+Checking unentropy.json...
+
+✗ Config schema invalid:
+  metrics.test-coverage: command cannot be empty
+
+Fix the errors above and try again.
+```
+
+**Output directory not empty:**
+```
+Error: Output directory 'unentropy-preview' is not empty.
+Use --force to overwrite, or choose a different --output directory.
+```
+
+## Directory Handling Behavior
+
+1. **Directory doesn't exist**: Create it and proceed
+2. **Directory exists and is empty**: Proceed normally
+3. **Directory exists and is not empty**:
+   - Without `--force`: Exit with error (code 1)
+   - With `--force`: Clear directory contents and proceed with warning
+4. **Browser opening fails**: Continue silently (no error displayed)
+
+## File Output
+
+Creates `{output}/index.html` containing an HTML report with:
+- All configured metrics listed by name
+- Empty/no-data state for all metrics (no actual values)
+- Same visual structure as reports with actual data
+- Message indicating this is a preview with no collected data

@@ -4,6 +4,7 @@ import { VerifyCommand } from "./cli/cmd/verify";
 import { CollectCommand } from "./cli/cmd/collect";
 import { TestCommand } from "./cli/cmd/test";
 import { InitCommand } from "./cli/cmd/init";
+import { PreviewCommand } from "./cli/cmd/preview";
 
 const cli = yargs()
   .scriptName("unentropy")
@@ -11,6 +12,7 @@ const cli = yargs()
   .command(CollectCommand)
   .command(TestCommand)
   .command(InitCommand)
+  .command(PreviewCommand)
   .fail((msg) => {
     if (
       msg.startsWith("Unknown argument") ||
