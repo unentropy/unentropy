@@ -22,7 +22,17 @@ var COMMON_OPTIONS = {
   responsive: true,
   maintainAspectRatio: false,
   interaction: { mode: "index", intersect: false },
-  plugins: { legend: { display: false } },
+  plugins: {
+    legend: { display: false },
+    crosshair: {
+      enabled: true,
+      group: 1,
+      line: {
+        color: "rgba(59, 130, 246, 0.3)",
+        width: 1,
+      },
+    },
+  },
 };
 
 /**
@@ -178,6 +188,7 @@ function buildLineChart(chart, timeline, metadata) {
       plugins: {
         legend: COMMON_OPTIONS.plugins.legend,
         tooltip: createTimeSeriesTooltip(chart.name, chart.unit, timeline, metadata),
+        crosshair: COMMON_OPTIONS.plugins.crosshair,
       },
       scales: {
         x: {
@@ -213,7 +224,10 @@ function buildBarChart(chart) {
       responsive: COMMON_OPTIONS.responsive,
       maintainAspectRatio: COMMON_OPTIONS.maintainAspectRatio,
       interaction: COMMON_OPTIONS.interaction,
-      plugins: { legend: COMMON_OPTIONS.plugins.legend },
+      plugins: {
+        legend: COMMON_OPTIONS.plugins.legend,
+        crosshair: COMMON_OPTIONS.plugins.crosshair,
+      },
       scales: {
         y: {
           beginAtZero: true,
@@ -237,18 +251,27 @@ function initializeCharts(
 ) {
   var chartInstances = {};
 
+  // Register crosshair plugin globally with Chart.js
+  Chart.register(crosshairPlugin);
+
   // Render REAL charts
   lineCharts.forEach(function (chart) {
     var ctx = document.getElementById("chart-" + chart.id);
     if (ctx) {
-      chartInstances[chart.id] = new Chart(ctx, buildLineChart(chart, timeline, metadata));
+      var chartInstance = new Chart(ctx, buildLineChart(chart, timeline, metadata));
+      chartInstances[chart.id] = chartInstance;
+      // Register chart with sync manager
+      crosshairGroupSync.registerChart(1, chartInstance);
     }
   });
 
   barCharts.forEach(function (chart) {
     var ctx = document.getElementById("chart-" + chart.id);
     if (ctx) {
-      chartInstances[chart.id] = new Chart(ctx, buildBarChart(chart));
+      var chartInstance = new Chart(ctx, buildBarChart(chart));
+      chartInstances[chart.id] = chartInstance;
+      // Register chart with sync manager
+      crosshairGroupSync.registerChart(1, chartInstance);
     }
   });
 
@@ -258,14 +281,20 @@ function initializeCharts(
       var ctx = document.getElementById("chart-" + chart.id);
       if (ctx) {
         var previewTimeline = previewData[index]?.timestamps || timeline;
-        chartInstances[chart.id] = new Chart(ctx, buildLineChart(chart, previewTimeline, null));
+        var chartInstance = new Chart(ctx, buildLineChart(chart, previewTimeline, null));
+        chartInstances[chart.id] = chartInstance;
+        // Register chart with sync manager
+        crosshairGroupSync.registerChart(1, chartInstance);
       }
     });
 
     previewBarCharts.forEach(function (chart) {
       var ctx = document.getElementById("chart-" + chart.id);
       if (ctx) {
-        chartInstances[chart.id] = new Chart(ctx, buildBarChart(chart));
+        var chartInstance = new Chart(ctx, buildBarChart(chart));
+        chartInstances[chart.id] = chartInstance;
+        // Register chart with sync manager
+        crosshairGroupSync.registerChart(1, chartInstance);
       }
     });
   }

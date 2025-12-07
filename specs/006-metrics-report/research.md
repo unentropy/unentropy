@@ -525,6 +525,123 @@ function generateSyntheticTimestamps(endDate: Date): string[] {
 
 ---
 
+## 11. Cross-Chart Vertical Alignment Indicator (Synchronized Crosshair Line)
+
+### Decision
+Implement a lightweight, custom Chart.js plugin (instead of using external `chartjs-plugin-crosshair` library) to display a vertical alignment line synchronized across all charts when hovering.
+
+### Rationale
+
+**Why custom plugin over external library?**
+- External plugin `chartjs-plugin-crosshair` is unmaintained (2+ years without updates)
+- Risk of dependency breaking with future Chart.js versions
+- Library includes unnecessary features (zoom, interpolation) we don't need
+- Custom implementation provides full maintainability and control over the exact behavior
+
+**Why vertical line?**
+- Helps users visually align data points across multiple charts without eye strain
+- More intuitive than tooltip-only synchronization
+- Reduces cognitive load when comparing metrics
+- Works with all screen sizes (especially important on mobile/tablet where precise mouse positioning is difficult)
+
+### Key Requirements
+
+1. **Visual Clarity**: Line must be visible but not obscure data
+   - Semi-transparent (30% opacity)
+   - Thin (1 pixel width)
+   - Color-coded for light/dark modes
+
+2. **Real-time Synchronization**: Line position must sync across all charts
+   - <50ms latency (acceptable for human perception at 60 FPS)
+   - Smooth movement as cursor moves (no jank)
+   - Independent from data filtering/zooming
+
+3. **Interaction Model**: Line appears on hover, disappears on leave
+   - Appears when cursor enters any chart
+   - Updates position in real-time as cursor moves horizontally
+   - Dismisses immediately when cursor leaves all chart areas
+
+4. **Integration**: Works seamlessly with existing features
+   - Appears alongside synchronized tooltips
+   - Respects zoom boundaries (line only visible within zoomed area)
+   - Works with date filters (visual indicator, not data-dependent)
+   - Works with both line charts and bar charts
+
+### Architecture Overview
+
+**Three-Layer Architecture**:
+
+```
+Layer 1: Chart.js Plugin Hook
+├─ Detects mouse hover events via beforeEvent hook
+├─ Stores mouse X position globally
+└─ Draws vertical line at that position via afterDatasetsDraw hook
+
+Layer 2: Synchronization State Manager
+├─ Tracks which charts belong to same "group"
+├─ Broadcasts hover position to all charts in group
+└─ Triggers re-draw on synchronized charts
+
+Layer 3: Configuration & Integration
+├─ Plugin options (color, width, enabled flag)
+├─ Added to chart options in charts.js
+└─ Works alongside existing tooltip + zoom plugins
+```
+
+### Technical Implementation Strategy
+
+**Location**: `src/reporter/templates/default/scripts/crosshair-plugin.js` (new file, ~100 lines)
+
+**Plugin Hooks Used**:
+- `beforeEvent`: Capture mouse position when in chart area
+- `afterDatasetsDraw`: Draw vertical line at stored X position
+
+**Synchronization Strategy**:
+- Global state object tracks all registered charts
+- When one chart detects hover, broadcasts to all charts in same group
+- Each chart re-renders its vertical line independently (maintains loose coupling)
+
+**Coordinate System**:
+- Mouse events provide canvas pixel coordinates (origin at top-left)
+- Store pixel X position directly (no need to convert to data values for rendering)
+- Use `chart.chartArea` to determine visible bounds for line drawing
+
+### Performance Considerations
+
+- **Drawing Cost**: Single 1-pixel vertical line per chart, negligible canvas overhead
+- **Rendering Frequency**: Runs per animation frame (~60 FPS), comparable to tooltip updates
+- **Memory**: One pixel coordinate stored per chart, ~50 bytes total overhead
+- **No DOM manipulation**: Pure canvas rendering, no layout recalculation
+
+### Interaction with Other Features
+
+| Feature | Interaction |
+|---------|------------|
+| **Tooltips (US3)** | Both appear on hover; line drawn independently, tooltips use Chart.js API |
+| **Zoom (US5)** | Line respects zoomed chartArea boundaries automatically; synchronization works within zoomed region |
+| **Date Filter (US6)** | Line is visual-only (not data-based); appears even when filters hide data |
+| **Bar Charts** | Works if chart has numeric X-axis (time-based); may be disabled for categorical axes |
+
+### Browser Compatibility
+
+- Canvas rendering: All modern browsers (IE 9+)
+- Chart.js plugin hooks: Chart.js 3.4+ (Unentropy uses 4.4.0)
+- Mouse events: Standard DOM API, universal support
+- **No compatibility issues** with current tech stack
+
+### Future Extensibility
+
+Plugin design allows easy addition of:
+- Hover tooltips with coordinate values displayed on the line
+- Dashed/dotted line styles for different metric types
+- Per-chart enable/disable flag
+- Custom callback on hover event
+- Horizontal line option (full crosshair mode)
+
+Currently intentionally excluded to keep implementation minimal.
+
+---
+
 ## Summary of Technical Decisions
 
 | Area | Decision | Rationale |
@@ -535,6 +652,7 @@ function generateSyntheticTimestamps(endDate: Date): string[] {
 | Synthetic data | Mulberry32 + mean-reverting, 60-day span | Deterministic, realistic patterns |
 | State management | Vanilla JS + Chart.js `update()` | Minimal footprint, static HTML compatible |
 | Synchronized tooltips | Event broadcasting + `setActiveElements()` | Cross-chart coordination via official API |
+| **Vertical alignment line** | **Custom Chart.js plugin** | **Maintainability, control, minimal footprint** |
 | Zoom/pan | chartjs-plugin-zoom with sync callbacks | Official plugin, good API for synchronization |
 | Date range filter | Scale min/max limits, client-side | No server needed, integrates with zoom |
 | Chart export | Canvas `toDataURL()` + dynamic link | Native browser API, no dependencies |

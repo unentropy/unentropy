@@ -19,9 +19,9 @@
 
 **Purpose**: Create new module structure and update type definitions
 
-- [ ] T001 Create synthetic data generator module at src/reporter/synthetic.ts with seeded PRNG functions (createSeededRng, hashString)
-- [ ] T002 [P] Add PreviewDataSet interface to src/reporter/types.ts (metricId, timestamps, values, stats fields)
-- [ ] T003 [P] Extend ReportData interface in src/reporter/types.ts with showToggle, previewData, and allTimestamps fields
+- [x] T001 Create synthetic data generator module at src/reporter/synthetic.ts with seeded PRNG functions (createSeededRng, hashString)
+- [x] T002 [P] Add PreviewDataSet interface to src/reporter/types.ts (metricId, timestamps, values, stats fields)
+- [x] T003 [P] Extend ReportData interface in src/reporter/types.ts with showToggle, previewData, and allTimestamps fields
 
 ---
 
@@ -102,20 +102,73 @@
 
 ---
 
-## Phase 6: User Story 3 - Synchronized Tooltips Across Charts (Priority: P1)
+## Phase 6: User Story 3 - Synchronized Tooltips and Vertical Alignment Line (Priority: P1)
 
-**Goal**: Hovering on any chart shows tooltips on all charts for the same build
+**Goal**: Hovering on any chart shows a vertical alignment line across all charts AND tooltips on all charts for the same build
 
-**Independent Test**: Generate report with 3+ metrics, hover over chart A, verify all charts show tooltips for same build timestamp
+**Independent Test**: Generate report with 3+ metrics. Hover over any chart:
+1. Verify vertical line appears on ALL charts at the same X position
+2. Verify all charts show tooltips for the same build timestamp
+3. Move cursor - verify line and tooltips update synchronously
+4. Leave charts - verify line and tooltips dismiss together
 
-### Implementation for User Story 3 (Synchronized Tooltips)
+### Implementation for User Story 3 (Vertical Alignment + Synchronized Tooltips)
 
-- [ ] T029 [US3] Add syncTooltips() function in ChartScripts.tsx that broadcasts hover state to all charts using setActiveElements()
-- [ ] T030 [US3] Add onHover callback to each chart config in ChartScripts.tsx that calls syncTooltips()
-- [ ] T031 [US3] Handle missing data case - show "No data for this build" tooltip when chart has null at hovered index
-- [ ] T032 [US3] Add mouseout handler to dismiss all tooltips when leaving chart areas
+**Part A: Vertical Alignment Line (Chart-specific rendering)**
 
-**Checkpoint**: User Story 3 complete - tooltips sync across all charts
+- [ ] T029 [US3] Create custom Chart.js crosshair plugin at src/reporter/templates/default/scripts/crosshair-plugin.js
+  - Implement plugin with id: 'crosshair'
+  - Add beforeEvent hook to capture mouse X position when in chart area
+  - Add afterDatasetsDraw hook to draw vertical line at stored X position
+  - Create global sync state manager for multi-chart synchronization
+  - Configure: line color (semi-transparent blue), width (1px), opacity (30%)
+
+- [ ] T030 [US3] Update src/reporter/templates/default/scripts/charts.js to integrate crosshair plugin
+  - Register crosshair plugin globally with Chart
+  - Add plugin options to chart configuration (color, width, sync group)
+  - After chart initialization, register each chart with global sync manager
+
+- [ ] T031 [US3] Update src/reporter/templates/default/components/HtmlDocument.tsx
+  - Add <script> tag loading crosshair-plugin.js before ChartScripts initialization
+  - Ensure correct load order: Chart.js → crosshair-plugin.js → ChartScripts
+
+- [ ] T032 [US3] Test vertical line synchronization:
+  - Hover over first metric chart → verify vertical line appears on ALL charts
+  - Move cursor horizontally → verify line moves smoothly on all charts simultaneously
+  - Leave chart area → verify line disappears on all charts
+  - Performance: Verify line movement is smooth (no jank, 60 FPS)
+
+**Part B: Synchronized Tooltips (Tooltip content coordination)**
+
+- [ ] T033 [US3] Add syncTooltips() function in ChartScripts.tsx that broadcasts hover state to all charts using setActiveElements()
+  - Track hovered data index across all charts
+  - Update active elements on all charts in same group
+
+- [ ] T034 [US3] Add onHover callback to each chart config in ChartScripts.tsx that calls syncTooltips()
+  - Detect when user hovers over any chart
+  - Broadcast hover position to all charts
+
+- [ ] T035 [US3] Handle missing data case - show "No data for this build" tooltip when chart has null at hovered index
+  - When metric has no data for hovered build, show appropriate message
+  - Vertical line still appears at correct X position
+
+- [ ] T036 [US3] Add mouseout handler to dismiss all tooltips and vertical line when leaving chart areas
+  - Clear active elements on all charts when cursor leaves
+  - Vertical line disappears synchronously
+
+**Part C: Integration and Testing**
+
+- [ ] T037 [US3] Integration test - Vertical line + Tooltips together:
+  - Hover chart → both line AND synchronized tooltips appear together
+  - Move cursor → line and tooltips update synchronously
+  - Verify visual layering is correct (line behind data/tooltips, not obscuring)
+
+- [ ] T038 [US3] Accessibility verification:
+  - Verify line color contrast meets WCAG AA standards (light and dark modes)
+  - Verify tooltips still provide textual information (line is visual aid only)
+  - Test keyboard navigation doesn't break (focus still works)
+
+**Checkpoint**: User Story 3 complete - vertical line + tooltips sync across all charts
 
 ---
 
@@ -190,9 +243,23 @@
 - [ ] T058 Run bun run visual-review to generate fixtures and manually verify all acceptance scenarios
 - [ ] T059 Verify toggle keyboard accessibility (Tab navigation, Space/Enter activation, focus ring visibility)
 - [ ] T060 Verify ARIA attributes on toggle (role="switch") and charts (aria-label)
-- [ ] T061 Run bun run typecheck to ensure no TypeScript errors
-- [ ] T062 Run bun run lint to ensure code style compliance
-- [ ] T063 Run bun test to verify existing tests still pass
+- [ ] T061 [P] Verify crosshair vertical line appears in all visual fixtures:
+  - Hover over any chart → vertical line visible on all metric charts
+  - Line appears on line charts and bar charts
+  - Line is visible in light mode and dark mode (color contrast OK)
+- [ ] T062 [P] Verify crosshair works with zoom (US5 integration):
+  - Zoom one chart → vertical line still appears and syncs across charts
+  - Line respects zoomed chartArea boundaries (doesn't extend beyond zoom)
+  - Reset zoom → vertical line works normally again
+- [ ] T063 [P] Verify crosshair works with date filter (US6 integration):
+  - Apply date filter → vertical line still appears on hover
+  - Line position is visual (not affected by data filtering)
+- [ ] T064 Verify browser compatibility for crosshair:
+  - Test on modern Chrome, Firefox, Safari, Edge
+  - Verify no console errors related to canvas or event handling
+- [ ] T065 Run bun run typecheck to ensure no TypeScript errors
+- [ ] T066 Run bun lint to ensure code style compliance
+- [ ] T067 Run bun test to verify existing tests still pass
 
 ---
 
@@ -227,6 +294,7 @@
 - Generator logic before components
 - Components before client-side scripts
 - Core implementation before edge case handling
+- User Story 3 note: Vertical line plugin (Part A) and tooltip sync (Part B) can be developed in parallel as they use independent mechanisms
 
 ### Parallel Opportunities
 
