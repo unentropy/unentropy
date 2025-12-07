@@ -66,19 +66,19 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [P] [US2] Implement generateSyntheticData() function in src/reporter/synthetic.ts using mean-reverting algorithm with Gaussian noise
-- [ ] T014 [P] [US2] Implement calculateSyntheticStats() function in src/reporter/synthetic.ts to compute stats for synthetic data
-- [ ] T015 [US2] Create PreviewBar.tsx component at src/reporter/templates/default/components/PreviewBar.tsx with info message and accessible toggle
-- [ ] T016 [US2] Export PreviewBar from src/reporter/templates/default/components/index.ts
-- [ ] T017 [US2] Update HtmlDocument.tsx to render PreviewBar below Header when showToggle is true
-- [ ] T018 [US2] Update HtmlDocument.tsx in src/reporter/templates/default/components/HtmlDocument.tsx to pass showToggle and previewData to PreviewBar and ChartScripts
-- [ ] T019 [US2] Update generateReport() in src/reporter/generator.ts to compute showToggle based on buildCount < 10 (hardcoded threshold)
-- [ ] T020 [US2] Update generateReport() in src/reporter/generator.ts to handle 0-build case by generating metric definitions from config with empty data arrays
-- [ ] T021 [US2] Update generateReport() in src/reporter/generator.ts to generate previewData array when showToggle is true
-- [ ] T022 [US2] Update ChartScripts.tsx in src/reporter/templates/default/components/ChartScripts.tsx to embed realData and previewData in chartsData array
-- [ ] T023 [US2] Set toggle default state to ON (checked) in ChartScripts.tsx initialization so synthetic data shows by default
-- [ ] T024 [US2] Add toggle event handler script in src/reporter/templates/default/components/ChartScripts.tsx that updates chart.data.datasets[0].data and calls chart.update('none')
-- [ ] T025 [US2] Add stats DOM update logic in ChartScripts.tsx toggle handler to update Latest/Min/Max/Trend display elements
+- [x] T013 [P] [US2] Implement generateSyntheticData() function in src/reporter/synthetic.ts using mean-reverting algorithm with Gaussian noise
+- [x] T014 [P] [US2] Implement calculateSyntheticStats() function in src/reporter/synthetic.ts to compute stats for synthetic data
+- [x] T015 [US2] Create PreviewBar.tsx component at src/reporter/templates/default/components/PreviewBar.tsx with info message and accessible toggle
+- [x] T016 [US2] Export PreviewBar from src/reporter/templates/default/components/index.ts
+- [x] T017 [US2] Update HtmlDocument.tsx to render PreviewBar below Header when showToggle is true
+- [x] T018 [US2] Update HtmlDocument.tsx in src/reporter/templates/default/components/HtmlDocument.tsx to pass showToggle and previewData to PreviewBar and ChartScripts
+- [x] T019 [US2] Update generateReport() in src/reporter/generator.ts to compute showToggle based on buildCount < 10 (hardcoded threshold)
+- [x] T020 [US2] Update generateReport() in src/reporter/generator.ts to handle 0-build case by generating metric definitions from config with empty data arrays
+- [x] T021 [US2] Update generateReport() in src/reporter/generator.ts to generate previewData array when showToggle is true
+- [x] T022 [US2] Update ChartScripts.tsx in src/reporter/templates/default/components/ChartScripts.tsx to embed realData and previewData in chartsData array
+- [x] T023 [US2] Set toggle default state to ON (checked) in ChartScripts.tsx initialization so synthetic data shows by default
+- [x] T024 [US2] Add toggle event handler script in src/reporter/templates/default/components/ChartScripts.tsx that updates chart.data.datasets[0].data and calls chart.update('none')
+- [x] T025 [US2] Add stats DOM update logic in ChartScripts.tsx toggle handler to update Latest/Min/Max/Trend display elements
 
 **Checkpoint**: User Story 2 complete - toggle appears for sparse reports and switches data/stats
 

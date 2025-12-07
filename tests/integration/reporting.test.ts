@@ -112,14 +112,6 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     expect(html).toContain("buildBarChart");
   });
 
-  test("does not show sparse data warning for metrics with sufficient data", () => {
-    const html = generateReport(db, {
-      repository: "test-org/test-repo",
-    });
-
-    expect(html).not.toContain("Limited data available");
-  });
-
   test("filters metrics by name when specified", () => {
     const html = generateReport(db, {
       repository: "test-org/test-repo",

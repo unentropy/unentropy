@@ -4,7 +4,6 @@ import { SqliteDatabaseAdapter } from "../../../src/storage/adapters/sqlite";
 import {
   getMetricTimeSeries,
   calculateSummaryStats,
-  generateReport,
   normalizeMetricToBuilds,
 } from "../../../src/reporter/generator";
 import type { BuildContext } from "../../../src/storage/types";
@@ -100,99 +99,6 @@ describe("getMetricTimeSeries", () => {
       metric_id: statusMetric.id,
       build_id: buildId3,
       value_label: "failure",
-    });
-  });
-
-  describe("generateReport - sparse data handling", () => {
-    test("marks metrics with fewer than 10 data points as sparse", async () => {
-      const dbPath = "/tmp/test-sparse-data.db";
-      if (fs.existsSync(dbPath)) {
-        fs.unlinkSync(dbPath);
-      }
-
-      const db = new Storage({ type: "sqlite-local", path: dbPath });
-      await db.initialize();
-      const adapter = new SqliteDatabaseAdapter(db.getConnection());
-
-      adapter.insertBuildContext({
-        commit_sha: "abc123",
-        branch: "main",
-        run_id: "1",
-        run_number: 1,
-        timestamp: "2025-10-01T12:00:00Z",
-      });
-
-      const sparseMetric = adapter.upsertMetricDefinition({
-        id: "sparse-metric",
-        type: "numeric",
-        description: "Metric with few data points",
-      });
-
-      for (let i = 0; i < 5; i++) {
-        const bid = adapter.insertBuildContext({
-          commit_sha: `sha${i}`,
-          branch: "main",
-          run_id: `run${i}`,
-          run_number: i + 1,
-          event_name: "push",
-          timestamp: `2025-10-0${i + 1}T12:00:00Z`,
-        });
-
-        adapter.insertMetricValue({
-          metric_id: sparseMetric.id,
-          build_id: bid,
-          value_numeric: 50 + i,
-        });
-      }
-
-      const html = generateReport(db, { repository: "test/repo" });
-
-      expect(html).toContain("Limited data available");
-      expect(html).toContain("5 builds");
-
-      await db.close();
-      fs.unlinkSync(dbPath);
-    });
-
-    test("does not mark metrics with 10 or more data points as sparse", async () => {
-      const dbPath = "/tmp/test-non-sparse-data.db";
-      if (fs.existsSync(dbPath)) {
-        fs.unlinkSync(dbPath);
-      }
-
-      const db = new Storage({ type: "sqlite-local", path: dbPath });
-      await db.initialize();
-      const adapter = new SqliteDatabaseAdapter(db.getConnection());
-
-      const nonSparseMetric = adapter.upsertMetricDefinition({
-        id: "non-sparse-metric",
-        type: "numeric",
-        description: "Metric with sufficient data points",
-      });
-
-      for (let i = 0; i < 12; i++) {
-        const bid = adapter.insertBuildContext({
-          commit_sha: `sha${i}`,
-          branch: "main",
-          run_id: `run${i}`,
-          run_number: i + 1,
-          event_name: "push",
-          timestamp: `2025-10-${String(i + 1).padStart(2, "0")}T12:00:00Z`,
-        });
-
-        adapter.insertMetricValue({
-          metric_id: nonSparseMetric.id,
-          build_id: bid,
-          value_numeric: 50 + i,
-        });
-      }
-
-      const html = generateReport(db, { repository: "test/repo" });
-
-      expect(html).not.toContain("Limited data available");
-
-      await db.close();
-      fs.unlinkSync(dbPath);
     });
   });
 

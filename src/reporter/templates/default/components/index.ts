@@ -4,7 +4,7 @@ export { Footer } from "./Footer";
 export { MetricCard } from "./MetricCard";
 export { StatsGrid } from "./StatsGrid";
 export { ChartCanvas } from "./ChartCanvas";
-export { SparseWarning } from "./SparseWarning";
 export { EmptyState } from "./EmptyState";
 export { ChartScripts } from "./ChartScripts";
 export { PrintStyles } from "./PrintStyles";
+export { PreviewBar } from "./PreviewBar";

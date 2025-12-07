@@ -51,7 +51,6 @@ export interface MetricReportData {
   unit: UnitType | null;
   stats: SummaryStats;
   chartType: "line" | "bar";
-  sparse: boolean;
   dataPointCount: number;
 }
 
@@ -75,16 +74,29 @@ export interface BarChartData {
   counts: number[];
 }
 
+export interface PreviewDataSet {
+  metricId: string;
+  timestamps: string[];
+  values: number[];
+  stats: SummaryStats;
+}
+
 export interface ChartsData {
   timeline: string[];
   metadata: (MetadataPoint | null)[];
   lineCharts: LineChartData[];
   barCharts: BarChartData[];
+  previewLineCharts: LineChartData[];
+  previewBarCharts: BarChartData[];
+  buildCount: number;
+  showToggle: boolean;
+  previewData: PreviewDataSet[];
 }
 
 export interface ReportData {
   metadata: ReportMetadata;
   metrics: MetricReportData[];
+  previewMetrics?: MetricReportData[];
 }
 
 export interface GenerateReportOptions {

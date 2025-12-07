@@ -225,14 +225,66 @@ function buildBarChart(chart) {
   };
 }
 
-function initializeCharts(timeline, metadata, lineCharts, barCharts) {
+function initializeCharts(
+  timeline,
+  metadata,
+  lineCharts,
+  barCharts,
+  previewLineCharts,
+  previewBarCharts,
+  showToggle,
+  previewData
+) {
+  var chartInstances = {};
+
+  // Render REAL charts
   lineCharts.forEach(function (chart) {
     var ctx = document.getElementById("chart-" + chart.id);
-    if (ctx) new Chart(ctx, buildLineChart(chart, timeline, metadata));
+    if (ctx) {
+      chartInstances[chart.id] = new Chart(ctx, buildLineChart(chart, timeline, metadata));
+    }
   });
 
   barCharts.forEach(function (chart) {
     var ctx = document.getElementById("chart-" + chart.id);
-    if (ctx) new Chart(ctx, buildBarChart(chart));
+    if (ctx) {
+      chartInstances[chart.id] = new Chart(ctx, buildBarChart(chart));
+    }
   });
+
+  // Render PREVIEW charts (if toggle enabled)
+  if (showToggle) {
+    previewLineCharts.forEach(function (chart, index) {
+      var ctx = document.getElementById("chart-" + chart.id);
+      if (ctx) {
+        var previewTimeline = previewData[index]?.timestamps || timeline;
+        chartInstances[chart.id] = new Chart(ctx, buildLineChart(chart, previewTimeline, null));
+      }
+    });
+
+    previewBarCharts.forEach(function (chart) {
+      var ctx = document.getElementById("chart-" + chart.id);
+      if (ctx) {
+        chartInstances[chart.id] = new Chart(ctx, buildBarChart(chart));
+      }
+    });
+  }
+
+  // Toggle handler - pure CSS visibility toggle
+  var toggle = document.getElementById("preview-toggle");
+  if (toggle && showToggle) {
+    toggle.addEventListener("change", function (e) {
+      var showPreview = e.target.checked;
+
+      // Toggle visibility of metric cards
+      document.querySelectorAll('[data-view="real"]').forEach(function (el) {
+        el.classList.toggle("hidden", showPreview);
+        el.setAttribute("aria-hidden", showPreview ? "true" : "false");
+      });
+      document.querySelectorAll('[data-view="preview"]').forEach(function (el) {
+        el.classList.toggle("hidden", !showPreview);
+        el.setAttribute("aria-hidden", showPreview ? "false" : "true");
+      });
+    });
+  }
 }

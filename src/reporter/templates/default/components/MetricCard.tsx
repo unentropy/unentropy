@@ -1,7 +1,6 @@
 import type { MetricReportData } from "../../../types";
 import { StatsGrid } from "./StatsGrid";
 import { ChartCanvas } from "./ChartCanvas";
-import { SparseWarning } from "./SparseWarning";
 
 interface MetricCardProps {
   metric: MetricReportData;
@@ -21,8 +20,6 @@ export function MetricCard({ metric }: MetricCardProps) {
       {metric.chartType === "bar" && <div class="h-20"></div>}
 
       <ChartCanvas id={metric.id} name={metric.name} chartType={metric.chartType} />
-
-      {metric.sparse && <SparseWarning dataPointCount={metric.dataPointCount} />}
     </div>
   );
 }

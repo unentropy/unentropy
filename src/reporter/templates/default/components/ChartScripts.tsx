@@ -12,9 +12,22 @@ export function ChartScripts({ chartsData }: ChartScriptsProps) {
       timeline: ${serialize(chartsData.timeline)},
       metadata: ${serialize(chartsData.metadata)},
       lineCharts: ${serialize(chartsData.lineCharts)},
-      barCharts: ${serialize(chartsData.barCharts)}
+      barCharts: ${serialize(chartsData.barCharts)},
+      previewLineCharts: ${serialize(chartsData.previewLineCharts)},
+      previewBarCharts: ${serialize(chartsData.previewBarCharts)},
+      showToggle: ${chartsData.showToggle},
+      previewData: ${serialize(chartsData.previewData)}
     };
-    initializeCharts(__chartData.timeline, __chartData.metadata, __chartData.lineCharts, __chartData.barCharts);
+    initializeCharts(
+      __chartData.timeline, 
+      __chartData.metadata, 
+      __chartData.lineCharts, 
+      __chartData.barCharts,
+      __chartData.previewLineCharts,
+      __chartData.previewBarCharts,
+      __chartData.showToggle, 
+      __chartData.previewData
+    );
   `;
 
   return (

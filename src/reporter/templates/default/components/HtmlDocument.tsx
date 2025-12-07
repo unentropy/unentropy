@@ -5,6 +5,7 @@ import { MetricCard } from "./MetricCard";
 import { EmptyState } from "./EmptyState";
 import { ChartScripts } from "./ChartScripts";
 import { PrintStyles } from "./PrintStyles";
+import { PreviewBar } from "./PreviewBar";
 
 interface HtmlDocumentProps {
   data: ReportData;
@@ -27,11 +28,27 @@ export function HtmlDocument({ data, chartsData }: HtmlDocumentProps) {
       </head>
       <body class="bg-gray-50 dark:bg-gray-900">
         <Header metadata={data.metadata} />
+        <PreviewBar visible={chartsData.showToggle} />
 
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {data.metrics.length > 0 ? (
-              data.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} />)
+              chartsData.showToggle ? (
+                <>
+                  {data.metrics.map((metric) => (
+                    <div key={metric.id} data-view="real" class="hidden" aria-hidden="true">
+                      <MetricCard metric={metric} />
+                    </div>
+                  ))}
+                  {data.previewMetrics?.map((metric) => (
+                    <div key={metric.id} data-view="preview">
+                      <MetricCard metric={metric} />
+                    </div>
+                  ))}
+                </>
+              ) : (
+                data.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} />)
+              )
             ) : (
               <EmptyState />
             )}

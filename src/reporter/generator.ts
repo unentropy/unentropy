@@ -16,8 +16,10 @@ import type {
   LineChartData,
   BarChartData,
   MetadataPoint,
+  PreviewDataSet,
 } from "./types";
 import type { BuildContext } from "../storage/types";
+import { generateSyntheticData, calculateSyntheticStats } from "./synthetic";
 
 export function getMetricTimeSeries(db: Storage, metricName: string): TimeSeriesData {
   const repository = db.getRepository();
@@ -223,52 +225,185 @@ export function generateReport(db: Storage, options: GenerateReportOptions = {})
     run: b.run_number,
   }));
 
-  for (const metricName of metricNames) {
-    try {
-      const timeSeries = getMetricTimeSeries(db, metricName);
-      const stats = calculateSummaryStats(timeSeries);
+  if (allBuilds.length === 0 && options.config) {
+    for (const metricName of metricNames) {
+      const metricConfig = options.config.metrics[metricName];
+      if (!metricConfig) continue;
+
       const metricId = metricName.replace(/[^a-zA-Z0-9-]/g, "-");
+      const displayName = metricConfig.name ?? metricConfig.id;
+      const emptyStats: SummaryStats = {
+        latest: null,
+        min: null,
+        max: null,
+        average: null,
+        trendDirection: null,
+        trendPercent: null,
+      };
 
-      // Build semantic chart data
-      if (timeSeries.metricType === "numeric") {
-        const normalizedData = normalizeMetricToBuilds(allBuilds, timeSeries);
-        lineCharts.push(
-          buildLineChartData(metricId, timeSeries.metricName, timeSeries.unit, normalizedData)
-        );
-      } else {
-        barCharts.push(buildBarChartData(metricId, timeSeries.metricName, timeSeries));
+      if (metricConfig.type === "numeric") {
+        lineCharts.push({
+          id: metricId,
+          name: displayName,
+          unit: metricConfig.unit ?? null,
+          values: [],
+        });
       }
-
-      // Sparse is based on actual data points, not normalized length
-      const sparse = timeSeries.dataPoints.length < 10;
 
       metrics.push({
         id: metricId,
-        name: timeSeries.metricName,
-        description: timeSeries.description,
-        unit: timeSeries.unit,
-        stats,
-        chartType: timeSeries.metricType === "numeric" ? "line" : "bar",
-        sparse,
-        dataPointCount: timeSeries.dataPoints.length,
+        name: displayName,
+        description: metricConfig.description ?? null,
+        unit: metricConfig.unit ?? null,
+        stats: emptyStats,
+        chartType: metricConfig.type === "numeric" ? "line" : "bar",
+        dataPointCount: 0,
       });
-    } catch (error) {
-      console.warn(`Failed to generate report for metric '${metricName}':`, error);
+    }
+  } else {
+    for (const metricName of metricNames) {
+      try {
+        const timeSeries = getMetricTimeSeries(db, metricName);
+        const stats = calculateSummaryStats(timeSeries);
+        const metricId = metricName.replace(/[^a-zA-Z0-9-]/g, "-");
+
+        // Build semantic chart data
+        if (timeSeries.metricType === "numeric") {
+          const normalizedData = normalizeMetricToBuilds(allBuilds, timeSeries);
+          lineCharts.push(
+            buildLineChartData(metricId, timeSeries.metricName, timeSeries.unit, normalizedData)
+          );
+        } else {
+          barCharts.push(buildBarChartData(metricId, timeSeries.metricName, timeSeries));
+        }
+
+        metrics.push({
+          id: metricId,
+          name: timeSeries.metricName,
+          description: timeSeries.description,
+          unit: timeSeries.unit,
+          stats,
+          chartType: timeSeries.metricType === "numeric" ? "line" : "bar",
+          dataPointCount: timeSeries.dataPoints.length,
+        });
+      } catch (error) {
+        console.warn(`Failed to generate report for metric '${metricName}':`, error);
+      }
     }
   }
 
   const metadata = getReportMetadata(db, repository);
+  const buildCount = allBuilds.length;
+  const showToggle = buildCount < 10;
+
+  let previewData: PreviewDataSet[] = [];
+  if (showToggle && buildCount === 0 && options.config) {
+    const now = new Date();
+    const previewTimestamps: string[] = [];
+    for (let i = 19; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 3 * 24 * 60 * 60 * 1000);
+      previewTimestamps.push(date.toISOString());
+    }
+
+    previewData = metricNames.map((metricName) => {
+      const metricConfig = options.config?.metrics[metricName];
+      const metricId = metricName.replace(/[^a-zA-Z0-9-]/g, "-");
+      const defaultStats: SummaryStats = {
+        latest: null,
+        min: null,
+        max: null,
+        average: 50,
+        trendDirection: null,
+        trendPercent: null,
+      };
+
+      const syntheticValues = generateSyntheticData(
+        metricName,
+        defaultStats,
+        metricConfig?.unit ?? null
+      );
+      const syntheticStats = calculateSyntheticStats(syntheticValues);
+
+      return {
+        metricId,
+        timestamps: previewTimestamps,
+        values: syntheticValues,
+        stats: syntheticStats,
+      };
+    });
+  } else if (showToggle) {
+    const now = new Date();
+    const previewTimestamps: string[] = [];
+    for (let i = 19; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 3 * 24 * 60 * 60 * 1000);
+      previewTimestamps.push(date.toISOString());
+    }
+
+    previewData = metrics
+      .filter((m) => m.chartType === "line")
+      .map((metric) => {
+        const syntheticValues = generateSyntheticData(metric.name, metric.stats, metric.unit);
+        const syntheticStats = calculateSyntheticStats(syntheticValues);
+
+        return {
+          metricId: metric.id,
+          timestamps: previewTimestamps,
+          values: syntheticValues,
+          stats: syntheticStats,
+        };
+      });
+  }
+
+  // Create preview versions with -preview suffix to avoid ID collisions
+  const previewLineCharts: LineChartData[] = showToggle
+    ? lineCharts.map((chart, index) => ({
+        ...chart,
+        id: `${chart.id}-preview`,
+        values: previewData[index]?.values || [],
+      }))
+    : [];
+
+  const previewBarCharts: BarChartData[] = showToggle
+    ? barCharts.map((chart) => ({
+        ...chart,
+        id: `${chart.id}-preview`,
+      }))
+    : [];
+
+  const previewMetrics: MetricReportData[] | undefined = showToggle
+    ? metrics.map((metric) => {
+        if (metric.chartType === "line") {
+          const previewStats = previewData.find((p) => p.metricId === metric.id)?.stats;
+          return {
+            ...metric,
+            id: `${metric.id}-preview`,
+            stats: previewStats || metric.stats,
+          };
+        } else {
+          return {
+            ...metric,
+            id: `${metric.id}-preview`,
+          };
+        }
+      })
+    : undefined;
 
   const chartsData: ChartsData = {
     timeline,
     metadata: sharedMetadata,
     lineCharts,
     barCharts,
+    previewLineCharts,
+    previewBarCharts,
+    buildCount,
+    showToggle,
+    previewData,
   };
 
   const reportData: ReportData = {
     metadata,
     metrics,
+    previewMetrics,
   };
 
   const jsx = h(HtmlDocument, { data: reportData, chartsData });
