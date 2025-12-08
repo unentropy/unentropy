@@ -174,15 +174,35 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 - Visible dots at each data point
 - Gaps (not connected lines) where data is missing
 
+**Vertical Alignment Indicator**:
+- Appears on hover over any chart
+- Positioned at the exact X-axis coordinate of the cursor
+- Extends from top to bottom of the chart area
+- Rendered as a thin semi-transparent line to avoid obscuring data
+- Synchronized across all charts on the page
+- Dismisses when cursor leaves chart areas
+
+Visual representation:
+```
+┌─────────────────────────────────┐  ┌─────────────────────────────────┐
+│ Coverage %                      │  │ Bundle Size (KB)                │
+│ 90 │         ┃ •                │  │ 550 │         ┃ •               │
+│ 80 │    •────┃────•             │  │ 500 │    •────┃────•            │
+│ 70 │   /     ┃    \             │  │ 450 │   /     ┃    \            │
+│    └────────┬┴──────────────────┘  │    └────────┬┴─────────────────┘
+│      Oct 1  ↑Oct 5  Oct 15         │      Oct 1  ↑Oct 5  Oct 15
+│      (vertical line synced across both charts)
+```
+
 **Interactive Behaviors**:
 
 | Action | Response |
 |--------|----------|
-| Hover on data point | Tooltip appears showing: date, value, build number, commit SHA |
-| Hover on any chart | ALL charts show tooltips for the same build (synchronized) |
-| Mouse wheel scroll | Zoom in/out on X-axis (all charts zoom together) |
-| Click and drag | Pan horizontally when zoomed (all charts pan together) |
-| Mouse leaves chart | All tooltips dismiss |
+| Hover on any chart area | A vertical alignment line appears on ALL charts at the cursor's X position; all charts show tooltips for the same build (synchronized) |
+| Move cursor horizontally | Vertical line updates in real-time on all charts, synchronized to the same X position; tooltips update accordingly |
+| Mouse wheel scroll | Zoom in/out on X-axis (all charts zoom together); vertical line continues to work within zoomed bounds |
+| Click and drag | Pan horizontally when zoomed (all charts pan together); vertical line maintains synchronization |
+| Mouse leaves all charts | Vertical alignment line and all tooltips simultaneously dismiss |
 
 **Tooltip Content**:
 ```
@@ -199,6 +219,50 @@ For missing data points:
 │ Dec 5, 2025             │
 │ No data for this build  │
 └─────────────────────────┘
+```
+
+---
+
+### 3.4.1 Vertical Alignment Indicator
+
+**Purpose**: Provides a precise visual anchor that helps users identify the exact X-axis position across multiple metric charts simultaneously, reducing eye strain and improving accuracy when comparing cross-metric trends.
+
+**Trigger**: Appears when the user's cursor hovers over any chart area.
+
+**Appearance**:
+- Width: 1 pixel
+- Color: Semi-transparent blue (light mode) or adjusted for dark mode
+- Opacity: 30% (allows data and gridlines to be visible behind the line)
+- Style: Solid, vertical line extending from top to bottom of chart area
+
+**Position**:
+- X-coordinate: Aligns with the cursor's horizontal position within the chart
+- Y-range: Extends across the full visible chart area (from top gridline to bottom gridline)
+
+**Behavior**:
+- **On hover**: Line appears immediately when cursor enters any chart area
+- **On movement**: Line position updates in real-time as cursor moves horizontally
+- **On leave**: Line dismisses when cursor leaves all chart areas
+- **Synchronization**: When one chart is hovered, the line appears on all visible charts at the same X position (synchronized within <50ms)
+- **Respect zoom**: When charts are zoomed, the line appears within the current zoomed chart area bounds
+- **Respect filters**: The line is visual only (not data-dependent) and appears even when date filters hide data
+
+**Interaction with Other Elements**:
+- **Behind data**: Line is drawn behind data points and lines so it doesn't obscure metrics
+- **With tooltips**: Vertical line appears alongside synchronized tooltips (both appear on hover)
+- **With zoom controls**: Works transparently with zoomed charts
+
+**Accessibility**:
+- The line serves as a visual aid and is supplemented by synchronized tooltips (which provide textual data)
+- Color contrast meets WCAG AA standards against both light and dark backgrounds
+- The indicator position is redundant with the X-axis label (user can read timestamp from axis)
+
+**Configuration**:
+```
+Color (light mode): rgba(59, 130, 246, 0.3)  // semi-transparent blue
+Color (dark mode): rgba(147, 197, 253, 0.3)  // lighter blue for contrast
+Width: 1 pixel
+Opacity: 30%
 ```
 
 ---

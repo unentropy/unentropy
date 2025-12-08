@@ -25,8 +25,8 @@
 * [x] Integrate find-artifact action into S3-artifact storage
 * [x] unentropy preview command
 * [x] In-repository docs
+* [x] Polish HTML reports: dummy data, crosshair, etc.
 * [ ] Polish quality gate comment, make it less dry 
-* [ ] Polish HTML reports: dummy data, crosshair, etc.
 * [ ] Properly packaged Github actions
  
 ## 0.3 - MVP+

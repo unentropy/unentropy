@@ -48,23 +48,29 @@ When a report has limited build data (fewer than 10 builds), the user can toggle
 
 ---
 
-### User Story 3 - Synchronized Tooltips Across Charts (Priority: P1)
+### User Story 3 - Synchronized Tooltips and Cross-Chart Visual Alignment (Priority: P1)
 
-When a user hovers over a data point on one chart, all other charts simultaneously display tooltips for the same build. This allows users to compare metric values across different metrics at the exact same point in time.
+When a user hovers over a data point on one chart, **a vertical alignment line appears across all charts at the same X-axis position**, and all other charts simultaneously display tooltips for the same build. This allows users to precisely locate and compare metric values across different metrics at the exact same point in time.
 
-**Why this priority**: Essential for comparing metrics - users need to correlate values across charts (e.g., "when coverage dropped, did bundle size increase?"). This is a must-have for meaningful analysis.
+**Why this priority**: Essential for comparing metrics - users need to correlate values across charts (e.g., "when coverage dropped, did bundle size increase?"). The vertical line provides a clear visual anchor that helps users identify the exact X-axis position across multiple charts without eye strain.
 
-**Independent Test**: Can be fully tested by generating a report with 3+ metrics and hovering over a data point on one chart, verifying that all other charts show tooltips for the same build timestamp.
+**Independent Test**: Can be fully tested by generating a report with 3+ metrics and hovering over a data point on one chart, verifying that:
+1. A vertical alignment line appears on ALL charts at the cursor's X position
+2. All other charts show tooltips for the same build timestamp
+3. The line and tooltips update synchronously as the cursor moves
+4. Both line and tooltips dismiss when leaving chart areas
 
 **Acceptance Scenarios**:
 
-1. **Given** a report with multiple metrics, **When** the user hovers over a data point on Chart A, **Then** all other visible charts display tooltips showing their values for the same build.
+1. **Given** a report with multiple metrics, **When** the user hovers over a data point on Chart A, **Then** a vertical alignment line appears on all visible charts at the same X-axis position, and all charts display tooltips showing their values for the same build.
 
-2. **Given** synchronized tooltips are displayed, **When** the user moves the mouse to a different data point, **Then** all tooltips update simultaneously to reflect the new build.
+2. **Given** the alignment line and synchronized tooltips are displayed, **When** the user moves the mouse to a different X position, **Then** the vertical line updates in real-time on all charts, and all tooltips simultaneously reflect the new build data.
 
-3. **Given** a metric that has no data for a specific build, **When** the user hovers over that build on another chart, **Then** the sparse metric's chart shows a tooltip indicating "No data for this build".
+3. **Given** a metric that has no data for a specific build, **When** the user hovers over that build on another chart, **Then** the sparse metric's chart shows the vertical line at the correct X position and displays a tooltip indicating "No data for this build".
 
-4. **Given** the user moves the mouse away from all charts, **When** no chart is being hovered, **Then** all tooltips are dismissed.
+4. **Given** the user moves the mouse away from all charts, **When** no chart is being hovered, **Then** the vertical alignment line and all tooltips are simultaneously dismissed.
+
+5. **Given** a report with charts of different metric types (line and bar), **When** the user hovers over any chart, **Then** the vertical alignment line appears on all compatible charts (line charts and numeric visualizations) to help cross-metric comparison.
 
 ---
 
@@ -177,7 +183,13 @@ Users can export individual charts as PNG images for use in presentations, docum
   - The exported PNG includes a "(Preview Data)" watermark to indicate synthetic data.
 
 - What happens when synchronized tooltips are triggered on a chart with no data for that build?
-  - The tooltip displays "No data for this build" at the corresponding X-axis position.
+  - The vertical alignment line displays at the corresponding X-axis position, and the tooltip displays "No data for this build".
+
+- What happens when hovering over a zoomed-in section of a chart?
+  - The vertical alignment line appears within the current chart area bounds and synchronizes across all zoomed charts.
+
+- What happens when a user hovers over a bar chart (label metric)?
+  - The vertical alignment line appears if the chart has a numeric X-axis (time-based), positioned at the cursor's X position. If the X-axis is categorical, the line aligns to the nearest category boundary or is disabled per accessibility considerations.
 
 - What happens when the user zooms while a date range filter is active?
   - Zoom operates within the filtered range; reset zoom returns to the filtered view, not "All" data.
@@ -235,39 +247,43 @@ Users can export individual charts as PNG images for use in presentations, docum
 - **FR-027**: Charts MUST have ARIA labels describing their content for screen readers.
 - **FR-028**: Toggle switch MUST be keyboard accessible with visible focus indicator.
 
-**Synchronized Tooltips**
+**Synchronized Tooltips and Visual Alignment**
 
-- **FR-029**: When hovering over a data point on any chart, all other charts MUST simultaneously display tooltips for the same build.
-- **FR-030**: Tooltip synchronization MUST work across both line charts (numeric metrics) and bar charts (label metrics).
-- **FR-031**: When the hovered build has no data for a particular metric, that chart MUST display a tooltip indicating "No data for this build".
-- **FR-032**: When the mouse leaves all chart areas, all tooltips MUST be dismissed.
+- **FR-029**: When hovering over any chart, a vertical alignment line MUST appear on all visible charts at the cursor's X-axis position.
+- **FR-030**: The vertical alignment line MUST be visible across the full height of the chart area on each chart.
+- **FR-031**: The vertical alignment line MUST update in real-time as the cursor moves, with synchronization latency less than 50ms across all charts.
+- **FR-032**: All other charts MUST simultaneously display tooltips for the same build as indicated by the vertical line position.
+- **FR-033**: Tooltip synchronization MUST work across both line charts (numeric metrics) and bar charts (label metrics).
+- **FR-034**: When the hovered build has no data for a particular metric, that chart MUST display the vertical line at the correct X position and a tooltip indicating "No data for this build".
+- **FR-035**: When the mouse leaves all chart areas, the vertical alignment line and all tooltips MUST be simultaneously dismissed.
+- **FR-036**: The vertical alignment line appearance MUST be configurable with customizable color, width, and opacity to support light and dark modes and accessibility requirements.
 
 **Zoom and Pan**
 
-- **FR-033**: Charts MUST support mouse wheel zoom, centered on the cursor position.
-- **FR-034**: Charts MUST support click-and-drag horizontal panning when zoomed in.
-- **FR-035**: When any chart is zoomed, all charts MUST synchronize to the same zoom level and X-axis range.
-- **FR-036**: A "Reset zoom" button MUST appear on each chart when zoomed in.
-- **FR-037**: Clicking "Reset zoom" MUST return all charts to the current filter's full range.
-- **FR-038**: Charts with fewer than 3 data points MUST have zoom functionality disabled.
-- **FR-039**: Report MUST load chartjs-plugin-zoom from CDN to enable zoom/pan functionality.
+- **FR-037**: Charts MUST support mouse wheel zoom, centered on the cursor position.
+- **FR-038**: Charts MUST support click-and-drag horizontal panning when zoomed in.
+- **FR-039**: When any chart is zoomed, all charts MUST synchronize to the same zoom level and X-axis range.
+- **FR-040**: A "Reset zoom" button MUST appear on each chart when zoomed in.
+- **FR-041**: Clicking "Reset zoom" MUST return all charts to the current filter's full range.
+- **FR-042**: Charts with fewer than 3 data points MUST have zoom functionality disabled.
+- **FR-043**: Report MUST load chartjs-plugin-zoom from CDN to enable zoom/pan functionality.
 
 **Date Range Filtering**
 
-- **FR-040**: Report MUST display filter buttons in the header: "7 days", "30 days", "90 days", "All".
-- **FR-041**: Clicking a filter button MUST update all charts to display only data within that time range.
-- **FR-042**: The active filter MUST be visually highlighted (e.g., different background color).
-- **FR-043**: The default active filter MUST be "All" when the report is first opened.
-- **FR-044**: When no data exists within the selected range, charts MUST display "No data in selected range" message.
-- **FR-045**: Date range filtering MUST be calculated relative to the most recent build timestamp in the database.
+- **FR-044**: Report MUST display filter buttons in the header: "7 days", "30 days", "90 days", "All".
+- **FR-045**: Clicking a filter button MUST update all charts to display only data within that time range.
+- **FR-046**: The active filter MUST be visually highlighted (e.g., different background color).
+- **FR-047**: The default active filter MUST be "All" when the report is first opened.
+- **FR-048**: When no data exists within the selected range, charts MUST display "No data in selected range" message.
+- **FR-049**: Date range filtering MUST be calculated relative to the most recent build timestamp in the database.
 
 **Chart Export**
 
-- **FR-046**: Each chart card MUST display a "Download PNG" button.
-- **FR-047**: Clicking "Download PNG" MUST trigger a browser download of the chart as a PNG image.
-- **FR-048**: The exported image MUST include the metric name as a title.
-- **FR-049**: When dummy data is active, the exported image MUST include a "(Preview Data)" watermark.
-- **FR-050**: The exported image MUST reflect the current zoom level and date range filter.
+- **FR-050**: Each chart card MUST display a "Download PNG" button.
+- **FR-051**: Clicking "Download PNG" MUST trigger a browser download of the chart as a PNG image.
+- **FR-052**: The exported image MUST include the metric name as a title.
+- **FR-053**: When dummy data is active, the exported image MUST include a "(Preview Data)" watermark.
+- **FR-054**: The exported image MUST reflect the current zoom level and date range filter.
 
 ### Key Entities
 
@@ -295,7 +311,9 @@ Users can export individual charts as PNG images for use in presentations, docum
 
 - **SC-007**: Toggle switch responds to user input within 100ms and charts update smoothly within 500ms.
 
-- **SC-008**: Hovering on any chart displays synchronized tooltips on all other charts within 50ms.
+- **SC-008**: Hovering on any chart displays a synchronized vertical alignment line on all charts AND synchronized tooltips on all other charts within 50ms.
+
+- **SC-008a**: The vertical alignment line moves smoothly as the cursor moves across a chart (no jank, consistent 60 FPS rendering).
 
 - **SC-009**: Zoom and pan interactions respond within 100ms across all synchronized charts.
 
