@@ -46,6 +46,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "bun run lint && bun run typecheck && bun run format:check",
+    "dev:report": "bun --watch scripts/dev-report.ts",
     "generate-fixtures": "bun run scripts/generate-fixtures.ts",
     "visual-review": "bun run scripts/generate-fixtures.ts && bun run scripts/open-reports.ts",
     "version:patch": "bun pm version patch && git push --follow-tags",
