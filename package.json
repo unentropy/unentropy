@@ -4,7 +4,7 @@
   "repository": {
     "url": "git+https://github.com/unentropy/unentropy.git"
   },
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "description": "Serverless tool for tracking custom code metrics in CI/CD pipelines",
   "license": "MIT",
