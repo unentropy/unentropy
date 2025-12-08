@@ -97,16 +97,8 @@ jobs:
           # Configure npm authentication
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
 
-          # Determine if this is a beta version (0.x)
-          MAJOR_VERSION=$(echo $VERSION | cut -d. -f1)
-          if [ "$MAJOR_VERSION" = "0" ]; then
-            echo "Publishing beta version $VERSION with --tag beta"
-            npm publish --tag beta
-          else
-            echo "Publishing stable version $VERSION with --tag latest"
-            npm publish --dry-run
-          fi
-
+          echo "Publishing stable version $VERSION with --tag latest"
+          npm publish --dry-run
           echo "Successfully published unentropy@$VERSION to npm"
 
       - name: Skip npm publish (already published)
