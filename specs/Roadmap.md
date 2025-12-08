@@ -19,12 +19,12 @@
 ## 0.2 - MVP
 * [x] Move to a dedicated organization
 * [x] Scaffolding: `bunx unentropy init`, an interactive CLI that creates a basic Unentropy configuration based on the current projects.
-  * [ ] Package and publish unentropy CLI
+  * [x] Package and publish unentropy CLI
 * [x] Simplify the config schema when using $ref. Will likely need to introduce the notion of "id", so that metric can be referenced in a quality gate.
 * [x] Support for @collect command
 * [x] Integrate find-artifact action into S3-artifact storage
 * [x] unentropy preview command
-* [ ] In-repository docs
+* [x] In-repository docs
 * [ ] Polish quality gate comment, make it less dry 
 * [ ] Polish HTML reports: dummy data, crosshair, etc.
 * [ ] Properly packaged Github actions
@@ -37,6 +37,7 @@
 * [ ] Public config schema 
 * [ ] Collectors and metrics gallery
 * [ ] Allow replacing existing build context
+* [ ] node/npx compatibility
 
 ## TBD
 * Support for more robust, cloud databases (Postgres, MySQL, ...)
