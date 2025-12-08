@@ -275,21 +275,7 @@ EOF
 aws iam put-user-policy --user-name unentropy-metrics --policy-name UnentropyMetrics --policy-document file://unentropy-policy.json
 ```
 
-### 4.2 MinIO
-
-```yaml
-# Workflow for MinIO
-- name: Collect Metrics
-  uses: ./actions/track-metrics
-  with:
-    s3-endpoint: 'https://minio.example.com'
-    s3-bucket: 'unentropy-metrics'
-    s3-region: 'us-east-1'
-    s3-access-key-id: ${{ secrets.MINIO_ACCESS_KEY }}
-    s3-secret-access-key: ${{ secrets.MINIO_SECRET_KEY }}
-```
-
-### 4.3 DigitalOcean Spaces
+### 4.2 DigitalOcean Spaces
 
 ```yaml
 # Workflow for DigitalOcean Spaces
@@ -303,7 +289,7 @@ aws iam put-user-policy --user-name unentropy-metrics --policy-name UnentropyMet
     s3-secret-access-key: ${{ secrets.DO_SPACES_SECRET }}
 ```
 
-### 4.4 Cloudflare R2
+### 4.3 Cloudflare R2
 
 ```yaml
 # Workflow for Cloudflare R2

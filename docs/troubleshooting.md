@@ -47,7 +47,7 @@ Solutions to common problems you might encounter while using Unentropy.
 **Solution**: Run tests with coverage first:
 
 ```bash
-bun test --coverage --coverage-reporter=lcov 
+bun test --coverage --coverage-reporter=lcov
 bunx unentropy test
 ```
 

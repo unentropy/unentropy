@@ -134,17 +134,6 @@ with:
   s3-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
 ```
 
-#### MinIO (Self-Hosted)
-
-```yaml
-with:
-  s3-endpoint: https://minio.example.com
-  s3-bucket: unentropy
-  s3-region: us-east-1
-  s3-access-key-id: ${{ secrets.MINIO_ACCESS_KEY }}
-  s3-secret-access-key: ${{ secrets.MINIO_SECRET_KEY }}
-```
-
 #### DigitalOcean Spaces
 
 ```yaml
