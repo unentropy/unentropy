@@ -85,6 +85,21 @@ jobs:
           fi
           echo "CLI build verified"
 
+      - name: Build Actions
+        run: bun run build:actions
+
+      - name: Verify Actions build
+        run: |
+          if [ ! -f .github/actions/track-metrics/dist/track-metrics.js ]; then
+            echo "Error: track-metrics action build failed"
+            exit 1
+          fi
+          if [ ! -f .github/actions/quality-gate/dist/quality-gate.js ]; then
+            echo "Error: quality-gate action build failed"
+            exit 1
+          fi
+          echo "Actions build verified"
+
       - name: Check if version already published
         id: check_published
         run: |
@@ -127,3 +142,43 @@ jobs:
           draft: false
           prerelease: ${{ startsWith(steps.version.outputs.version, '0.') }}
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload action artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: actions-dist
+          path: .github/actions/
+          retention-days: 1
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+
+  publish-actions:
+    name: Publish ${{ matrix.action }} Action
+    runs-on: ubuntu-latest
+    needs: publish
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        action: [track-metrics, quality-gate]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download action artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: actions-dist
+          path: source
+
+      - name: Publish action
+        uses: ./.github/actions/publish-action
+        with:
+          action-name: ${{ matrix.action }}
+          target-repo: unentropy/${{ matrix.action }}
+          version: ${{ needs.publish.outputs.version }}
+          tag: ${{ needs.publish.outputs.tag }}
+          source-path: source/${{ matrix.action }}
+          publish-token: ${{ secrets.ACTIONS_PUBLISH_TOKEN }}

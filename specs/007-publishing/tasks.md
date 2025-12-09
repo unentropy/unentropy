@@ -80,19 +80,19 @@
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Add actions build step to .github/workflows/publish.yml (run bun run build:actions)
-- [ ] T020 [US2] Add job for publishing track-metrics action to .github/workflows/publish.yml
-- [ ] T021 [P] [US2] Add job for publishing quality-gate action to .github/workflows/publish.yml
-- [ ] T022 [US2] Implement clone target repo step in publish workflow (use ACTIONS_PUBLISH_TOKEN for auth)
-- [ ] T023 [US2] Implement clear existing files step in publish workflow (remove all except .git/)
-- [ ] T024 [US2] Implement copy files step in publish workflow (action.yml, dist/, README.md)
-- [ ] T025 [US2] Implement commit step in publish workflow with traceability message
-- [ ] T026 [US2] Implement tag creation step in publish workflow (exact version tag)
-- [ ] T027 [US2] Implement floating tag update step in publish workflow (v0, v0.1 force-push)
-- [ ] T028 [US2] Implement push step in publish workflow (commits + tags with --force)
-- [ ] T029 [US2] Document ACTIONS_PUBLISH_TOKEN secret requirement in specs/007-publishing/quickstart.md (already done, just verify)
-- [ ] T030 [P] [US2] Create README.md for .github/actions/track-metrics/ with usage examples
-- [ ] T031 [P] [US2] Create README.md for .github/actions/quality-gate/ with usage examples
+- [x] T019 [US2] Add actions build step to .github/workflows/publish.yml (run bun run build:actions)
+- [x] T020 [US2] Add job for publishing track-metrics action to .github/workflows/publish.yml
+- [x] T021 [P] [US2] Add job for publishing quality-gate action to .github/workflows/publish.yml
+- [x] T022 [US2] Implement clone target repo step in publish workflow (use ACTIONS_PUBLISH_TOKEN for auth)
+- [x] T023 [US2] Implement clear existing files step in publish workflow (remove all except .git/)
+- [x] T024 [US2] Implement copy files step in publish workflow (action.yml, dist/, README.md)
+- [x] T025 [US2] Implement commit step in publish workflow with traceability message
+- [x] T026 [US2] Implement tag creation step in publish workflow (exact version tag)
+- [x] T027 [US2] Implement floating tag update step in publish workflow (v0, v0.1 force-push)
+- [x] T028 [US2] Implement push step in publish workflow (commits + tags with --force)
+- [x] T029 [US2] Document ACTIONS_PUBLISH_TOKEN secret requirement in specs/007-publishing/quickstart.md (already done, just verify)
+- [x] T030 [P] [US2] Create README.md for .github/actions/track-metrics/ with usage examples
+- [x] T031 [P] [US2] Create README.md for .github/actions/quality-gate/ with usage examples
 
 **Checkpoint**: User Story 2 complete - `uses: unentropy/track-metrics@v0` works after release
 
