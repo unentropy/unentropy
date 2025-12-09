@@ -1,6 +1,11 @@
 name: Test Publish (Dry Run)
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/publish.yml"
+      - ".github/workflows/test-publish.yml"
+      - ".github/actions/publish-action/**"
   workflow_dispatch:
     inputs:
       version:
@@ -63,8 +68,8 @@ jobs:
           retention-days: 1
 
     outputs:
-      version: ${{ inputs.version }}
-      tag: v${{ inputs.version }}
+      version: ${{ inputs.version || '0.0.0-test' }}
+      tag: v${{ inputs.version || '0.0.0-test' }}
 
   test-publish:
     name: Test Publish ${{ matrix.action }}
@@ -94,4 +99,4 @@ jobs:
           tag: ${{ needs.build.outputs.tag }}
           source-path: source/.github/actions/${{ matrix.action }}
           publish-token: ${{ secrets.ACTIONS_PUBLISH_TOKEN }}
-          dry-run: ${{ inputs.dry-run }}
+          dry-run: ${{ inputs.dry-run || 'true' }}
