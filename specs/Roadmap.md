@@ -26,21 +26,21 @@
 * [x] unentropy preview command
 * [x] In-repository docs
 * [x] Polish HTML reports: dummy data, crosshair, etc.
-* [ ] Properly packaged Github actions
+* [x] Properly packaged Github actions
  
 ## 0.3 - MVP+
-* [ ] Use Drizzle ORM and proper migration system
-* [ ] "Main branch"
-* [ ] Public config schema 
-* [ ] Allow replacing existing build context
-* [ ] node/npx compatibility
 * [ ] Support for selecting time range in metrics report
+* [ ] Support for zoom-in and reset in metrics report
 * [ ] Polish quality gate comment, make it less dry
+* [ ] Use Drizzle ORM and proper migration system
+* [ ] node/npx compatibility
 
 ## MVP++
 * [ ] Public docs
-* [ ] Custom collectors and metrics / simple plugins
+* [ ] Public config schema
 * [ ] Collectors and metrics gallery
+* [ ] "Main branch"
+* [ ] Allow replacing existing build context
  
 ## TBD
 * Support for more robust, cloud databases (Postgres, MySQL, ...)
@@ -49,6 +49,8 @@
 * Garbage collection from metrics database
 * What to do when the number of metrics grows too large?
 * Heuristic alerts ("Your bundle suddenly increased in size by X%")
+* Custom collectors and metrics / simple plugins
+* Plotting multiple metrics in the same chart
 
 ## Technical improvements
 * [ ] Use DB transactions when collecting metrics
@@ -59,7 +61,7 @@
   * Cleanup the split between contract/integration/unit
 
 ## Spec-kit
-* [ ] Create a contract spec for HTML report template
+* [x] Create a contract spec for HTML report template
 * [ ] Create a contract spec for GH quality gate comment - how it should look like, what it should contain, etc.
 
 ## Long term ideas
