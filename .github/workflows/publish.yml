@@ -147,13 +147,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: actions-dist
-          path: |
-            .github/actions/track-metrics/action.yml
-            .github/actions/track-metrics/dist/
-            .github/actions/track-metrics/README.md
-            .github/actions/quality-gate/action.yml
-            .github/actions/quality-gate/dist/
-            .github/actions/quality-gate/README.md
+          path: .github/actions/
           retention-days: 1
 
     outputs:
@@ -186,5 +180,5 @@ jobs:
           target-repo: unentropy/${{ matrix.action }}
           version: ${{ needs.publish.outputs.version }}
           tag: ${{ needs.publish.outputs.tag }}
-          source-path: source/.github/actions/${{ matrix.action }}
+          source-path: source/${{ matrix.action }}
           publish-token: ${{ secrets.ACTIONS_PUBLISH_TOKEN }}
