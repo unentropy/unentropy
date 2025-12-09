@@ -155,6 +155,28 @@ npm publish
    - Push tags with `--force` for floating tags
    - Use ACTIONS_PUBLISH_TOKEN for authentication
 
+## GitHub Marketplace Publishing
+
+**Important:** Marketplace publishing is separate from the automated workflow.
+
+**One-time manual setup (per action repository):**
+1. Navigate to `unentropy/track-metrics` (or `quality-gate`) on GitHub
+2. GitHub auto-detects `action.yml` and offers "Publish this Action to Marketplace"
+3. Fill out listing details (description, icon, category)
+4. Accept GitHub Marketplace Developer Agreement
+5. Publish to Marketplace
+
+**After initial setup:**
+- Marketplace listing updates automatically when new tags are pushed
+- No additional workflows needed in action repositories
+- GitHub watches for new releases and updates the listing
+
+**What the action repositories contain:**
+- `action.yml` - Action definition
+- `dist/` - Bundled JavaScript
+- `README.md` - Documentation (shown on Marketplace)
+- No CI/CD workflows needed
+
 **Tag strategy:**
 ```
 # For release v0.1.3

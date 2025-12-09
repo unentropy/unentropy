@@ -85,6 +85,21 @@ jobs:
           fi
           echo "CLI build verified"
 
+      - name: Build Actions
+        run: bun run build:actions
+
+      - name: Verify Actions build
+        run: |
+          if [ ! -f .github/actions/track-metrics/dist/track-metrics.js ]; then
+            echo "Error: track-metrics action build failed"
+            exit 1
+          fi
+          if [ ! -f .github/actions/quality-gate/dist/quality-gate.js ]; then
+            echo "Error: quality-gate action build failed"
+            exit 1
+          fi
+          echo "Actions build verified"
+
       - name: Check if version already published
         id: check_published
         run: |
@@ -127,3 +142,84 @@ jobs:
           draft: false
           prerelease: ${{ startsWith(steps.version.outputs.version, '0.') }}
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload action artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: actions-dist
+          path: |
+            .github/actions/track-metrics/action.yml
+            .github/actions/track-metrics/dist/
+            .github/actions/track-metrics/README.md
+            .github/actions/quality-gate/action.yml
+            .github/actions/quality-gate/dist/
+            .github/actions/quality-gate/README.md
+          retention-days: 1
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+
+  publish-actions:
+    name: Publish ${{ matrix.action }} Action
+    runs-on: ubuntu-latest
+    needs: publish
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        action: [track-metrics, quality-gate]
+
+    steps:
+      - name: Download action artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: actions-dist
+          path: source
+
+      - name: Clone target repository
+        run: |
+          git clone https://x-access-token:${{ secrets.ACTIONS_PUBLISH_TOKEN }}@github.com/unentropy/${{ matrix.action }}.git target
+        env:
+          GIT_TERMINAL_PROMPT: "0"
+
+      - name: Clear existing files
+        run: |
+          cd target
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+
+      - name: Copy action files
+        run: |
+          cp source/.github/actions/${{ matrix.action }}/action.yml target/
+          cp -r source/.github/actions/${{ matrix.action }}/dist target/
+          cp source/.github/actions/${{ matrix.action }}/README.md target/
+
+      - name: Configure git
+        run: |
+          cd target
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit changes
+        run: |
+          cd target
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Release ${{ needs.publish.outputs.tag }} from unentropy/unentropy"
+          fi
+
+      - name: Create and push tags
+        run: |
+          cd target
+          VERSION="${{ needs.publish.outputs.version }}"
+          TAG="${{ needs.publish.outputs.tag }}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+
+          git tag -fa "$TAG" -m "Release $TAG"
+          git tag -fa "v${MAJOR}.${MINOR}" -m "Update v${MAJOR}.${MINOR} tag"
+          git tag -fa "v${MAJOR}" -m "Update v${MAJOR} tag"
+
+          git push origin HEAD --force
+          git push origin "$TAG" "v${MAJOR}.${MINOR}" "v${MAJOR}" --force
