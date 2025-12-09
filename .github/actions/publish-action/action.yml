@@ -1,0 +1,115 @@
+name: "Publish Action to Repository"
+description: "Clone target repo, copy action files, commit, tag, and push"
+author: "Unentropy"
+
+inputs:
+  action-name:
+    description: "Name of the action to publish (e.g., track-metrics, quality-gate)"
+    required: true
+  target-repo:
+    description: "Target repository (e.g., unentropy/track-metrics)"
+    required: true
+  version:
+    description: "Version number without v prefix (e.g., 0.1.0)"
+    required: true
+  tag:
+    description: "Version tag with v prefix (e.g., v0.1.0)"
+    required: true
+  source-path:
+    description: "Path to the source action files"
+    required: true
+  publish-token:
+    description: "GitHub PAT with repo scope for pushing to target repo"
+    required: true
+  dry-run:
+    description: "If true, skip the push step (for testing)"
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Clone target repository
+      shell: bash
+      run: |
+        git clone https://x-access-token:${{ inputs.publish-token }}@github.com/${{ inputs.target-repo }}.git target-${{ inputs.action-name }}
+      env:
+        GIT_TERMINAL_PROMPT: "0"
+
+    - name: Clear existing files
+      shell: bash
+      run: |
+        cd target-${{ inputs.action-name }}
+        find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+
+    - name: Copy action files
+      shell: bash
+      run: |
+        cp ${{ inputs.source-path }}/action.yml target-${{ inputs.action-name }}/
+        cp -r ${{ inputs.source-path }}/dist target-${{ inputs.action-name }}/
+        cp ${{ inputs.source-path }}/README.md target-${{ inputs.action-name }}/
+        echo "Copied files:"
+        ls -la target-${{ inputs.action-name }}/
+
+    - name: Configure git
+      shell: bash
+      run: |
+        cd target-${{ inputs.action-name }}
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Commit changes
+      shell: bash
+      run: |
+        cd target-${{ inputs.action-name }}
+        git add -A
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Release ${{ inputs.tag }} from unentropy/unentropy"
+          echo "Changes committed"
+        fi
+
+    - name: Create version tags
+      shell: bash
+      run: |
+        cd target-${{ inputs.action-name }}
+        VERSION="${{ inputs.version }}"
+        TAG="${{ inputs.tag }}"
+        MAJOR=$(echo "$VERSION" | cut -d. -f1)
+        MINOR=$(echo "$VERSION" | cut -d. -f2)
+
+        git tag -fa "$TAG" -m "Release $TAG"
+        git tag -fa "v${MAJOR}.${MINOR}" -m "Update v${MAJOR}.${MINOR} tag"
+        git tag -fa "v${MAJOR}" -m "Update v${MAJOR} tag"
+
+        echo "Created tags: $TAG, v${MAJOR}.${MINOR}, v${MAJOR}"
+
+    - name: Push to target repository
+      if: inputs.dry-run != 'true'
+      shell: bash
+      run: |
+        cd target-${{ inputs.action-name }}
+        VERSION="${{ inputs.version }}"
+        TAG="${{ inputs.tag }}"
+        MAJOR=$(echo "$VERSION" | cut -d. -f1)
+        MINOR=$(echo "$VERSION" | cut -d. -f2)
+
+        git push origin HEAD --force
+        git push origin "$TAG" "v${MAJOR}.${MINOR}" "v${MAJOR}" --force
+
+        echo "Pushed to ${{ inputs.target-repo }}"
+
+    - name: Dry run summary
+      if: inputs.dry-run == 'true'
+      shell: bash
+      run: |
+        cd target-${{ inputs.action-name }}
+        echo "=== DRY RUN - would push the following ==="
+        echo "Repository: ${{ inputs.target-repo }}"
+        echo "Commits:"
+        git log --oneline -3
+        echo "Tags:"
+        git tag -l | head -10
+        echo "Files:"
+        ls -la

@@ -170,56 +170,21 @@ jobs:
         action: [track-metrics, quality-gate]
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Download action artifacts
         uses: actions/download-artifact@v4
         with:
           name: actions-dist
           path: source
 
-      - name: Clone target repository
-        run: |
-          git clone https://x-access-token:${{ secrets.ACTIONS_PUBLISH_TOKEN }}@github.com/unentropy/${{ matrix.action }}.git target
-        env:
-          GIT_TERMINAL_PROMPT: "0"
-
-      - name: Clear existing files
-        run: |
-          cd target
-          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-
-      - name: Copy action files
-        run: |
-          cp source/.github/actions/${{ matrix.action }}/action.yml target/
-          cp -r source/.github/actions/${{ matrix.action }}/dist target/
-          cp source/.github/actions/${{ matrix.action }}/README.md target/
-
-      - name: Configure git
-        run: |
-          cd target
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Commit changes
-        run: |
-          cd target
-          git add -A
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Release ${{ needs.publish.outputs.tag }} from unentropy/unentropy"
-          fi
-
-      - name: Create and push tags
-        run: |
-          cd target
-          VERSION="${{ needs.publish.outputs.version }}"
-          TAG="${{ needs.publish.outputs.tag }}"
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f2)
-
-          git tag -fa "$TAG" -m "Release $TAG"
-          git tag -fa "v${MAJOR}.${MINOR}" -m "Update v${MAJOR}.${MINOR} tag"
-          git tag -fa "v${MAJOR}" -m "Update v${MAJOR} tag"
-
-          git push origin HEAD --force
-          git push origin "$TAG" "v${MAJOR}.${MINOR}" "v${MAJOR}" --force
+      - name: Publish action
+        uses: ./.github/actions/publish-action
+        with:
+          action-name: ${{ matrix.action }}
+          target-repo: unentropy/${{ matrix.action }}
+          version: ${{ needs.publish.outputs.version }}
+          tag: ${{ needs.publish.outputs.tag }}
+          source-path: source/.github/actions/${{ matrix.action }}
+          publish-token: ${{ secrets.ACTIONS_PUBLISH_TOKEN }}
