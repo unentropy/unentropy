@@ -93,4 +93,4 @@ jobs:
           tag: ${{ needs.build.outputs.tag }}
           source-path: source/${{ matrix.action }}
           publish-token: ${{ secrets.ACTIONS_PUBLISH_TOKEN }}
-          dry-run: ${{ inputs.dry-run || 'true' }}
+          dry-run: ${{ inputs.dry-run || 'false' }}
