@@ -26,19 +26,22 @@
 * [x] unentropy preview command
 * [x] In-repository docs
 * [x] Polish HTML reports: dummy data, crosshair, etc.
-* [ ] Polish quality gate comment, make it less dry 
 * [ ] Properly packaged Github actions
  
 ## 0.3 - MVP+
-* [ ] Public docs
 * [ ] Use Drizzle ORM and proper migration system
 * [ ] "Main branch"
-* [ ] Custom collectors and metrics / simple plugins
 * [ ] Public config schema 
-* [ ] Collectors and metrics gallery
 * [ ] Allow replacing existing build context
 * [ ] node/npx compatibility
+* [ ] Support for selecting time range in metrics report
+* [ ] Polish quality gate comment, make it less dry
 
+## MVP++
+* [ ] Public docs
+* [ ] Custom collectors and metrics / simple plugins
+* [ ] Collectors and metrics gallery
+ 
 ## TBD
 * Support for more robust, cloud databases (Postgres, MySQL, ...)
 * Non-trackable metrics (affecting quality gate only)

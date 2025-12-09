@@ -16,27 +16,18 @@ This project follows Specification-Driven Development (SDD) principles as define
 - DO NOT jump into modifying code when not explicitly instructed to do so - for example, when asked to "plan" or "analyze" or "update the spec", just run the analysis, report the results and wait for further instructions.
 - DO NOT add code comments unless asked.
 - When asked to implement a single task, do not proceed to the next - stop and wait for further instructions.
-
-## Development Workflow
-
-- All changes require code review
-- Run build, lint, typecheck, and tests before merging
-- Follow semantic versioning for releases
-- Compliance verified in all PRs
+- Run "bun check" after making changes to the code
 
 ## Project Summary
 
 Unentropy is a serverless tool for tracking custom code metrics in CI/CD pipelines via GitHub Actions, using Node.js/TypeScript, SQLite, and Chart.js to generate trend reports without external servers.
 
-## Build/Lint/Test Commands
+## Lint/Test Commands
 
-- Build: bun run build
-- Lint: bun lint
+- Lint, type checks, format checks: bun check 
 - Test: bun test
 - Single test: bun test --testNamePattern="<test name>"
-- Type check: bun run typecheck
-- Generate visual test fixtures: bun run generate-fixtures
-- Visual review (generate + open in browser): bun run visual-review
+- Visual review (generate + open in browser): bun visual-review
 
 ## Code Style Guidelines
 
@@ -52,20 +43,12 @@ Unentropy is a serverless tool for tracking custom code metrics in CI/CD pipelin
 
 - Project uses Bun as the package manager and runtime
 - Project uses GitHub Actions for CI
-- Follow security best practices; avoid logging secrets
+- Follow security best practices
 - Mimic existing code style from src/ and tests/ directories
 - When working on tasks from spec/\*/tasks.md, make sure to update the status after completion in that file
-- Use yargs (https://yargs.js.org/) for command-line argument parsing
-
-## Visual Testing
-
-- Test fixtures are located in tests/fixtures/visual-review/ with 4 scenarios: minimal, full-featured, sparse-data, edge-cases
-- Each fixture contains unentropy.json config, generated .db database, and report.html output
-- SQLite databases (.db, .db-journal) are gitignored and regenerated on each run
-- Run `bun run visual-review` to regenerate all fixtures and open HTML reports in browser
-- Visual acceptance criteria checklist is in specs/003-mvp-metrics-tracking/contracts/visual-acceptance-criteria.md
 
 ## Active Technologies
 
 - Bun runtime with TypeScript (aligned with existing Unentropy codebase). + Bun runtime, TypeScript, SQLite (metrics store), GitHub Actions runtime, GitHub REST API client for pull request comments, Chart.js for existing visual reports. (004-metrics-quality-gate)
 - Existing SQLite database managed via the storage provider abstraction (local, artifact, or S3-compatible backends). (004-metrics-quality-gate)
+- Use yargs (https://yargs.js.org/) for command-line argument parsing
