@@ -200,8 +200,8 @@ Visual representation:
 |--------|----------|
 | Hover on any chart area | A vertical alignment line appears on ALL charts at the cursor's X position; all charts show tooltips for the same build (synchronized) |
 | Move cursor horizontally | Vertical line updates in real-time on all charts, synchronized to the same X position; tooltips update accordingly |
-| Mouse wheel scroll | Zoom in/out on X-axis (all charts zoom together); vertical line continues to work within zoomed bounds |
-| Click and drag | Pan horizontally when zoomed (all charts pan together); vertical line maintains synchronization |
+| Click and drag (10+ data points) | Semi-transparent selection box appears; on release, zooms to selected range (all charts zoom together) |
+| Click "Reset Zoom" button | All charts return to original scale; button disappears |
 | Mouse leaves all charts | Vertical alignment line and all tooltips simultaneously dismiss |
 
 **Tooltip Content**:
@@ -276,11 +276,13 @@ Opacity: 30%
 - Filename: `{metric-name}-chart.png`
 - If preview mode is active: Image includes "(Preview Data)" watermark
 
-**Reset Zoom Button [↺]**:
-- Location: Top-right of metric card (next to export)
+**Reset Zoom Button**:
+- Location: Top-right corner of the chart canvas container (positioned absolutely)
 - Visibility: Only visible when chart is zoomed in
-- Behavior: Returns ALL charts to the current filter's full range
-- Label: "Reset zoom" (icon + text or just icon depending on space)
+- Behavior: Returns ALL synced charts to the original scale
+- Label: "Reset Zoom" (text only)
+- Style: Gray background (#f3f4f6), 1px border, 4px border-radius, 12px font
+- Note: Button is dynamically created/removed by the crosshair plugin
 
 ---
 
@@ -355,11 +357,10 @@ All charts in the report are interconnected:
 | User Action | Scope | Effect |
 |-------------|-------|--------|
 | Hover on any chart | All charts | Show tooltip for the same build timestamp |
-| Zoom (mouse wheel) | All charts | Zoom to same X-axis range |
-| Pan (drag) | All charts | Pan to same X-axis position |
+| Drag to zoom | All charts | Zoom to selected X-axis range (synced) |
 | Click date filter | All charts | Update visible range, reset any zoom |
 | Toggle preview | All charts | Switch between real and sample data |
-| Click reset zoom | All charts | Return to filter's full range |
+| Click reset zoom | All charts | Return to original scale |
 | Click export | Single chart | Download that chart only |
 
 ### State Persistence
@@ -380,12 +381,12 @@ All charts in the report are interconnected:
 |---------|-----------|---------|
 | Preview Bar | Build count < 10 | ✓ |
 | Preview Bar | Build count ≥ 10 | ✗ |
-| Reset Zoom Button | Chart is zoomed/panned | ✓ |
+| Reset Zoom Button | Chart is zoomed | ✓ |
 | Reset Zoom Button | Chart at default zoom | ✗ |
 | Sparse Warning | Metric has < 5 data points | ✓ |
 | Sparse Warning | Metric has ≥ 5 data points | ✗ |
-| Zoom/Pan controls | Metric has ≥ 3 data points | Enabled |
-| Zoom/Pan controls | Metric has < 3 data points | Disabled |
+| Drag-to-zoom | Metric has ≥ 10 data points | Enabled |
+| Drag-to-zoom | Metric has < 10 data points | Disabled |
 
 ### Empty States
 

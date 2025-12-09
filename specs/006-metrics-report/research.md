@@ -313,63 +313,95 @@ chartsData.forEach(({ id }) => {
 
 ---
 
-## 7. Zoom and Pan with chartjs-plugin-zoom
+## 7. Zoom and Pan with Native Drag-to-Zoom
 
 ### Decision
-Use `chartjs-plugin-zoom` loaded from CDN with synchronized zoom state across all charts.
+Implement drag-to-zoom natively within the existing crosshair plugin instead of using chartjs-plugin-zoom from CDN.
 
 ### Rationale
-- Official Chart.js plugin, well-maintained
-- Supports mouse wheel zoom and drag-to-pan
-- Provides programmatic API for synchronization
-- Small bundle size (~15KB gzipped)
+- **chartjs-plugin-zoom is no longer actively maintained** - last significant update was years ago
+- Drag-to-zoom integrates naturally with the existing crosshair plugin (same mouse events)
+- Avoids adding another CDN dependency
+- Full control over behavior, styling, and synchronization
+- Lighter weight - only implements the features we need
+- Reference implementation from chartjs-plugin-crosshair by AbelHeinsbroek provided a proven pattern
 
-### CDN Integration
+### Alternatives Considered
 
-```html
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-```
+| Approach | Pros | Cons | Decision |
+|----------|------|------|----------|
+| chartjs-plugin-zoom CDN | Feature-rich, official | Unmaintained, adds dependency | Rejected |
+| Native drag-to-zoom in crosshair plugin | No dependencies, full control, integrates with existing code | More implementation work | **Selected** |
+| Hammer.js for gestures | Touch support | Overkill for mouse-only zoom | Rejected |
 
-### Configuration
+### Implementation
+
+The zoom functionality is integrated into `crosshair-plugin.js`:
 
 ```javascript
-const zoomOptions = {
+var defaultOptions = {
+  // ... existing crosshair options ...
   zoom: {
-    wheel: { enabled: true },
-    pinch: { enabled: true },
-    mode: 'x',
-    onZoom: ({ chart }) => syncZoom(chart),
-  },
-  pan: {
     enabled: true,
-    mode: 'x',
-    onPan: ({ chart }) => syncZoom(chart),
-  },
-  limits: {
-    x: { min: 'original', max: 'original' },
+    zoomboxBackgroundColor: "rgba(59, 130, 246, 0.2)",
+    zoomboxBorderColor: "rgba(59, 130, 246, 0.5)",
+    zoomButtonText: "Reset Zoom",
+    zoomButtonClass: "reset-zoom-btn",
+    minDataPoints: 10,  // Minimum data points to enable zoom
+    minZoomRange: 4,    // Minimum data points in zoom range
   },
 };
+```
 
-function syncZoom(sourceChart) {
-  const { min, max } = sourceChart.scales.x;
-  charts.forEach(chart => {
-    if (chart !== sourceChart) {
-      chart.zoomScale('x', { min, max }, 'none');
-    }
-  });
-}
+### Key Functions
+
+- `isZoomEnabled(chart)` - Checks if zoom should be enabled based on data point count
+- `drawZoombox(chart)` - Renders semi-transparent selection box during drag
+- `doZoom(chart, start, end, broadcast)` - Applies zoom and broadcasts to synced charts
+- `resetZoom(chart, broadcast)` - Restores original scale and broadcasts reset
+- `createResetButton(chart)` / `removeResetButton(chart)` - Manages reset button DOM
+
+### Synchronization
+
+Uses CustomEvent for cross-chart communication (consistent with existing crosshair sync):
+
+```javascript
+// Zoom sync event
+var event = new CustomEvent("zoom-sync");
+event.chartId = chart.id;
+event.syncGroup = syncGroup;
+event.start = start;
+event.end = end;
+window.dispatchEvent(event);
+
+// Reset sync event
+var event = new CustomEvent("zoom-reset");
+event.chartId = chart.id;
+event.syncGroup = syncGroup;
+window.dispatchEvent(event);
 ```
 
 ### Reset Zoom Button
-- Appears when `chart.isZoomedOrPanned()` returns true
-- Calls `chart.resetZoom()` on all charts
-- Hidden at default zoom level
+- Created dynamically via `document.createElement("button")`
+- Positioned absolutely in top-right corner of chart container
+- Inline CSS styles (no external stylesheet needed)
+- Hover effect via mouseenter/mouseleave event listeners
+- Removed when zoom is reset
 
 ### Disable for Sparse Charts
 ```javascript
-if (dataPointCount < 3) {
-  chartConfig.options.plugins.zoom.zoom.wheel.enabled = false;
-  chartConfig.options.plugins.zoom.pan.enabled = false;
+function isZoomEnabled(chart) {
+  if (!getOption(chart, "zoom", "enabled")) return false;
+  var minDataPoints = getOption(chart, "zoom", "minDataPoints");
+  return countNonNullDataPoints(chart) >= minDataPoints;  // Default: 10
+}
+```
+
+### Minimum Zoom Range
+Prevents zooming to fewer than 4 data points to maintain chart usefulness:
+```javascript
+if (endIndex - startIndex < minZoomRange) {
+  return;  // Reject zoom if range too small
 }
 ```
 

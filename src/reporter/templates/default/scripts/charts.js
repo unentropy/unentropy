@@ -26,10 +26,18 @@ var COMMON_OPTIONS = {
     legend: { display: false },
     crosshair: {
       enabled: true,
-      group: 1,
+      sync: {
+        enabled: true,
+        group: 1,
+      },
       line: {
         color: "rgba(59, 130, 246, 0.3)",
         width: 1,
+      },
+      zoom: {
+        enabled: true,
+        minDataPoints: 10,
+        minZoomRange: 4,
       },
     },
   },

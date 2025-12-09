@@ -92,25 +92,29 @@ The user views charts with a normalized X-axis, where all charts show the comple
 
 ---
 
-### User Story 5 - Zoom and Pan Charts (Priority: P2)
+### User Story 5 - Zoom Charts (Priority: P2)
 
-Users can zoom into charts to examine specific time periods in detail, and pan horizontally to navigate through the data. This is especially useful for reports with many builds where data points become dense.
+Users can zoom into charts to examine specific time periods in detail by drag-selecting a horizontal range. This is especially useful for reports with many builds where data points become dense.
 
-**Why this priority**: Important for usability with larger datasets. Without zoom/pan, users cannot effectively analyze specific periods in dense charts.
+**Why this priority**: Important for usability with larger datasets. Without zoom, users cannot effectively analyze specific periods in dense charts.
 
-**Independent Test**: Can be fully tested by generating a report with 50+ builds and verifying that mouse wheel zooms the chart, click-drag pans horizontally, and the reset button restores the original view.
+**Independent Test**: Can be fully tested by generating a report with 50+ builds and verifying that click-drag selects a zoom range, charts zoom together, and the reset button restores the original view.
+
+**Implementation Note**: Uses native drag-to-zoom in the crosshair plugin instead of chartjs-plugin-zoom (which is unmaintained). This provides seamless integration with existing crosshair functionality.
 
 **Acceptance Scenarios**:
 
-1. **Given** a chart displaying data, **When** the user scrolls the mouse wheel over a chart, **Then** the chart zooms in/out centered on the cursor position.
+1. **Given** a chart displaying data with 10+ data points, **When** the user clicks and drags horizontally on a chart, **Then** a semi-transparent selection box appears showing the zoom range.
 
-2. **Given** a zoomed-in chart, **When** the user clicks and drags horizontally, **Then** the chart pans to show different portions of the data.
+2. **Given** a selection box is visible, **When** the user releases the mouse button, **Then** the chart zooms to show only the selected range (minimum 4 data points).
 
-3. **Given** a zoomed-in chart, **When** the user clicks the "Reset zoom" button, **Then** the chart returns to showing all data points at the original scale.
+3. **Given** a zoomed-in chart, **When** the user clicks the "Reset Zoom" button, **Then** the chart returns to showing all data points at the original scale.
 
-4. **Given** the user zooms one chart, **When** the zoom is applied, **Then** all other charts synchronize to the same zoom level and position.
+4. **Given** the user zooms one chart, **When** the zoom is applied, **Then** all other charts in the same sync group synchronize to the same zoom range.
 
-5. **Given** charts at default zoom level, **When** the user views the charts, **Then** no "Reset zoom" button is visible.
+5. **Given** charts at default zoom level, **When** the user views the charts, **Then** no "Reset Zoom" button is visible.
+
+6. **Given** a chart with fewer than 10 data points, **When** the user tries to drag-select, **Then** zoom is disabled and no selection box appears.
 
 ---
 
@@ -258,15 +262,16 @@ Users can export individual charts as PNG images for use in presentations, docum
 - **FR-035**: When the mouse leaves all chart areas, the vertical alignment line and all tooltips MUST be simultaneously dismissed.
 - **FR-036**: The vertical alignment line appearance MUST be configurable with customizable color, width, and opacity to support light and dark modes and accessibility requirements.
 
-**Zoom and Pan**
+**Zoom (Drag-to-Zoom)**
 
-- **FR-037**: Charts MUST support mouse wheel zoom, centered on the cursor position.
-- **FR-038**: Charts MUST support click-and-drag horizontal panning when zoomed in.
-- **FR-039**: When any chart is zoomed, all charts MUST synchronize to the same zoom level and X-axis range.
-- **FR-040**: A "Reset zoom" button MUST appear on each chart when zoomed in.
-- **FR-041**: Clicking "Reset zoom" MUST return all charts to the current filter's full range.
-- **FR-042**: Charts with fewer than 3 data points MUST have zoom functionality disabled.
-- **FR-043**: Report MUST load chartjs-plugin-zoom from CDN to enable zoom/pan functionality.
+- **FR-037**: Charts MUST support drag-to-zoom by clicking and dragging horizontally to select a range.
+- **FR-038**: During drag, a semi-transparent selection box MUST be displayed showing the selected range.
+- **FR-039**: When any chart is zoomed, all charts in the same sync group MUST synchronize to the same X-axis range.
+- **FR-040**: A "Reset Zoom" button MUST appear in the top-right corner of each chart when zoomed in.
+- **FR-041**: Clicking "Reset Zoom" MUST return all synced charts to the original scale.
+- **FR-042**: Charts with fewer than 10 data points MUST have zoom functionality disabled.
+- **FR-043**: Zoom MUST require a minimum selection of 4 data points to prevent over-zooming.
+- **FR-043a**: Zoom functionality MUST be implemented natively in the crosshair plugin (no external CDN dependency).
 
 **Date Range Filtering**
 

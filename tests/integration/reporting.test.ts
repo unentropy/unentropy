@@ -119,8 +119,8 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     });
 
     expect(html).toContain("test-coverage");
-    expect(html).not.toContain("size");
-    expect(html).not.toContain("build-status");
+    expect(html).not.toMatch(/"id":"size"/);
+    expect(html).not.toMatch(/"id":"build-status"/);
   });
 
   test("includes metadata with correct build count and date range", () => {

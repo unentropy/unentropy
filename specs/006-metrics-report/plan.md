@@ -5,12 +5,13 @@
 
 ## Summary
 
-Enhance the HTML report template with interactive visualization features: synchronized tooltips across charts, zoom/pan with chartjs-plugin-zoom, date range filtering (7/30/90 days/All), dummy data toggle for sparse data preview, and PNG export for individual charts. All features are client-side rendered using embedded JSON data.
+Enhance the HTML report template with interactive visualization features: synchronized tooltips across charts, drag-to-zoom with native crosshair plugin integration, date range filtering (7/30/90 days/All), dummy data toggle for sparse data preview, and PNG export for individual charts. All features are client-side rendered using embedded JSON data.
 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.x (Bun runtime)  
-**Primary Dependencies**: Preact (SSR to static HTML), Chart.js 4.4.0, chartjs-plugin-zoom, chartjs-adapter-date-fns, Tailwind CSS (CDN)  
+**Primary Dependencies**: Preact (SSR to static HTML), Chart.js 4.4.0, chartjs-adapter-date-fns, Tailwind CSS (CDN)  
+**Note**: Zoom functionality is implemented natively in the crosshair plugin (no chartjs-plugin-zoom dependency)  
 **Storage**: SQLite (read-only during report generation)  
 **Testing**: Bun test (unit, integration), visual review fixtures  
 **Target Platform**: Static HTML file, any modern browser  
@@ -91,6 +92,6 @@ tests/
 ## Complexity Tracking
 
 No violations requiring justification. All features use:
-- Existing Chart.js ecosystem (plugin for zoom)
+- Native crosshair plugin with integrated drag-to-zoom (no external zoom plugin)
 - Standard DOM APIs (event listeners, canvas export)
 - CSS-only toggle styling (Tailwind peer utilities)

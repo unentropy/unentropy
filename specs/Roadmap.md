@@ -30,7 +30,8 @@
  
 ## 0.3 - MVP+
 * [ ] Support for selecting time range in metrics report
-* [ ] Support for zoom-in and reset in metrics report
+* [x] Support for zoom-in and reset in metrics report
+* [ ] Support for parsing more coverage formats (e.g. Clover)
 * [ ] Polish quality gate comment, make it less dry
 * [ ] Use Drizzle ORM and proper migration system
 * [ ] node/npx compatibility

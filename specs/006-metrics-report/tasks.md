@@ -180,15 +180,24 @@
 
 ### Implementation for User Story 5 (Zoom/Pan)
 
-- [ ] T033 [US5] Add chartjs-plugin-zoom CDN script tag in HtmlDocument.tsx
-- [ ] T034 [US5] Add zoom plugin configuration to chart options in charts.ts (wheel zoom, drag pan, x-axis only)
-- [ ] T035 [US5] Add syncZoom() function in ChartScripts.tsx that synchronizes zoom state across all charts
-- [ ] T036 [US5] Add onZoom and onPan callbacks in chart config that call syncZoom()
-- [ ] T037 [US5] Add "Reset zoom" button to MetricCard.tsx (hidden by default, visible when zoomed)
-- [ ] T038 [US5] Add reset zoom click handler in ChartScripts.tsx that calls resetZoom() on all charts
-- [ ] T039 [US5] Disable zoom for charts with fewer than 3 data points (dataPointCount check)
+**Note**: Implementation uses native drag-to-zoom in the existing crosshair plugin instead of chartjs-plugin-zoom CDN library. This approach was chosen because:
+1. The chartjs-plugin-zoom library is no longer actively maintained
+2. Drag-to-zoom integrates naturally with the existing crosshair functionality
+3. Avoids adding another CDN dependency
+4. Full control over behavior and synchronization
 
-**Checkpoint**: User Story 5 complete - zoom/pan works with synchronization
+- [x] T033 [US5] Add zoom configuration to crosshair plugin defaultOptions in crosshair-plugin.js
+- [x] T034 [US5] Add zoom state (dragStarted, dragStartX, originalXRange, button) to chart.crosshair in afterInit
+- [x] T035 [US5] Add zoom helper functions: isZoomEnabled(), countNonNullDataPoints(), drawZoombox(), doZoom(), resetZoom()
+- [x] T036 [US5] Add zoom sync event handlers (handleZoomSync, handleZoomReset) and event listeners for 'zoom-sync', 'zoom-reset'
+- [x] T037 [US5] Add createResetButton()/removeResetButton() functions with inline CSS styling (positioned top-right)
+- [x] T038 [US5] Modify afterEvent to handle drag-to-zoom (mouse down starts drag, mouse up triggers zoom)
+- [x] T039 [US5] Disable zoom for charts with fewer than 10 data points (minDataPoints config option)
+- [x] T040 [US5] Add minimum zoom range check (minZoomRange: 4 data points) to prevent over-zooming
+- [x] T041 [US5] Add beforeTooltipDraw hook to suppress tooltips during drag
+- [x] T042 [US5] Update COMMON_OPTIONS in charts.js with zoom configuration
+
+**Checkpoint**: User Story 5 complete - drag-to-zoom works with synchronization
 
 ---
 

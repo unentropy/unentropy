@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// Unified Chart.js plugin for synchronized crosshair line and tooltips
-// Based on chartjs-plugin-crosshair by AbelHeinsbroek
+// Unified Chart.js plugin for synchronized crosshair line, tooltips, and drag-to-zoom
+// Based on https://chartjs-plugin-crosshair.netlify.app/
 //
 // Features:
 // - Draws a vertical crosshair line on hover
 // - Synchronizes line position and tooltips across all charts in the same sync group
 // - Snaps to nearest data point when enabled
 // - Configurable line appearance
+// - Drag-to-zoom: click and drag to select a range, then zoom to that range
+// - Reset zoom button: appears when zoomed, clicking resets all charts
+// - Synchronized zoom: all charts zoom together
 
 var crosshairPlugin = (function () {
   var defaultOptions = {
@@ -23,6 +26,15 @@ var crosshairPlugin = (function () {
     },
     snap: {
       enabled: true,
+    },
+    zoom: {
+      enabled: true,
+      zoomboxBackgroundColor: "rgba(59, 130, 246, 0.2)",
+      zoomboxBorderColor: "rgba(59, 130, 246, 0.5)",
+      zoomButtonText: "Reset Zoom",
+      zoomButtonClass: "reset-zoom-btn",
+      minDataPoints: 10,
+      minZoomRange: 4,
     },
   };
 
@@ -53,6 +65,183 @@ var crosshairPlugin = (function () {
     if (!chart.data.datasets.length) return null;
     var meta = chart.getDatasetMeta(0);
     return meta ? chart.scales[meta.yAxisID] : null;
+  }
+
+  function countNonNullDataPoints(chart) {
+    if (!chart.data.datasets.length) return 0;
+    var data = chart.data.datasets[0].data;
+    var count = 0;
+    for (var item of data) {
+      if (item !== null && item !== undefined) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  function isZoomEnabled(chart) {
+    if (!getOption(chart, "zoom", "enabled")) {
+      return false;
+    }
+    var minDataPoints = getOption(chart, "zoom", "minDataPoints");
+    return countNonNullDataPoints(chart) >= minDataPoints;
+  }
+
+  function drawZoombox(chart) {
+    var ctx = chart.ctx;
+    var dragStartX = chart.crosshair.dragStartX;
+    var currentX = chart.crosshair.x;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(
+      dragStartX,
+      chart.chartArea.top,
+      currentX - dragStartX,
+      chart.chartArea.bottom - chart.chartArea.top
+    );
+    ctx.fillStyle = getOption(chart, "zoom", "zoomboxBackgroundColor");
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = getOption(chart, "zoom", "zoomboxBorderColor");
+    ctx.stroke();
+    ctx.closePath();
+    ctx.restore();
+  }
+
+  function createResetButton(chart) {
+    if (chart.crosshair.button) return;
+
+    var button = document.createElement("button");
+    button.textContent = getOption(chart, "zoom", "zoomButtonText");
+    button.className = getOption(chart, "zoom", "zoomButtonClass");
+
+    button.style.cssText =
+      "position: absolute; top: 8px; right: 8px; padding: 4px 12px; " +
+      "font-size: 12px; background: #f3f4f6; border: 1px solid #d1d5db; " +
+      "border-radius: 4px; cursor: pointer; z-index: 10; " +
+      "font-family: system-ui, -apple-system, sans-serif;";
+
+    button.addEventListener("mouseenter", function () {
+      button.style.background = "#e5e7eb";
+    });
+    button.addEventListener("mouseleave", function () {
+      button.style.background = "#f3f4f6";
+    });
+    button.addEventListener("click", function () {
+      resetZoom(chart, true);
+    });
+
+    var parent = chart.canvas.parentNode;
+    parent.style.position = "relative";
+    parent.appendChild(button);
+    chart.crosshair.button = button;
+  }
+
+  function removeResetButton(chart) {
+    if (chart.crosshair.button && chart.crosshair.button.parentNode) {
+      chart.crosshair.button.parentNode.removeChild(chart.crosshair.button);
+      chart.crosshair.button = null;
+    }
+  }
+
+  function doZoom(chart, start, end, broadcast) {
+    if (start > end) {
+      var tmp = start;
+      start = end;
+      end = tmp;
+    }
+
+    var xScale = getXScale(chart);
+    if (!xScale) return;
+
+    var minZoomRange = getOption(chart, "zoom", "minZoomRange");
+    var dataLength = chart.data.datasets[0]?.data.length || 0;
+    var startIndex = Math.max(
+      0,
+      Math.round(((start - xScale.min) / (xScale.max - xScale.min)) * dataLength)
+    );
+    var endIndex = Math.min(
+      dataLength,
+      Math.round(((end - xScale.min) / (xScale.max - xScale.min)) * dataLength)
+    );
+
+    if (endIndex - startIndex < minZoomRange) {
+      return;
+    }
+
+    if (chart.crosshair.originalXRange.min === undefined) {
+      chart.crosshair.originalXRange.min = xScale.min;
+      chart.crosshair.originalXRange.max = xScale.max;
+    }
+
+    chart.options.scales.x.min = start;
+    chart.options.scales.x.max = end;
+
+    createResetButton(chart);
+
+    chart.crosshair.ignoreNextEvents = 2;
+    chart.update("none");
+
+    if (broadcast !== false) {
+      var syncEnabled = getOption(chart, "sync", "enabled");
+      var syncGroup = getOption(chart, "sync", "group");
+
+      if (syncEnabled) {
+        var event = new CustomEvent("zoom-sync");
+        event.chartId = chart.id;
+        event.syncGroup = syncGroup;
+        event.start = start;
+        event.end = end;
+        window.dispatchEvent(event);
+      }
+    }
+  }
+
+  function resetZoom(chart, broadcast) {
+    if (chart.crosshair.originalXRange.min !== undefined) {
+      chart.options.scales.x.min = chart.crosshair.originalXRange.min;
+      chart.options.scales.x.max = chart.crosshair.originalXRange.max;
+      chart.crosshair.originalXRange = {};
+    } else {
+      delete chart.options.scales.x.min;
+      delete chart.options.scales.x.max;
+    }
+
+    removeResetButton(chart);
+
+    chart.update("none");
+
+    if (broadcast) {
+      var syncEnabled = getOption(chart, "sync", "enabled");
+      var syncGroup = getOption(chart, "sync", "group");
+
+      if (syncEnabled) {
+        var event = new CustomEvent("zoom-reset");
+        event.chartId = chart.id;
+        event.syncGroup = syncGroup;
+        window.dispatchEvent(event);
+      }
+    }
+  }
+
+  function handleZoomSync(chart, e) {
+    var syncGroup = getOption(chart, "sync", "group");
+
+    if (e.chartId === chart.id) return;
+    if (e.syncGroup !== syncGroup) return;
+    if (!isZoomEnabled(chart)) return;
+
+    doZoom(chart, e.start, e.end, false);
+  }
+
+  function handleZoomReset(chart, e) {
+    var syncGroup = getOption(chart, "sync", "group");
+
+    if (e.chartId === chart.id) return;
+    if (e.syncGroup !== syncGroup) return;
+
+    resetZoom(chart, false);
   }
 
   function handleSyncEvent(chart, e) {
@@ -143,6 +332,11 @@ var crosshairPlugin = (function () {
     afterInit: function (chart) {
       chart.crosshair = {
         x: null,
+        dragStarted: false,
+        dragStartX: null,
+        originalXRange: {},
+        button: null,
+        ignoreNextEvents: 0,
       };
 
       if (!isPluginEnabled(chart)) {
@@ -157,9 +351,17 @@ var crosshairPlugin = (function () {
         chart.crosshair.syncClearHandler = function (e) {
           handleSyncClear(chart, e);
         };
+        chart.crosshair.zoomSyncHandler = function (e) {
+          handleZoomSync(chart, e);
+        };
+        chart.crosshair.zoomResetHandler = function (e) {
+          handleZoomReset(chart, e);
+        };
 
         window.addEventListener("crosshair-sync", chart.crosshair.syncEventHandler);
         window.addEventListener("crosshair-clear", chart.crosshair.syncClearHandler);
+        window.addEventListener("zoom-sync", chart.crosshair.zoomSyncHandler);
+        window.addEventListener("zoom-reset", chart.crosshair.zoomResetHandler);
       }
     },
 
@@ -172,7 +374,11 @@ var crosshairPlugin = (function () {
       if (syncEnabled && chart.crosshair) {
         window.removeEventListener("crosshair-sync", chart.crosshair.syncEventHandler);
         window.removeEventListener("crosshair-clear", chart.crosshair.syncClearHandler);
+        window.removeEventListener("zoom-sync", chart.crosshair.zoomSyncHandler);
+        window.removeEventListener("zoom-reset", chart.crosshair.zoomResetHandler);
       }
+
+      removeResetButton(chart);
     },
 
     afterEvent: function (chart, args) {
@@ -189,10 +395,20 @@ var crosshairPlugin = (function () {
       var syncEnabled = getOption(chart, "sync", "enabled");
       var syncGroup = getOption(chart, "sync", "group");
 
+      if (chart.crosshair.ignoreNextEvents > 0) {
+        chart.crosshair.ignoreNextEvents -= 1;
+        return;
+      }
+
+      var buttons = e.native.buttons === undefined ? e.native.which : e.native.buttons;
+      if (e.native.type === "mouseup") {
+        buttons = 0;
+      }
+
       if (e.type === "mouseout") {
         chart.crosshair.x = null;
+        chart.crosshair.dragStarted = false;
 
-        // Broadcast clear to synced charts
         if (syncEnabled) {
           var clearEvent = new CustomEvent("crosshair-clear");
           clearEvent.chartId = chart.id;
@@ -202,16 +418,34 @@ var crosshairPlugin = (function () {
         return;
       }
 
-      // Only handle events inside the chart area
       if (!args.inChartArea) {
+        chart.crosshair.dragStarted = false;
+        return;
+      }
+
+      var zoomEnabled = isZoomEnabled(chart);
+
+      if (buttons === 1 && !chart.crosshair.dragStarted && zoomEnabled) {
+        chart.crosshair.dragStartX = e.x;
+        chart.crosshair.dragStarted = true;
+      }
+
+      if (chart.crosshair.dragStarted && buttons === 0) {
+        chart.crosshair.dragStarted = false;
+
+        var dragDistance = Math.abs(chart.crosshair.dragStartX - e.x);
+        if (dragDistance > 5) {
+          var start = xScale.getValueForPixel(chart.crosshair.dragStartX);
+          var end = xScale.getValueForPixel(e.x);
+          doZoom(chart, start, end, true);
+        }
+        chart.update("none");
         return;
       }
 
       chart.crosshair.x = e.x;
 
-      // Fire sync event for all other linked charts
-      if (syncEnabled) {
-        // Get the data index at this position for reliable cross-chart syncing
+      if (!chart.crosshair.dragStarted && syncEnabled) {
         var elements = chart.getElementsAtEventForMode(e, "index", { intersect: false }, true);
         var dataIndex = elements.length > 0 ? elements[0].index : -1;
 
@@ -230,6 +464,11 @@ var crosshairPlugin = (function () {
         return;
       }
 
+      if (chart.crosshair.dragStarted) {
+        drawZoombox(chart);
+        return;
+      }
+
       if (chart.crosshair.x === null) {
         return;
       }
@@ -243,13 +482,11 @@ var crosshairPlugin = (function () {
       var ctx = chart.ctx;
       var lineX = chart.crosshair.x;
 
-      // Snap to nearest data point if enabled
       var snapEnabled = getOption(chart, "snap", "enabled");
       if (snapEnabled && chart._active && chart._active.length) {
         lineX = chart._active[0].element.x;
       }
 
-      // Clamp to chart area
       if (lineX < chart.chartArea.left || lineX > chart.chartArea.right) {
         return;
       }
@@ -268,6 +505,10 @@ var crosshairPlugin = (function () {
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.restore();
+    },
+
+    beforeTooltipDraw: function (chart) {
+      return !chart.crosshair.dragStarted;
     },
   };
 })();

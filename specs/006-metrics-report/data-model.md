@@ -124,20 +124,35 @@ The actual data structure embedded in the HTML report, optimized for minimal pay
 
 ---
 
-### 6. ZoomPanState
+### 6. ZoomState (per chart)
 
-Runtime state for synchronized zoom/pan across charts.
+Runtime state for synchronized drag-to-zoom, stored in `chart.crosshair` object.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| isZoomed | boolean | True if any zoom/pan applied |
-| xMin | number \| undefined | Current X-axis minimum (timestamp) |
-| xMax | number \| undefined | Current X-axis maximum (timestamp) |
+| dragStarted | boolean | True if drag-to-zoom in progress |
+| dragStartX | number \| null | Pixel X position where drag started |
+| originalXRange | object | Stores `{min, max}` of original scale before zoom |
+| button | HTMLButtonElement \| null | Reference to reset button element |
+| ignoreNextEvents | number | Counter to skip events after zoom update |
+
+**Zoom Configuration** (in `defaultOptions.zoom`):
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| enabled | boolean | true | Enable/disable zoom feature |
+| zoomboxBackgroundColor | string | "rgba(59, 130, 246, 0.2)" | Selection box fill color |
+| zoomboxBorderColor | string | "rgba(59, 130, 246, 0.5)" | Selection box border color |
+| zoomButtonText | string | "Reset Zoom" | Button label text |
+| zoomButtonClass | string | "reset-zoom-btn" | CSS class for button |
+| minDataPoints | number | 10 | Minimum data points to enable zoom |
+| minZoomRange | number | 4 | Minimum data points in zoom selection |
 
 **Behavior**:
-- Synchronized across all charts
-- Reset restores to current filter's range
-- Disabled for charts with < 3 data points
+- Synchronized across all charts via `zoom-sync` and `zoom-reset` CustomEvents
+- Reset restores original scale stored in `originalXRange`
+- Disabled for charts with < 10 non-null data points
+- Zoom rejected if selection contains < 4 data points
 
 ---
 
