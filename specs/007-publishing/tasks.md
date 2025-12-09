@@ -108,9 +108,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Verify action.yml branding fields (icon, color) are set in .github/actions/track-metrics/action.yml
-- [ ] T033 [P] [US3] Verify action.yml branding fields (icon, color) are set in .github/actions/quality-gate/action.yml
-- [ ] T034 [US3] Document manual Marketplace listing steps in specs/007-publishing/quickstart.md
+- [x] T032 [US3] Verify action.yml branding fields (icon, color) are set in .github/actions/track-metrics/action.yml
+- [x] T033 [P] [US3] Verify action.yml branding fields (icon, color) are set in .github/actions/quality-gate/action.yml
+- [x] T034 [US3] Document manual Marketplace listing steps in specs/007-publishing/quickstart.md
 
 **Checkpoint**: Prerequisites ready for manual Marketplace listing
 

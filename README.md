@@ -6,6 +6,8 @@
 
 # Unentropy: your metrics, your data, your rules
 
+> **Beta** - This project is currently in beta (0.x). APIs may change between minor versions.
+
 ## **What is Unentropy?**
 
 **Unentropy** is an open-source tool for tracking code metrics directly in your CI pipeline—without external servers, cloud dependencies, or vendor lock-in. In the age of AI-assisted development where codebases evolve faster than ever, **you can't improve what you don't measure.** Unentropy gives you the visibility to catch quality regressions early, validate refactoring progress, and ensure your codebase remains maintainable as it grows.
@@ -155,7 +157,7 @@ jobs:
         run: bun test --coverage
 
       - name: Track metrics
-        uses: unentropy/track-metrics-action@v1
+        uses: unentropy/track-metrics@v0
 ```
 
 #### Pull Request Quality Gate Workflow
@@ -179,7 +181,7 @@ jobs:
         run: bun test --coverage
 
       - name: Quality Gate Check
-        uses: unentropy/quality-gate-action@v1
+        uses: unentropy/quality-gate@v0
 ```
 
 **Note:** Adjust test commands based on your project type. The `init` command generates the correct commands automatically.
@@ -201,7 +203,7 @@ Add to `unentropy.json`:
 Update both workflows to include S3 credentials:
 
 ```yaml
-- uses: unentropy/track-metrics-action@v1
+- uses: unentropy/track-metrics@v0
   with:
     s3-endpoint: ${{ secrets.S3_ENDPOINT }}
     s3-access-key-id: ${{ secrets.S3_ACCESS_KEY_ID }}
@@ -297,8 +299,15 @@ bun install
 - `bun run lint:fix` - Auto-fix linting issues
 - `bun run format` - Format code with Prettier
 
-## **Contribution**
+## **Support**
 
-Unentropy is an open-source project designed _by_ engineers for engineers. We welcome feedback, ideas, and contributions\! Please see our \[CONTRIBUTING.md\] file for guidelines.
+- [GitHub Issues](https://github.com/unentropy/unentropy/issues) - Report bugs or request features
+- [Discussions](https://github.com/unentropy/unentropy/discussions) - Ask questions and share ideas
 
-**License:** MIT
+## **Contributing**
+
+Unentropy is an open-source project designed _by_ engineers for engineers. We welcome feedback, ideas, and contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## **License**
+
+MIT License - see [LICENSE](LICENSE) for details.
