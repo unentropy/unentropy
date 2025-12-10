@@ -1,4 +1,4 @@
-import { $ } from "bun";
+import { execCapture } from "../../utils/exec.js";
 
 export interface SizeOptions {
   followSymlinks?: boolean;
@@ -15,16 +15,11 @@ export async function parseSize(sourcePath: string, options: SizeOptions = {}): 
     throw new Error("Source path must be a non-empty string");
   }
 
-  // Build du command using Bun's shell with automatic escaping
-  let command;
-  if (options.followSymlinks) {
-    command = $`du -sbL ${sourcePath}`;
-  } else {
-    command = $`du -sb ${sourcePath}`;
-  }
+  // Build du command arguments
+  const args = options.followSymlinks ? ["-sbL", sourcePath] : ["-sb", sourcePath];
 
   // Execute du command and get output
-  const output = await command.text();
+  const output = await execCapture("du", args);
 
   // Parse output: format is "size\tpath"
   const trimmedOutput = output.trim();

@@ -1,4 +1,4 @@
-import { $ } from "bun";
+import { execCapture } from "../../utils/exec.js";
 import { existsSync } from "fs";
 
 /**
@@ -128,23 +128,20 @@ export async function collectLoc(options: LocOptions): Promise<number> {
     throw new Error(`Directory not found: ${path}`);
   }
 
-  // Build exclude arguments for SCC
-  // Bun Shell automatically escapes interpolated variables, preventing command injection
-  const excludeArgs =
-    excludePatterns && Array.isArray(excludePatterns)
-      ? excludePatterns.map((pattern) => `--exclude-dir ${pattern}`)
-      : [];
+  // Build SCC command arguments
+  const args = ["--format", "json", path];
 
-  // Execute SCC command using Bun Shell
-  // Bun Shell treats interpolated variables as safely escaped strings
+  // Add exclude patterns as individual arguments
+  if (excludePatterns && Array.isArray(excludePatterns)) {
+    excludePatterns.forEach((pattern) => {
+      args.push("--exclude-dir", pattern);
+    });
+  }
+
+  // Execute SCC command
   let output: string;
   try {
-    if (excludeArgs.length > 0) {
-      // Use raw for the pre-built exclude args since they need to be interpreted as flags
-      output = await $`scc --format json ${path} ${{ raw: excludeArgs.join(" ") }}`.text();
-    } else {
-      output = await $`scc --format json ${path}`.text();
-    }
+    output = await execCapture("scc", args);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes("not found") || errorMessage.includes("No such file")) {

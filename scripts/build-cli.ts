@@ -17,7 +17,7 @@ const buildCli = async (): Promise<void> => {
   await build({
     entrypoints: [entrypoint],
     outdir,
-    target: "bun",
+    target: "node",
     naming: outfile,
     minify: true,
     banner: "#!/usr/bin/env bun",
