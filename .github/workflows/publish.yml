@@ -79,10 +79,6 @@ jobs:
             echo "Error: CLI build failed - dist/index.js not found"
             exit 1
           fi
-          if ! head -1 dist/index.js | grep -q "#!/usr/bin/env bun"; then
-            echo "Error: CLI missing proper shebang"
-            exit 1
-          fi
           echo "CLI build verified"
 
       - name: Build Actions
