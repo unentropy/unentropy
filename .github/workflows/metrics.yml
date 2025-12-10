@@ -155,7 +155,7 @@ jobs:
             echo "- **Artifact ID**: ${{ steps.track-metrics-artifact.outputs.artifact-id }}" >> $GITHUB_STEP_SUMMARY
           fi
 
-  deploy:
+  publish-metrics-report:
     name: Deploy to GitHub Pages
     environment:
       name: github-pages

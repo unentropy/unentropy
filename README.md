@@ -3,7 +3,8 @@
 ██ ██ ███▄██ ██▄▄  ███▄██  ██  ██▄█▄ ██▀██ ██▄█▀ ▀███▀
 ▀███▀ ██ ▀██ ██▄▄▄ ██ ▀██  ██  ██ ██ ▀███▀ ██      █
 ```
-Track code metrics in your CI pipeline 
+
+Track code metrics in your CI pipeline
 
 > **Beta** - This project is currently in beta (0.x). APIs may change between minor versions.
 
@@ -22,85 +23,106 @@ In the age of AI-assisted development where codebases evolve faster than ever, *
 
 ## **Getting Started**
 
-### Quick Start
+> [!TIP]
+> Unentropy supports both npx and bunx
 
-Get started with Unentropy in under 2 minutes:
-
-#### 1. Generate Configuration
+### 1. Generate Configuration
 
 Run this command in your project directory:
 
 ```bash
-bunx unentropy init
+npx unentropy init
 ```
 
 This auto-detects your project type (JavaScript, PHP, Go, or Python) and creates `unentropy.json` with sensible defaults for tracking lines of code and test coverage.
 
-Example output:
+### 2. Preview Metrics Locally
 
-```
-Detected project type: javascript (found: package.json, tsconfig.json)
-
-✓ Created unentropy.json with 3 metrics:
-  - lines-of-code (Lines of Code)
-  - test-coverage (Test Coverage)
-  - bundle (Bundle Size)
-```
-
-#### 2. Verify Metrics Locally
-
-Test that metrics collection works before pushing to CI:
+Use the following command to open a preview metrics report in your browser:
 
 ```bash
-bunx unentropy test
+npx unentropy preview
 ```
 
-Example output:
+### 3. Add GitHub Workflows
 
+#### Metric tracking
+
+Create a workflow that runs tests and tracks metrics:
+
+```yaml
+# .github/workflows/metrics.yml
+name: Track Metrics
+on:
+  push:
+    branches: [main]
+
+jobs:
+  track-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests with coverage
+        run: bun test --coverage --coverage-reporter=lcov
+
+      - name: Track metrics
+        uses: unentropy/track-metrics@v0
+
+  publish-metrics-report:
+    name: Publish Metrics Report
+    runs-on: ubuntu-latest
+    needs: track-metrics
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 ```
-✓ Config schema valid
 
-Collecting metrics:
+Enable GitHub Pages in your repository settings to view reports at `https://<username>.github.io/<repo>/`.
 
-  ✓ lines-of-code (integer)    4,521         0.8s
-  ✓ test-coverage (percent)    87.3%         2.1s
-  ✓ bundle (bytes)             240 KB        0.2s
+#### Quality Gate
 
-All 3 metrics collected successfully.
+Create a second workflow that that checks metrics against quality gate thresholds and posts feedback as comments on pull requests:
+
+```yaml
+# .github/workflows/quality-gate.yml
+name: Quality Gate
+on:
+  pull_request:
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests with coverage
+        run: bun test --coverage
+
+      - name: Quality Gate Check
+        uses: unentropy/quality-gate@v0
 ```
-
-If a metric fails, make sure you've run your tests with coverage first. The init output shows the specific test command for your project type.
-
-#### 3. Add GitHub Workflows
-
-Copy the workflow examples from your `init` output into your repository:
-
-1. **Main branch tracking** → `.github/workflows/metrics.yml`
-   (from the "TRACK METRICS" section)
-
-2. **Pull request quality gate** → `.github/workflows/quality-gate.yml`
-   (from the "QUALITY GATE" section)
 
 Commit and push these files to start tracking metrics.
 
-**That's it!** Metrics are now tracked automatically on every commit to main, and PRs get quality gate feedback.
+**That's it!** Metrics are now tracked automatically on every commit to main. Your metrics report will be published to your repository's GitHub Pages, and quality gate feedback will be automatically posted as comments on pull requests.
 
-### View Your First Report
+> [!IMPORTANT]
+> Note that this setup will keep the metrics history in a sqlite database stored in GitHub Actions artifacts.
+> This is great to get you up and running quickly, but you may want to consider other, more permanent storage options.
 
-After pushing to main:
+## **Configuration**
 
-1. Go to your repository's **Actions** tab
-2. Click the latest **Track Metrics** workflow run
-3. Download `unentropy-report.html` from artifacts
-4. Open in browser to see interactive metric trends
-
-On pull requests, check for automated quality gate comments.
-
-## **Advanced Configuration**
-
-### Manual Configuration
-
-For full control, you can create `unentropy.json` manually instead of using `bunx unentropy init`:
+Use `unentropy.json` to configure your metrics and quality gate. Each metric can be defined as a reference to a built-in template (`$ref`). You can also define custom metric collection commands. 
 
 ```json
 {
@@ -129,87 +151,6 @@ For full control, you can create `unentropy.json` manually instead of using `bun
 ```
 
 **Built-in metric templates:** Unentropy includes templates for common metrics (`loc`, `size`, `coverage`). Only override `command` when you need project-specific paths or options.
-
-### Workflow Configuration Reference
-
-If you're not using `bunx unentropy init`, here are the workflow templates:
-
-#### Main Branch Workflow
-
-Create `.github/workflows/metrics.yml`:
-
-```yaml
-name: Track Metrics
-on:
-  push:
-    branches: [main]
-
-jobs:
-  track-metrics:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run tests with coverage
-        run: bun test --coverage
-
-      - name: Track metrics
-        uses: unentropy/track-metrics@v0
-```
-
-#### Pull Request Quality Gate Workflow
-
-Create `.github/workflows/quality-gate.yml`:
-
-```yaml
-name: Quality Gate
-on:
-  pull_request:
-
-jobs:
-  quality-gate:
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run tests with coverage
-        run: bun test --coverage
-
-      - name: Quality Gate Check
-        uses: unentropy/quality-gate@v0
-```
-
-**Note:** Adjust test commands based on your project type. The `init` command generates the correct commands automatically.
-
-### Store Metrics in S3-Compatible Storage
-
-For multi-repo tracking or long-term history, you can store metrics in S3-compatible storage.
-
-Add to `unentropy.json`:
-
-```json
-{
-  "storage": {
-    "type": "sqlite-s3"
-  }
-}
-```
-
-Update both workflows to include S3 credentials:
-
-```yaml
-- uses: unentropy/track-metrics@v0
-  with:
-    s3-endpoint: ${{ secrets.S3_ENDPOINT }}
-    s3-access-key-id: ${{ secrets.S3_ACCESS_KEY_ID }}
-    s3-secret-access-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-    s3-bucket: my-metrics-bucket
-    s3-region: us-east-1
-```
-
-Supported S3-compatible services: AWS S3, Cloudflare R2, MinIO, DigitalOcean Spaces, and more.
 
 ### Customize Metric Names and Descriptions
 
@@ -249,52 +190,6 @@ Set the mode in `unentropy.json`:
 
 Start with `soft` mode to observe behavior, then switch to `hard` once your thresholds are stable.
 
-### Publish Reports to GitHub Pages
-
-Add a deployment job to `.github/workflows/metrics.yml`:
-
-```yaml
-deploy:
-  name: Deploy to GitHub Pages
-  runs-on: ubuntu-latest
-  needs: track-metrics
-  permissions:
-    pages: write
-    id-token: write
-  environment:
-    name: github-pages
-    url: ${{ steps.deployment.outputs.page_url }}
-  steps:
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
-```
-
-Enable GitHub Pages in your repository settings to view reports at `https://<username>.github.io/<repo>/`.
-
-## **Development Setup**
-
-### Prerequisites
-
-- [Bun](https://bun.sh/) v1.3 or later
-
-### Setup
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd unentropy
-
-# Install dependencies
-bun install
-```
-
-### Available Commands
-
-- `bun test` - Run test suite
-- `bun run check` - Run linting type and formatting checks
-- `bun run lint:fix` - Auto-fix linting issues
-- `bun run format` - Format code with Prettier
 
 ## **Support**
 
