@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { promises as fs } from "fs";
 import { dirname } from "path";
-import { execSync } from "child_process";
+import { spawnSync } from "child_process";
 import type { StorageProvider, SqliteArtifactConfig } from "./interface";
 
 interface Artifact {
@@ -223,7 +223,15 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
       await fs.mkdir(dbDir, { recursive: true });
 
       try {
-        execSync(`cd "${dbDir}" && unzip -o "${tempZipPath}"`, { stdio: "pipe" });
+        const result = spawnSync("unzip", ["-o", tempZipPath, "-d", dbDir], {
+          stdio: "pipe",
+        });
+
+        if (result.status !== 0) {
+          throw new Error(
+            `Unzip failed: ${result.stderr?.toString() || result.error?.message || "unknown error"}`
+          );
+        }
 
         await fs.access(this.databasePath);
 

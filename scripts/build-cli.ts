@@ -20,7 +20,7 @@ const buildCli = async (): Promise<void> => {
     target: "node",
     naming: outfile,
     minify: true,
-    banner: "#!/usr/bin/env bun",
+    banner: "#!/usr/bin/env node",
   });
 
   console.log(`✓ Built ${outfile}`);
