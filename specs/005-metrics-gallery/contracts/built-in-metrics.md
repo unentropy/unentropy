@@ -110,9 +110,8 @@ This provides:
 |-----------|--------|-------------|
 | `loc` | `@collect loc <path> [options]` | Count lines of code using SCC |
 | `size` | `@collect size <path\|glob>` | Calculate file/directory size |
-| `coverage-lcov` | `@collect coverage-lcov <path>` | Parse LCOV coverage reports |
-| `coverage-json` | `@collect coverage-json <path>` | Parse JSON coverage reports |
-| `coverage-xml` | `@collect coverage-xml <path>` | Parse XML coverage reports |
+| `coverage-lcov` | `@collect coverage-lcov <path> [options]` | Parse LCOV coverage reports |
+| `coverage-cobertura` | `@collect coverage-cobertura <path> [options]` | Parse Cobertura XML coverage reports |
 
 ### Collector Options
 
@@ -123,6 +122,12 @@ This provides:
 #### `size` Options
 - Supports glob patterns (e.g., `./dist/*.js`, `.github/actions/*/dist/*.js`)
 - `--followSymlinks` - Follow symbolic links
+
+#### `coverage-lcov` Options
+- `--type <line|branch|function>` - Coverage type to extract (default: `line`)
+
+#### `coverage-cobertura` Options
+- `--type <line|branch|function>` - Coverage type to extract (default: `line`)
 
 **Note:** When a collector fails (missing files, parse errors), execution stops with an error rather than returning a fallback value.
 
@@ -135,8 +140,7 @@ Metric templates fall into two categories:
 - `size`: `@collect size ./dist` - common convention
 
 **Without default commands** (require user configuration):
-- `coverage`: Technology-specific (Jest, Vitest, c8, etc.)
-- `function-coverage`: Technology-specific
+- `coverage`: Technology-specific (Jest, Vitest, c8, etc.) - use `coverage-lcov` or `coverage-cobertura` collectors
 - `build-time`: Project-specific timing approach
 - `test-time`: Project-specific timing approach  
 - `dependencies-count`: Package manager-specific (npm, bun, pnpm, yarn)
@@ -168,42 +172,17 @@ Metric templates fall into two categories:
     // LCOV format (common with Jest, Vitest, c8)
     "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov ./coverage/lcov.info" },
 
-    // JSON format
-    "coverage": { "$ref": "coverage", "command": "@collect coverage-json ./coverage/coverage.json" },
+    // Cobertura XML format (common with Istanbul, coverage.py)
+    "coverage": { "$ref": "coverage", "command": "@collect coverage-cobertura ./coverage.xml" },
 
     // With custom key and display name
-    "test-coverage": { "$ref": "coverage", "name": "Test Coverage", "command": "@collect coverage-lcov coverage/lcov.info" }
-  }
-}
-```
+    "test-coverage": { "$ref": "coverage", "name": "Test Coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
 
----
+    // Branch coverage using --type option
+    "branch-coverage": { "$ref": "coverage", "name": "Branch Coverage", "command": "@collect coverage-lcov coverage/lcov.info --type branch" },
 
-#### 2. function-coverage
-
-```typescript
-{
-  id: 'function-coverage',
-  name: 'Function Coverage',
-  description: 'Percentage of functions covered by tests',
-  type: 'numeric',
-  unit: 'percent'
-  // command: not provided (technology-specific)
-}
-```
-
-**Recommended Threshold**: `no-regression` with tolerance 0.5%
-
-**Configuration Examples**:
-
-```json
-{
-  "metrics": {
-    // Custom command required (no default)
-    "fn-coverage": { 
-      "$ref": "function-coverage", 
-      "command": "bun test --coverage --coverage-reporter=json | jq -r '.total.functions.pct'"
-    }
+    // Function coverage using --type option
+    "fn-coverage": { "$ref": "coverage", "name": "Function Coverage", "command": "@collect coverage-cobertura coverage.xml --type function" }
   }
 }
 ```
@@ -212,7 +191,7 @@ Metric templates fall into two categories:
 
 ### Code Size Metrics
 
-#### 3. loc
+#### 2. loc
 
 ```typescript
 {
@@ -257,7 +236,7 @@ Metric templates fall into two categories:
 
 ---
 
-#### 4. size
+#### 3. size
 
 ```typescript
 {
@@ -296,7 +275,7 @@ Metric templates fall into two categories:
 
 ### Performance Metrics
 
-#### 5. build-time
+#### 4. build-time
 
 ```typescript
 {
@@ -327,7 +306,7 @@ Metric templates fall into two categories:
 
 ---
 
-#### 6. test-time
+#### 5. test-time
 
 ```typescript
 {
@@ -360,7 +339,7 @@ Metric templates fall into two categories:
 
 ### Dependency Metrics
 
-#### 7. dependencies-count
+#### 6. dependencies-count
 
 ```typescript
 {
@@ -441,12 +420,18 @@ New metric templates may be added following these guidelines:
 
 New `@collect` collectors may be added:
 
-1. **Naming**: lowercase-with-hyphens (e.g., `coverage-cobertura`)
+1. **Naming**: lowercase-with-hyphens (e.g., `coverage-clover`)
 2. **Arguments**: Follow existing patterns for paths and options
 3. **Output**: Return numeric or string value to stdout
 4. **Errors**: Fail fast with clear error messages
 
 ## Version History
+
+**4.0.0** (2025-12-10):
+- Removed `function-coverage` metric template (use `--type function` option instead)
+- Replaced `coverage-json` and `coverage-xml` collectors with `coverage-cobertura`
+- Added `--type` option to coverage collectors for line/branch/function coverage
+- Reduced metric templates from 7 to 6
 
 **3.0.0** (2025-12-04):
 - Renamed `defaultCommand` to `command` in MetricTemplate for simplicity

@@ -267,9 +267,8 @@ unentropy collect <format-type> <source-path> [options]
 ```
 
 **Supported Format Types**:
-- `coverage-lcov <path>` - Parse LCOV format coverage reports
-- `coverage-json <path>` - Parse JSON format coverage reports  
-- `coverage-xml <path>` - Parse XML format coverage reports
+- `coverage-lcov <path> [--type line|branch|function]` - Parse LCOV format coverage reports
+- `coverage-cobertura <path> [--type line|branch|function]` - Parse Cobertura XML coverage reports
 - `size <path>` - Calculate size of file or directory (KB)
 
 **Configuration Examples**:
@@ -286,7 +285,7 @@ unentropy collect <format-type> <source-path> [options]
 ```json
 {
   "$ref": "coverage",
-  "command": "bun test --coverage && unentropy collect coverage-json ./coverage/coverage.json"
+  "command": "bun test --coverage && unentropy collect coverage-lcov ./coverage/lcov.info"
 }
 ```
 

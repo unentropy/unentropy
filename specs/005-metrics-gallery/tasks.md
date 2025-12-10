@@ -2,8 +2,8 @@
 
 **Input**: Design documents from `/specs/005-metrics-gallery/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
-**Updated**: 2025-12-06
-**Version**: Aligned with spec v3.0.0 (object-based metrics config)
+**Updated**: 2025-12-10
+**Version**: Aligned with spec v4.0.0 (LCOV + Cobertura coverage formats only)
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -44,7 +44,7 @@
 
 - Single project: `src/`, `tests/` at repository root
 
-## Key Spec Changes (v3.0.0)
+## Key Spec Changes (v4.0.0)
 
 - **Object-based metrics config**: Metrics are defined as `Record<string, MetricConfig>` where object keys ARE the metric IDs
 - **Object key = metric id**: `"my-loc": { "$ref": "loc" }` creates a metric with id "my-loc"
@@ -54,6 +54,9 @@
 - **No coverage default**: Coverage metrics require explicit command (too technology-specific)
 - **MetricTemplate**: Includes `id`, `name`, `description`, `type`, `unit`, `command?`
 - **Property inheritance**: User config overrides template defaults via nullish coalescing (??)
+- **Coverage formats**: Only LCOV and Cobertura supported (removed coverage-json, coverage-xml)
+- **Coverage --type option**: Both coverage collectors support `--type line|branch|function`
+- **6 metric templates**: Removed `function-coverage` (use `--type function` option instead)
 
 ---
 
@@ -280,9 +283,8 @@
 - [x] T024 [P] [US2] Define coverage metric template in src/metrics/registry.ts
   - unit: "percent" (UnitType)
   - NO command (too technology-specific)
-- [x] T025 [P] [US2] Define function-coverage metric template in src/metrics/registry.ts
-  - unit: "percent" (UnitType)
-  - NO command (too technology-specific)
+- [x] ~~T025 [P] [US2] Define function-coverage metric template in src/metrics/registry.ts~~ **CANCELLED** (v4.0.0)
+  - REMOVED: Use `--type function` option with coverage-lcov or coverage-cobertura instead
 - [x] T026 [P] [US2] Define loc metric template in src/metrics/registry.ts
   - unit: "integer" (UnitType)
   - command: "@collect loc ."
@@ -311,7 +313,7 @@
 - [x] T038 [P] [US2] Add unit test for resolver with valid references in tests/unit/metrics/resolver.test.ts
 - [x] T039 [P] [US2] Add unit test for resolver with invalid references in tests/unit/metrics/resolver.test.ts
 
-**Checkpoint**: At this point, User Story 2 should be fully functional and testable independently. Users can reference all 7 metric templates by ID.
+**Checkpoint**: At this point, User Story 2 should be fully functional and testable independently. Users can reference all 6 metric templates by ID.
 
 ---
 
@@ -482,11 +484,24 @@
   - Handler calls parseSize/glob expansion and outputs result
   - REQUIRED FOR: @collect size with glob patterns
 
-### Other CLI Helpers
+### Coverage Collectors
 
 - [x] T067 [P] [CLI] Implement coverage-lcov parser in src/metrics/collectors/lcov.ts
-- [ ] T068 [P] [CLI] Implement coverage-json parser in src/metrics/collectors/coverage-json.ts  
-- [ ] T069 [P] [CLI] Implement coverage-xml parser in src/metrics/collectors/coverage-xml.ts
+- [x] T067a [NEW] [CLI] Add --type option to coverage-lcov in src/metrics/collectors/lcov.ts
+  - Support `--type line` (default), `--type branch`, `--type function`
+  - Extract appropriate coverage percentage from LCOV data
+  - COMPLETED: 2025-12-10
+- [x] ~~T068 [P] [CLI] Implement coverage-json parser~~ **CANCELLED** (v4.0.0)
+  - REMOVED: Only LCOV and Cobertura formats supported
+- [ ] T069 [P] [CLI] Implement coverage-cobertura parser in src/metrics/collectors/cobertura.ts
+  - Parse Cobertura XML format (common with Istanbul, coverage.py, etc.)
+  - Support `--type line` (default): Extract `line-rate` attribute
+  - Support `--type branch`: Extract `branch-rate` attribute
+  - Support `--type function`: Calculate from `<method>` elements
+  - Return percentage as 0-100 value (multiply rate by 100)
+- [ ] T069a [NEW] [CLI] Add coverage-cobertura CLI command in src/cli/cmd/collect.ts
+  - Command: "coverage-cobertura <sourcePath>"
+  - Options: --type (line|branch|function), --fallback
 - [ ] T070 [P] [CLI] Add integration tests for CLI helpers in tests/integration/cli-helpers.test.ts
 - [ ] T071 [P] [CLI] Add contract tests for CLI helper outputs in tests/contract/cli-helpers.test.ts
 
@@ -497,10 +512,13 @@
   - Test @collect size ./dist returns numeric value
   - Test @collect size ./dist/*.js with glob works
   - Test @collect coverage-lcov coverage/lcov.info works
+  - Test @collect coverage-lcov coverage/lcov.info --type branch works
+  - Test @collect coverage-cobertura coverage.xml works
+  - Test @collect coverage-cobertura coverage.xml --type function works
   - Test @collect unknown fails with available collectors list
   - Test @collect executes faster than equivalent shell command
 
-**Checkpoint**: LOC and size collectors complete with glob support. @collect shortcut works for in-process execution.
+**Checkpoint**: LOC, size, and coverage collectors complete. @collect shortcut works for in-process execution.
 
 ---
 
@@ -681,7 +699,7 @@ Task: "Add contract test for LOC CLI helper output format in tests/contract/loc-
 3. ✅ Phase 2b: @collect Infrastructure (command transformation works)
 4. ✅ Phase 3: Unit Types (formatters implemented)
 5. ✅ Phase 4a: User Story 1 (id/command/name inheritance works)
-6. ✅ Phase 4b: User Story 2 (all 7 built-in metrics available)
+6. ✅ Phase 4b: User Story 2 (all 6 built-in metrics available)
 7. ✅ Phase 5: User Story 3 (overrides work via ?? operator)
 
 **🚧 IN PROGRESS:**
@@ -700,7 +718,7 @@ Task: "Add contract test for LOC CLI helper output format in tests/contract/loc-
 
 The MVP is functionally complete! Users can:
 - Use `"loc": { "$ref": "loc" }` for ultra-minimal setup ✅
-- Reference all 7 built-in metric templates ✅
+- Reference all 6 built-in metric templates ✅
 - Override any template property ✅
 - Use `@collect` shortcut for in-process execution ✅
 
@@ -714,7 +732,7 @@ The MVP is functionally complete! Users can:
 1. Complete Setup + Foundational + @collect Infrastructure -> Foundation ready
 2. Add LOC/Size collectors -> @collect works
 3. Add User Story 1 -> Test with `{ "$ref": "loc" }` -> Deploy/Demo (Ultra-minimal MVP!)
-4. Add User Story 2 -> All 7 built-in metrics available
+4. Add User Story 2 -> All 6 built-in metrics available
 5. Add User Story 3 -> Overrides supported
 6. Add Report Integration -> Consistent formatting
 7. Add other CLI helpers + Phase 8 polish -> Complete feature suite
@@ -755,12 +773,14 @@ With multiple developers:
 - **Resolution order**: Currently validates BEFORE resolution (see T036 for potential issue)
 - **Error messages**: Include available template IDs for invalid references
 
-### Current State (v3.0.0)
+### Current State (v4.0.0)
 - ✅ Core functionality complete (Phases 1-5)
-- 🚧 CLI helpers partial (LOC done, size needs glob)
+- 🚧 CLI helpers partial (LOC done, coverage-lcov done, size needs glob, coverage-cobertura TODO)
 - 🚧 Report integration partial (formatters exist, generator needs work)
 - 📋 Tests needed for existing functionality
 - ⚠️ Glob support for size collector is CRITICAL for spec compliance
+- ⚠️ Coverage-cobertura collector needs implementation
+- ⚠️ --type option needs to be added to coverage-lcov
 
 ### Backward Compatibility
 - Schema extensions maintain compatibility with custom metrics

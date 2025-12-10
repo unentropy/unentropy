@@ -97,8 +97,7 @@ Reference a built-in metric template. Inherits default properties like descripti
 
 Available templates:
 
-- `coverage` - Test coverage percentage
-- `function-coverage` - Function coverage percentage
+- `coverage` - Test coverage percentage (supports `--type line|branch|function`)
 - `loc` - Lines of code
 - `size` - File/bundle size
 - `build-time` - Build duration
@@ -189,8 +188,8 @@ Shell command to execute for collecting this metric. The command's stdout is cap
 
 - `@collect loc <path>` - Count lines of code
 - `@collect size <path>` - Calculate file size
-- `@collect coverage-lcov <path>` - Extract LCOV coverage
-- `@collect coverage-xml <path>` - Extract Clover XML coverage
+- `@collect coverage-lcov <path> [--type line|branch|function]` - Extract LCOV coverage
+- `@collect coverage-cobertura <path> [--type line|branch|function]` - Extract Cobertura XML coverage
 
 #### `unit`
 

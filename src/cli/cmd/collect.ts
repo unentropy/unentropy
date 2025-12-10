@@ -1,7 +1,7 @@
 import type { Argv } from "yargs";
 import { cmd } from "./cmd";
 import { parseSize } from "../../metrics/collectors/size";
-import { parseLcovCoverage } from "../../metrics/collectors/lcov";
+import { parseLcovCoverage, type CoverageType } from "../../metrics/collectors/lcov";
 import { collectLoc } from "../../metrics/collectors/loc";
 
 const SizeCommand = cmd({
@@ -50,6 +50,13 @@ const CoverageLcovCommand = cmd({
         description: "path to LCOV file",
       })
       .options({
+        type: {
+          type: "string",
+          alias: "t",
+          description: "coverage type to extract: line, branch, or function",
+          choices: ["line", "branch", "function"] as const,
+          default: "line",
+        },
         fallback: {
           type: "number",
           description: "fallback value if parsing fails",
@@ -57,12 +64,21 @@ const CoverageLcovCommand = cmd({
         },
       });
   },
-  async handler(argv: { sourcePath?: string; fallback?: number; [key: string]: unknown }) {
+  async handler(argv: {
+    sourcePath?: string;
+    type?: string;
+    fallback?: number;
+    [key: string]: unknown;
+  }) {
     try {
       if (!argv.sourcePath) {
         throw new Error("Source path is required");
       }
-      const coverage = await parseLcovCoverage(argv.sourcePath, { fallback: argv.fallback });
+      const coverageType = (argv.type || "line") as CoverageType;
+      const coverage = await parseLcovCoverage(argv.sourcePath, {
+        type: coverageType,
+        fallback: argv.fallback,
+      });
       console.log(coverage);
     } catch (error) {
       console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);

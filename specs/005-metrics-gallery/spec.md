@@ -58,7 +58,7 @@ Development teams need to customize display names or other properties of metric 
 
 ### Metric Templates
 
-The following metric templates are shipped by default. Each template provides metadata (description, type, unit) and optionally a default command using `@collect` syntax.
+The following 6 metric templates are shipped by default. Each template provides metadata (description, type, unit) and optionally a default command using `@collect` syntax.
 
 #### Unit Types
 
@@ -80,24 +80,19 @@ Units are semantic types that determine how metric values are formatted consiste
    - **Unit**: `percent`
    - **Default Command**: None (technology-specific)
    - **Default Threshold**: no-regression
-
-2. **`function-coverage`** - Function Coverage
-   - **Description**: Percentage of functions covered by tests
-   - **Type**: numeric
-   - **Unit**: `percent`
-   - **Default Command**: None (technology-specific)
-   - **Default Threshold**: no-regression
+   - **Supported Formats**: LCOV (`@collect coverage-lcov`), Cobertura (`@collect coverage-cobertura`)
+   - **Coverage Types**: Line (default), branch, function (via `--type` option)
 
 #### Code Size Metrics
 
-3. **`loc`** - Lines of Code
+2. **`loc`** - Lines of Code
    - **Description**: Total lines of code in the codebase
    - **Type**: numeric
    - **Unit**: `integer`
    - **Default Command**: `@collect loc .`
    - **Default Threshold**: none
 
-4. **`size`** - Production Bundle Size
+3. **`size`** - Production Bundle Size
    - **Description**: Total size of production build artifacts
    - **Type**: numeric
    - **Unit**: `bytes`
@@ -106,14 +101,14 @@ Units are semantic types that determine how metric values are formatted consiste
 
 #### Performance Metrics
 
-5. **`build-time`** - Build Duration
+4. **`build-time`** - Build Duration
    - **Description**: Time taken to complete the build
    - **Type**: numeric
    - **Unit**: `duration`
    - **Default Command**: None (too project-specific)
    - **Default Threshold**: delta-max-drop (10% maximum increase)
 
-6. **`test-time`** - Test Suite Duration
+5. **`test-time`** - Test Suite Duration
    - **Description**: Time taken to run all tests
    - **Type**: numeric
    - **Unit**: `duration`
@@ -122,7 +117,7 @@ Units are semantic types that determine how metric values are formatted consiste
 
 #### Dependency Metrics
 
-7. **`dependencies-count`** - Dependency Count
+6. **`dependencies-count`** - Dependency Count
    - **Description**: Total number of direct dependencies
    - **Type**: numeric
    - **Unit**: `integer`
@@ -169,7 +164,7 @@ Units are semantic types that determine how metric values are formatted consiste
 - **FR-006**: Users MUST be able to override metadata properties (name, description, unit) of a referenced metric template by explicitly specifying those properties alongside the `$ref`.
 - **FR-007**: The system MUST fail configuration validation with a clear error message when a user references a non-existent metric template ID.
 - **FR-008**: Object keys are inherently unique (JSON requirement) - no duplicate detection needed.
-- **FR-009**: The initial release MUST include the 7 metric templates specified in the "Metric Templates" section.
+- **FR-009**: The initial release MUST include the 6 metric templates specified in the "Metric Templates" section.
 - **FR-010**: The system MUST support mixing metric template references and custom metric definitions in the same configuration.
 - **FR-011**: The `@collect` shortcut MUST execute collectors in-process without spawning subprocesses.
 - **FR-012**: The `@collect size` command MUST support glob patterns for file matching.

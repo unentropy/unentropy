@@ -7,7 +7,7 @@
 
 ## Summary
 
-The Metrics Gallery feature provides a curated collection of 7 metric templates that users can reference by ID (e.g., `{"$ref": "coverage"}`) with minimal configuration. Key simplifications:
+The Metrics Gallery feature provides a curated collection of 6 metric templates that users can reference by ID (e.g., `{"$ref": "coverage"}`) with minimal configuration. Key simplifications:
 
 - **Optional `id`**: When using `$ref`, the `id` is inherited from the template (e.g., `{"$ref": "loc"}` resolves to `id: "loc"`)
 - **Optional `command`**: Metric templates with `command` don't require user-provided commands
@@ -26,7 +26,7 @@ Users can override any property while keeping other defaults. The feature reduce
 **Project Type**: Single project (CLI tool with library components)  
 **Performance Goals**: Configuration resolution <10ms, no impact on metric collection performance  
 **Constraints**: Must maintain backward compatibility with existing custom metric configs, must work within GitHub Actions environment  
-**Scale/Scope**: Initial collection of 7 metric templates, support for mixing templates and custom metrics in same config
+**Scale/Scope**: Initial collection of 6 metric templates, support for mixing templates and custom metrics in same config
 
 ## Constitution Check
 
@@ -72,17 +72,10 @@ src/
 │   ├── registry.ts      # Built-in metric template definitions
 │   ├── resolver.ts      # $ref resolution logic
 │   ├── collectors/      # NEW: CLI helper format parsers
-│   │   ├── coverage-lcov.ts
-│   │   ├── coverage-json.ts
-│   │   ├── coverage-xml.ts
-│   │   └── size.ts
-│   └── commands/        # Default command implementations
-│       ├── coverage.ts
-│       ├── size.ts
-│       ├── loc.ts
-│       ├── build-time.ts
-│       ├── test-time.ts
-│       └── dependencies-count.ts
+│   │   ├── lcov.ts      # LCOV coverage parser (supports --type option)
+│   │   ├── cobertura.ts # Cobertura XML coverage parser (supports --type option)
+│   │   ├── loc.ts       # Lines of code collector (SCC-based)
+│   │   └── size.ts      # File/directory size collector
 ├── cli/                 # EXISTING: Extend for collect command
 │   └── cmd/
 │       ├── cmd.ts       # Modify to add collect subcommand
@@ -155,7 +148,7 @@ No constitution violations to justify. All gates pass without exceptions.
 
 **Contracts Defined**:
 - Configuration schema extension (backward compatible)
-- 7 metric templates with commands
+- 6 metric templates with commands
 - Override behavior and merge strategy
 - Validation rules and error messages
 

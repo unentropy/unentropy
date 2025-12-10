@@ -514,7 +514,7 @@ You must provide a command appropriate for your project.
 **Error**:
 ```
 Unknown collector "unknown" in command "@collect unknown ./path"
-Available collectors: loc, size, coverage-lcov, coverage-json, coverage-xml
+Available collectors: loc, size, coverage-lcov, coverage-cobertura
 ```
 
 ### 6. Quality Gate References Wrong Key

@@ -51,26 +51,31 @@ Track overall test coverage percentage across your codebase:
 ```
 
 - **Unit**: Percent (displays as `87.5%`)
-- **Default Threshold**: No regression
 - **Note**: Requires coverage report generation before metric collection
 
-#### Function Coverage
+#### Branch and Function Coverage
 
-Track the percentage of functions covered by tests:
+Track branch or function coverage using the `--type` option:
 
 ```json
 {
   "metrics": {
+    "branch-coverage": {
+      "$ref": "coverage",
+      "name": "Branch Coverage",
+      "command": "@collect coverage-lcov ./coverage/lcov.info --type branch"
+    },
     "func-coverage": {
-      "$ref": "function-coverage",
-      "command": "@collect coverage-lcov ./coverage/lcov.info --metric functions"
+      "$ref": "coverage",
+      "name": "Function Coverage",
+      "command": "@collect coverage-lcov ./coverage/lcov.info --type function"
     }
   }
 }
 ```
 
 - **Unit**: Percent
-- **Default Threshold**: No regression
+- **Available types**: `line` (default), `branch`, `function`
 
 ### Code Size Metrics
 
@@ -104,7 +109,6 @@ This uses the default command `@collect loc .` which counts all lines in your pr
 ```
 
 - **Unit**: Integer (displays as `4,521`)
-- **Default Threshold**: None
 
 #### Bundle Size
 
@@ -135,7 +139,6 @@ Supports glob patterns for specific files:
 ```
 
 - **Unit**: Bytes (auto-scales to KB, MB, GB)
-- **Default Threshold**: Maximum 5% increase
 
 ### Performance Metrics
 
@@ -155,7 +158,6 @@ Track how long your builds take:
 ```
 
 - **Unit**: Duration (auto-scales to ms, s, m, h)
-- **Default Threshold**: Maximum 10% increase
 - **Note**: No default command - too project-specific
 
 #### Test Suite Duration
@@ -174,7 +176,6 @@ Track test execution time:
 ```
 
 - **Unit**: Duration
-- **Default Threshold**: Maximum 10% increase
 
 ### Dependency Metrics
 
@@ -194,7 +195,6 @@ Track the number of direct dependencies:
 ```
 
 - **Unit**: Integer
-- **Default Threshold**: None
 
 ## Custom Metrics
 
@@ -321,19 +321,27 @@ Extract coverage from LCOV format:
 
 ```bash
 @collect coverage-lcov ./coverage/lcov.info
-@collect coverage-lcov ./coverage/lcov.info --metric functions
-@collect coverage-lcov ./coverage/lcov.info --metric branches
+@collect coverage-lcov ./coverage/lcov.info --type branch
+@collect coverage-lcov ./coverage/lcov.info --type function
 ```
 
-Metrics: `lines` (default), `functions`, `branches`
+**Options**:
 
-#### `@collect coverage-xml <path>`
+- `--type <line|branch|function>` - Coverage type to extract (default: `line`)
 
-Extract coverage from Clover XML:
+#### `@collect coverage-cobertura <path>`
+
+Extract coverage from Cobertura XML format:
 
 ```bash
-@collect coverage-xml ./coverage/clover.xml
+@collect coverage-cobertura ./coverage/coverage.xml
+@collect coverage-cobertura ./coverage/coverage.xml --type branch
+@collect coverage-cobertura ./coverage/coverage.xml --type function
 ```
+
+**Options**:
+
+- `--type <line|branch|function>` - Coverage type to extract (default: `line`)
 
 ## Example Configurations
 
@@ -369,7 +377,7 @@ Extract coverage from Clover XML:
     },
     "coverage": {
       "$ref": "coverage",
-      "command": "@collect coverage-xml ./coverage/clover.xml"
+      "command": "@collect coverage-cobertura ./coverage/coverage.xml"
     }
   }
 }
