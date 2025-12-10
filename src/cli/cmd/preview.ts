@@ -1,5 +1,7 @@
 import { Argv } from "yargs";
 import { existsSync, mkdirSync } from "fs";
+import { writeFile } from "fs/promises";
+import { spawn } from "child_process";
 import { loadConfig } from "../../config/loader.js";
 import { generateEmptyReport } from "../../reporter/empty-report.js";
 import { cmd } from "./cmd";
@@ -14,7 +16,10 @@ function openInBrowser(filePath: string): void {
     const platform = process.platform;
     const command = platform === "darwin" ? "open" : platform === "win32" ? "start" : "xdg-open";
 
-    Bun.spawn([command, filePath]);
+    spawn(command, [filePath], {
+      detached: true,
+      stdio: "ignore",
+    }).unref();
     console.log("🌐 Opening in browser...");
   } catch {
     // Silently catch browser opening errors for headless environments
@@ -92,7 +97,7 @@ export const PreviewCommand = cmd({
 
     // Write report to file
     try {
-      await Bun.write(reportPath, reportHtml);
+      await writeFile(reportPath, reportHtml, "utf-8");
       console.log(`✓ Preview report generated: ${reportPath}`);
     } catch (error) {
       console.log(
