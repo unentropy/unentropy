@@ -1,0 +1,5 @@
+<?xml version="1.0" ?>
+<coverage line-rate="0.85" branch-rate="0.70" lines-covered="17" lines-valid="20" branches-covered="7" branches-valid="10" complexity="1" version="1.0" timestamp="1234567890">
+    <packages>
+    </packages>
+</coverage>

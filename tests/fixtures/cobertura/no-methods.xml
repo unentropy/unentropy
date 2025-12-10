@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<coverage line-rate="0.90" branch-rate="0.80" lines-covered="18" lines-valid="20" branches-covered="8" branches-valid="10" complexity="2" version="1.0" timestamp="1234567890">
+    <packages>
+        <package name="com.example" line-rate="0.90" branch-rate="0.80" complexity="2">
+            <classes>
+                <class name="SimpleClass" filename="src/SimpleClass.ts" line-rate="0.90" branch-rate="0.80" complexity="2">
+                    <methods>
+                    </methods>
+                    <lines>
+                        <line number="1" hits="1" branch="false"/>
+                        <line number="2" hits="1" branch="false"/>
+                    </lines>
+                </class>
+            </classes>
+        </package>
+    </packages>
+</coverage>

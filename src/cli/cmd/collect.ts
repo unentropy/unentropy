@@ -2,6 +2,10 @@ import type { Argv } from "yargs";
 import { cmd } from "./cmd";
 import { parseSize } from "../../metrics/collectors/size";
 import { parseLcovCoverage, type CoverageType } from "../../metrics/collectors/lcov";
+import {
+  parseCoberturaCoerage,
+  type CoverageType as CoberturaCoverageType,
+} from "../../metrics/collectors/cobertura";
 import { collectLoc } from "../../metrics/collectors/loc";
 
 const SizeCommand = cmd({
@@ -149,6 +153,53 @@ const CoverageXmlCommand = cmd({
   },
 });
 
+const CoverageCoberturaCommand = cmd({
+  command: "coverage-cobertura <sourcePath>",
+  describe: "parse Cobertura XML coverage reports",
+  builder: (yargs: Argv) => {
+    return yargs
+      .positional("sourcePath", {
+        type: "string",
+        description: "path to Cobertura XML file",
+      })
+      .options({
+        type: {
+          type: "string",
+          alias: "t",
+          description: "coverage type to extract: line, branch, or function",
+          choices: ["line", "branch", "function"] as const,
+          default: "line",
+        },
+        fallback: {
+          type: "number",
+          description: "fallback value if parsing fails",
+          default: 0,
+        },
+      });
+  },
+  async handler(argv: {
+    sourcePath?: string;
+    type?: string;
+    fallback?: number;
+    [key: string]: unknown;
+  }) {
+    try {
+      if (!argv.sourcePath) {
+        throw new Error("Source path is required");
+      }
+      const coverageType = (argv.type || "line") as CoberturaCoverageType;
+      const coverage = await parseCoberturaCoerage(argv.sourcePath, {
+        type: coverageType,
+        fallback: argv.fallback,
+      });
+      console.log(coverage);
+    } catch (error) {
+      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      console.log(argv.fallback || 0);
+    }
+  },
+});
+
 const LocCommand = cmd({
   command: "loc <path>",
   describe: "collect lines of code from directory",
@@ -204,6 +255,7 @@ export const CollectCommand = cmd({
     return yargs
       .command(SizeCommand)
       .command(CoverageLcovCommand)
+      .command(CoverageCoberturaCommand)
       .command(CoverageJsonCommand)
       .command(CoverageXmlCommand)
       .command(LocCommand)

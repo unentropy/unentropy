@@ -69,6 +69,7 @@
     "@actions/github": "^6.0.1",
     "@markusberg/lcov-parse": "^2.0.4",
     "@types/serialize-javascript": "^5.0.4",
+    "fast-xml-parser": "^5.3.2",
     "preact": "^10.27.2",
     "preact-render-to-string": "^6.6.3",
     "serialize-javascript": "^7.0.0",

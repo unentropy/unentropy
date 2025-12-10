@@ -493,13 +493,13 @@
   - COMPLETED: 2025-12-10
 - [x] ~~T068 [P] [CLI] Implement coverage-json parser~~ **CANCELLED** (v4.0.0)
   - REMOVED: Only LCOV and Cobertura formats supported
-- [ ] T069 [P] [CLI] Implement coverage-cobertura parser in src/metrics/collectors/cobertura.ts
+- [x] T069 [P] [CLI] Implement coverage-cobertura parser in src/metrics/collectors/cobertura.ts
   - Parse Cobertura XML format (common with Istanbul, coverage.py, etc.)
   - Support `--type line` (default): Extract `line-rate` attribute
   - Support `--type branch`: Extract `branch-rate` attribute
   - Support `--type function`: Calculate from `<method>` elements
   - Return percentage as 0-100 value (multiply rate by 100)
-- [ ] T069a [NEW] [CLI] Add coverage-cobertura CLI command in src/cli/cmd/collect.ts
+- [x] T069a [NEW] [CLI] Add coverage-cobertura CLI command in src/cli/cmd/collect.ts
   - Command: "coverage-cobertura <sourcePath>"
   - Options: --type (line|branch|function), --fallback
 - [ ] T070 [P] [CLI] Add integration tests for CLI helpers in tests/integration/cli-helpers.test.ts
