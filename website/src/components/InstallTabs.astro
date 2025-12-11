@@ -1,0 +1,212 @@
+---
+const tabs = [
+  { id: "npx", label: "npx", command: "npx unentropy init" },
+  { id: "bunx", label: "bunx", command: "bunx unentropy init" },
+];
+---
+
+<div class="install-tabs" data-component="install-tabs">
+  <div class="tabs-header" role="tablist">
+    {
+      tabs.map((tab, index) => (
+        <button
+          role="tab"
+          aria-selected={index === 0 ? "true" : "false"}
+          data-tab={tab.id}
+          class={index === 0 ? "active" : ""}
+        >
+          {tab.label}
+        </button>
+      ))
+    }
+  </div>
+  <div class="tabs-content">
+    {
+      tabs.map((tab, index) => (
+        <div
+          role="tabpanel"
+          data-panel={tab.id}
+          class={index === 0 ? "active" : ""}
+        >
+          <code>{tab.command}</code>
+          <button
+            class="copy-button"
+            data-copy={tab.command}
+            aria-label="Copy to clipboard"
+          >
+            <svg
+              class="icon-copy"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="square"
+            >
+              <path d="M8.75 8.75V2.75H21.25V15.25H15.25M15.25 8.75H2.75V21.25H15.25V8.75Z" />
+            </svg>
+            <svg
+              class="icon-check"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#03B000"
+              stroke-width="2"
+              stroke-linecap="square"
+            >
+              <path d="M2.75 15.0938L9 20.25L21.25 3.75" />
+            </svg>
+          </button>
+        </div>
+      ))
+    }
+  </div>
+</div>
+
+<script>
+  function initTabs() {
+    const tabContainers = document.querySelectorAll(
+      '[data-component="install-tabs"]'
+    );
+
+    tabContainers.forEach((container) => {
+      const tabs = container.querySelectorAll("[role=tab]");
+      const panels = container.querySelectorAll("[role=tabpanel]");
+      const copyButtons = container.querySelectorAll(".copy-button");
+
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          const targetId = tab.getAttribute("data-tab");
+
+          tabs.forEach((t) => {
+            t.classList.remove("active");
+            t.setAttribute("aria-selected", "false");
+          });
+          tab.classList.add("active");
+          tab.setAttribute("aria-selected", "true");
+
+          panels.forEach((panel) => {
+            panel.classList.remove("active");
+            if (panel.getAttribute("data-panel") === targetId) {
+              panel.classList.add("active");
+            }
+          });
+        });
+      });
+
+      copyButtons.forEach((button) => {
+        button.addEventListener("click", async () => {
+          const command = button.getAttribute("data-copy");
+          if (command) {
+            await navigator.clipboard.writeText(command);
+            button.classList.add("copied");
+            setTimeout(() => {
+              button.classList.remove("copied");
+            }, 2000);
+          }
+        });
+      });
+    });
+  }
+
+  initTabs();
+  document.addEventListener("astro:after-swap", initTabs);
+</script>
+
+<style>
+  .install-tabs {
+    max-width: 500px;
+    margin: 0 auto 3rem;
+  }
+
+  .tabs-header {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+    margin-bottom: 0;
+  }
+
+  .tabs-header button {
+    background: none;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
+    position: relative;
+    font-family: inherit;
+    transition: color 0.2s ease;
+  }
+
+  .tabs-header button:hover {
+    color: var(--sl-color-white);
+  }
+
+  .tabs-header button.active {
+    color: var(--sl-color-white);
+  }
+
+  .tabs-header button.active::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--sl-color-accent);
+  }
+
+  .tabs-content [role="tabpanel"] {
+    display: none;
+    background: var(--sl-color-gray-6);
+    border: 1px solid var(--sl-color-gray-5);
+    border-top: none;
+    border-radius: 0 0 0.5rem 0.5rem;
+    padding: 1rem 1.25rem;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tabs-content [role="tabpanel"].active {
+    display: flex;
+  }
+
+  .tabs-content code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      monospace;
+    font-size: 0.95rem;
+    color: var(--sl-color-white);
+    background: none;
+    padding: 0;
+  }
+
+  .copy-button {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    color: var(--sl-color-gray-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+  }
+
+  .copy-button:hover {
+    color: var(--sl-color-white);
+  }
+
+  .copy-button .icon-check {
+    display: none;
+  }
+
+  .copy-button.copied .icon-copy {
+    display: none;
+  }
+
+  .copy-button.copied .icon-check {
+    display: block;
+  }
+</style>

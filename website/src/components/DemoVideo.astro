@@ -1,0 +1,30 @@
+---
+
+---
+
+<div class="demo-video">
+  <video src="/demo.webm" autoplay playsinline loop muted preload="auto">
+    Your browser does not support the video tag.
+  </video>
+</div>
+
+<style>
+  .demo-video {
+    display: flex;
+    justify-content: center;
+    padding: 0 1rem 3rem;
+  }
+
+  .demo-video video {
+    width: 70%;
+    max-width: 840px;
+    height: auto;
+    border-radius: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .demo-video video {
+      width: 100%;
+    }
+  }
+</style>

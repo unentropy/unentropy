@@ -22,6 +22,13 @@ This project follows Specification-Driven Development (SDD) principles as define
 
 Unentropy is a serverless tool for tracking custom code metrics in CI/CD pipelines via GitHub Actions, using Node.js/TypeScript, SQLite, and Chart.js to generate trend reports without external servers.
 
+## Project Structure
+
+- **`src/`** - Main Unentropy application code (CLI, collectors, reporters, storage, etc.)
+- **`website/`** - Unentropy homepage and documentation site (Astro with Starlight)
+- **`tests/`** - Unit, integration, and contract tests
+- **`specs/`** - Specification-Driven Development documents
+
 ## Lint/Test Commands
 
 - Lint, type checks, format checks: bun check
@@ -46,6 +53,7 @@ Unentropy is a serverless tool for tracking custom code metrics in CI/CD pipelin
 - Follow security best practices
 - Mimic existing code style from src/ and tests/ directories
 - When working on tasks from spec/\*/tasks.md, make sure to update the status after completion in that file
+- The website/ directory is a separate Astro project with its own package.json and dependencies
 
 ## Active Technologies
 

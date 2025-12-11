@@ -13,3 +13,7 @@ specs/
 .github/actions/*/dist/
 
 tests/unit/config/fixtures/invalid-json.json
+
+# Website auto-generated files
+website/.astro/
+website/dist/

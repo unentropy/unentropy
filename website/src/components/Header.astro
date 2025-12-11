@@ -1,0 +1,111 @@
+---
+import Default from "@astrojs/starlight/components/Header.astro";
+import ThemeSelect from "@astrojs/starlight/components/ThemeSelect.astro";
+import SocialIcons from "@astrojs/starlight/components/SocialIcons.astro";
+import logo from "../assets/logo.svg";
+
+const isHomepage = Astro.locals.starlightRoute.id === "";
+---
+
+{
+  isHomepage ? (
+    <div class="header home-header">
+      <div class="home-header-inner">
+        <div class="title-wrapper sl-flex">
+          <a href="/" class="site-title sl-flex">
+            <img src={logo.src} alt="Unentropy" />
+          </a>
+        </div>
+        <nav class="home-nav sl-flex">
+          <a href="/getting-started/" class="nav-link">
+            Docs
+          </a>
+          <div class="sl-flex social-icons">
+            <SocialIcons />
+          </div>
+          <ThemeSelect />
+        </nav>
+      </div>
+    </div>
+  ) : (
+    <Default>
+      <slot />
+    </Default>
+  )
+}
+
+<style>
+  .home-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+  }
+
+  .home-header-inner {
+    display: flex;
+    gap: var(--sl-nav-gap);
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+    padding: 0 1rem;
+  }
+
+  .title-wrapper {
+    overflow: clip;
+    padding: 0.25rem;
+    margin: -0.25rem;
+    min-width: 0;
+  }
+
+  .site-title {
+    align-items: center;
+    gap: var(--sl-nav-gap);
+    text-decoration: none;
+    min-width: 0;
+  }
+
+  .site-title img {
+    height: calc(var(--sl-nav-height) - 2 * var(--sl-nav-pad-y));
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: 0 50%;
+  }
+
+  :global([data-theme="light"]) .site-title img {
+    filter: brightness(0);
+  }
+
+  :global([data-theme="dark"]) .site-title img {
+    filter: brightness(0) invert(1);
+  }
+
+  .home-nav {
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .nav-link {
+    color: var(--sl-color-text);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .nav-link:hover {
+    color: var(--sl-color-text-accent);
+  }
+
+  .social-icons {
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .social-icons::after {
+    content: "";
+    height: 2rem;
+    border-inline-end: 1px solid var(--sl-color-gray-5);
+  }
+</style>

@@ -1,0 +1,71 @@
+/* Fixed-width container for homepage */
+[data-page-type="splash"] .sl-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Homepage content styling */
+.homepage-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.homepage-content h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.homepage-content ul {
+  margin-bottom: 2rem;
+}
+
+/* Docs CTA button styling */
+.docs-cta {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.docs-cta a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--sl-color-white);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.docs-cta a:hover {
+  color: var(--sl-color-accent);
+}
+
+.docs-cta svg {
+  width: 1.25em;
+  height: 1.25em;
+}
+
+/* Logo color adaptation for dark/light mode - same logic as the large logo */
+[data-theme="light"] .site-title img {
+  filter: brightness(0);
+}
+
+[data-theme="dark"] .site-title img {
+  filter: brightness(0) invert(1);
+}
+
+/* Logo color adaptation for dark/light mode */
+.site-title img {
+  color: var(--sl-color-white);
+}
+
+[data-theme="light"] .site-title img {
+  color: var(--sl-color-black);
+}
+
+/* Hide default Starlight hero image area if present */
+[data-has-hero] .hero > img,
+[data-has-hero] .hero > .hero-html {
+  display: none;
+}
