@@ -1,69 +1,27 @@
 ---
-interface HeroAction {
-  text: string;
-  link: string;
-  icon?: string;
-  variant?: string;
-}
-
-interface HeroData {
-  actions?: HeroAction[];
-}
-
-const entry = Astro.props.entry as { data: { hero?: HeroData } } | undefined;
-const hero = entry?.data?.hero;
+import { CodeTabs, CodeTabItem } from "starlight-theme-nova/components";
 ---
 
 <div class="hero">
   <div class="hero-content">
-    <h1 class="hero-title">Track your code metrics in CI/CD</h1>
+    <h1 class="hero-title">Your code under your control</h1>
     <p class="hero-tagline">
-      Serverless, self-hosted, completely yours.
+      CI-native metrics and quality gates. Zero dependencies.
     </p>
-    {
-      hero?.actions && hero.actions.length > 0 && (
-        <div class="hero-actions">
-          {hero.actions.map((action) => (
-            <a
-              href={action.link}
-              class={`hero-action ${action.variant || "primary"}`}
-            >
-              {action.text}
-              {action.icon === "right-arrow" && (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              )}
-              {action.icon === "external" && (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" />
-                </svg>
-              )}
-            </a>
-          ))}
-        </div>
-      )
-    }
+    <div class="sl-markdown-content init-code-tabs">
+      <CodeTabs>
+        <CodeTabItem
+          label="npm"
+          lang="bash"
+          code={`npx unentropy init`}
+        />
+        <CodeTabItem
+          label="bun"
+          lang="bash"
+          code={`bunx unentropy init`}
+        />
+      </CodeTabs>
+    </div>
   </div>
 </div>
 
@@ -76,6 +34,7 @@ const hero = entry?.data?.hero;
   .hero-content {
     max-width: 800px;
     margin: 0 auto;
+    padding: 1rem;
   }
 
   .hero-title {
@@ -100,39 +59,9 @@ const hero = entry?.data?.hero;
     flex-wrap: wrap;
   }
 
-  .hero-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.2s ease;
-  }
-
-  .hero-action.primary {
-    background: var(--sl-color-accent);
-    color: var(--sl-color-black);
-  }
-
-  .hero-action.primary:hover {
-    background: var(--sl-color-accent-high);
-  }
-
-  .hero-action.minimal {
-    background: transparent;
-    color: var(--sl-color-white);
-    border: 1px solid var(--sl-color-gray-5);
-  }
-
-  .hero-action.minimal:hover {
-    border-color: var(--sl-color-gray-3);
-    background: var(--sl-color-gray-6);
-  }
-
-  .hero-action svg {
-    width: 1em;
-    height: 1em;
+  .init-code-tabs {
+    max-width: 500px;
+    text-align: center;
+    margin: 0 auto;
   }
 </style>

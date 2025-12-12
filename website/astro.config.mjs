@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
+import starlightThemeNova from "starlight-theme-nova";
 
 // https://astro.build/config
 export default defineConfig({
@@ -23,6 +24,9 @@ export default defineConfig({
         Header: "./src/components/Header.astro",
         Hero: "./src/components/Hero.astro",
       },
+      plugins: [
+        starlightThemeNova(/* options */),
+      ],
     }),
   ],
 });
