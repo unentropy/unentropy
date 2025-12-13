@@ -15,19 +15,19 @@ bunx unentropy init [options]
 
 ## Options
 
-| Option | Alias | Type | Default | Values | Description |
-|--------|-------|------|---------|--------|-------------|
-| `--type` | `-t` | string | (auto-detect) | `javascript`, `php`, `go`, `python` | Force project type |
-| `--storage` | `-s` | string | `artifact` | `artifact`, `s3`, `local` | Storage backend type |
-| `--force` | `-f` | boolean | `false` | - | Overwrite existing config |
-| `--dry-run` | - | boolean | `false` | - | Preview without writing |
+| Option      | Alias | Type    | Default       | Values                              | Description               |
+| ----------- | ----- | ------- | ------------- | ----------------------------------- | ------------------------- |
+| `--type`    | `-t`  | string  | (auto-detect) | `javascript`, `php`, `go`, `python` | Force project type        |
+| `--storage` | `-s`  | string  | `artifact`    | `artifact`, `s3`, `local`           | Storage backend type      |
+| `--force`   | `-f`  | boolean | `false`       | -                                   | Overwrite existing config |
+| `--dry-run` | -     | boolean | `false`       | -                                   | Preview without writing   |
 
 ## Exit Codes
 
-| Code | Condition |
-|------|-----------|
-| `0` | Success - config created or previewed |
-| `1` | Error - file exists, detection failed, invalid options |
+| Code | Condition                                              |
+| ---- | ------------------------------------------------------ |
+| `0`  | Success - config created or previewed                  |
+| `1`  | Error - file exists, detection failed, invalid options |
 
 ## Console Output
 
@@ -140,17 +140,20 @@ Would create unentropy.json:
 ### Error Outputs
 
 **Config exists:**
+
 ```
 Error: unentropy.json already exists. Use --force to overwrite.
 ```
 
 **Detection failed:**
+
 ```
 Error: Could not detect project type.
 Use --type to specify: javascript, php, go, or python
 ```
 
 **Invalid type:**
+
 ```
 Error: Invalid project type "invalid".
 Valid types: javascript, php, go, python
@@ -196,19 +199,18 @@ bunx unentropy test [options]
 
 ## Options
 
-| Option | Alias | Type | Default | Description |
-|--------|-------|------|---------|-------------|
-| `--config` | `-c` | string | `unentropy.json` | Path to config file |
-| `--timeout` | - | number | `30000` | Per-metric timeout in milliseconds |
-| `--verbose` | `-v` | boolean | `false` | Show command executed for each metric |
+| Option      | Alias | Type   | Default          | Description                        |
+| ----------- | ----- | ------ | ---------------- | ---------------------------------- |
+| `--config`  | `-c`  | string | `unentropy.json` | Path to config file                |
+| `--timeout` | -     | number | `30000`          | Per-metric timeout in milliseconds |
 
 ## Exit Codes
 
-| Code | Condition |
-|------|-----------|
-| `0` | All metrics collected successfully |
-| `1` | Config validation failed (schema error, file not found) |
-| `2` | One or more metrics failed to collect |
+| Code | Condition                                               |
+| ---- | ------------------------------------------------------- |
+| `0`  | All metrics collected successfully                      |
+| `1`  | Config validation failed (schema error, file not found) |
+| `2`  | One or more metrics failed to collect                   |
 
 ## Console Output
 
@@ -242,27 +244,6 @@ Collecting metrics:
   ✓ size (bytes)	240 KB         0.2s
 
 1 of 3 metrics failed.
-```
-
-### Verbose Mode (`-v`)
-
-```
-Checking unentropy.json...
-
-✓ Config schema valid
-
-Collecting metrics:
-
-  ✓ lines-of-code (integer)	4,521         0.8s
-    Command: @collect loc ./src --language TypeScript
-
-  ✓ test-coverage (percent)	87.3%         2.1s
-    Command: @collect coverage-lcov coverage/lcov.info
-
-  ✓ size (bytes)	240 KB         0.2s
-    Command: @collect size dist
-
-All 3 metrics collected successfully.
 ```
 
 ### Config Not Found
@@ -301,22 +282,23 @@ Collecting metrics:
 
 Values are formatted using human-readable units consistent with reports and PR comments:
 
-| Unit | Format | Example |
-|------|--------|---------|
-| `integer` | Thousands separator | `4,521` |
-| `percent` | One decimal place with % symbol | `87.3%` |
-| `bytes` | Auto-scaled to B/KB/MB/GB | `256 KB`, `1.5 MB` |
-| `duration` | Auto-scaled to ms/s/m/h | `45s`, `2m 15s` |
-| `decimal` | Two decimal places | `3.14` |
+| Unit       | Format                          | Example            |
+| ---------- | ------------------------------- | ------------------ |
+| `integer`  | Thousands separator             | `4,521`            |
+| `percent`  | One decimal place with % symbol | `87.3%`            |
+| `bytes`    | Auto-scaled to B/KB/MB/GB       | `256 KB`, `1.5 MB` |
+| `duration` | Auto-scaled to ms/s/m/h         | `45s`, `2m 15s`    |
+| `decimal`  | Two decimal places              | `3.14`             |
 
 ### Column Alignment
 
 - Metric name with unit type: Left-aligned as `name (unit)`, padded to longest combined length
 - Tab separator between name+unit and value
-- Value: Right-aligned, dynamically sized to fit formatted value  
+- Value: Right-aligned, dynamically sized to fit formatted value
 - Duration: Right-aligned, formatted as `X.Xs`
 
 Example layout:
+
 ```
   ✓ metric-name (unit)	formatted-value	duration
   ✓ lines-of-code (integer)	4,521         0.8s
@@ -335,19 +317,19 @@ bunx unentropy preview [options]
 
 ## Options
 
-| Option | Alias | Type | Default | Description |
-|--------|-------|------|---------|-------------|
-| `--config` | `-c` | string | `unentropy.json` | Path to config file |
-| `--output` | `-o` | string | `unentropy-preview` | Output directory for report |
-| `--no-open` | - | boolean | `false` | Don't open browser automatically |
-| `--force` | `-f` | boolean | `false` | Overwrite existing non-empty directory |
+| Option      | Alias | Type    | Default             | Description                            |
+| ----------- | ----- | ------- | ------------------- | -------------------------------------- |
+| `--config`  | `-c`  | string  | `unentropy.json`    | Path to config file                    |
+| `--output`  | `-o`  | string  | `unentropy-preview` | Output directory for report            |
+| `--no-open` | -     | boolean | `false`             | Don't open browser automatically       |
+| `--force`   | `-f`  | boolean | `false`             | Overwrite existing non-empty directory |
 
 ## Exit Codes
 
-| Code | Condition |
-|------|-----------|
-| `0` | Success - report generated |
-| `1` | Error - config invalid, directory exists, or report generation failed |
+| Code | Condition                                                             |
+| ---- | --------------------------------------------------------------------- |
+| `0`  | Success - report generated                                            |
+| `1`  | Error - config invalid, directory exists, or report generation failed |
 
 ## Console Output
 
@@ -405,12 +387,14 @@ Generating preview report with 3 metrics:
 ### Error Outputs
 
 **Config not found:**
+
 ```
 Error: Config file not found: unentropy.json
 Run 'bunx unentropy init' to create one.
 ```
 
 **Schema validation error:**
+
 ```
 Checking unentropy.json...
 
@@ -421,6 +405,7 @@ Fix the errors above and try again.
 ```
 
 **Output directory not empty:**
+
 ```
 Error: Output directory 'unentropy-preview' is not empty.
 Use --force to overwrite, or choose a different --output directory.
@@ -438,6 +423,7 @@ Use --force to overwrite, or choose a different --output directory.
 ## File Output
 
 Creates `{output}/index.html` containing an HTML report with:
+
 - All configured metrics listed by name
 - Empty/no-data state for all metrics (no actual values)
 - Same visual structure as reports with actual data

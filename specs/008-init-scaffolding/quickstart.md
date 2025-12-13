@@ -40,9 +40,6 @@ bunx unentropy test
 # Use a different config file
 bunx unentropy test --config custom-config.json
 
-# Show the command executed for each metric
-bunx unentropy test --verbose
-
 # Set custom timeout (in milliseconds)
 bunx unentropy test --timeout 60000
 ```
@@ -52,6 +49,7 @@ bunx unentropy test --timeout 60000
 ### Configuration File
 
 A `unentropy.json` file with:
+
 - **Lines of code** metric (filtered by detected language)
 - **Test coverage** metric (using LCOV format)
 - **Bundle/binary size** metric (JavaScript/Go only)
@@ -69,12 +67,12 @@ A `unentropy.json` file with:
 
 ## Supported Project Types
 
-| Type | Detected By | Metrics |
-|------|-------------|---------|
-| JavaScript/TypeScript | `package.json`, `tsconfig.json`, etc. | LOC, coverage, bundle size |
-| PHP | `composer.json` | LOC, coverage |
-| Go | `go.mod` | LOC, coverage, binary size |
-| Python | `pyproject.toml`, `requirements.txt`, etc. | LOC, coverage |
+| Type                  | Detected By                                | Metrics                    |
+| --------------------- | ------------------------------------------ | -------------------------- |
+| JavaScript/TypeScript | `package.json`, `tsconfig.json`, etc.      | LOC, coverage, bundle size |
+| PHP                   | `composer.json`                            | LOC, coverage              |
+| Go                    | `go.mod`                                   | LOC, coverage, binary size |
+| Python                | `pyproject.toml`, `requirements.txt`, etc. | LOC, coverage              |
 
 ## After Running Init
 
@@ -87,52 +85,65 @@ A `unentropy.json` file with:
 ## Coverage Setup by Language
 
 ### JavaScript/TypeScript
+
 ```bash
 # Jest
 npm test -- --coverage
 # Vitest
 vitest --coverage
 ```
+
 Coverage file: `coverage/lcov.info`
 
 ### PHP
+
 ```bash
 # PHPUnit (generate Clover XML format)
 vendor/bin/phpunit --coverage-clover coverage.xml
 ```
+
 Coverage file: `coverage.xml`
 
 ### Go
+
 ```bash
 # Generate coverage profile
 go test -coverprofile=coverage.out ./...
 ```
+
 The generated config uses shell parsing to extract percentage.
 
 ### Python
+
 ```bash
 # pytest-cov (generate LCOV format)
 pytest --cov=src --cov-report=lcov:coverage.lcov
 ```
+
 Coverage file: `coverage.lcov`
 
 ## Common Adjustments
 
 ### Different Source Directory
+
 Edit the `command` field to match your project structure:
+
 ```json
 "command": "@collect loc ./app --language PHP"  // Laravel
 "command": "@collect loc ./lib --language TypeScript"  // Library
 ```
 
 ### Different Output Directory
+
 ```json
 "command": "@collect size build"  // Create React App
 "command": "@collect size .next"  // Next.js
 ```
 
 ### Multiple Coverage Files
+
 For monorepos or multiple test suites, you may need to merge coverage:
+
 ```json
 "command": "@collect coverage-lcov coverage/merged-lcov.info"
 ```
@@ -140,51 +151,68 @@ For monorepos or multiple test suites, you may need to merge coverage:
 ## Troubleshooting
 
 ### Init: "Could not detect project type"
+
 Your project doesn't have recognized marker files. Use `--type` to specify:
+
 ```bash
 bunx unentropy init --type javascript
 ```
 
 ### Init: "unentropy.json already exists"
+
 Use `--force` to overwrite:
+
 ```bash
 bunx unentropy init --force
 ```
 
 ### Test: Config validation fails
+
 The `test` command will show specific schema errors. Fix them in your config file:
+
 ```
 ✗ Config schema invalid:
   metrics.test-coverage: command cannot be empty
 ```
 
 ### Test: Metric collection fails
+
 Common causes and fixes:
 
 **File not found:**
+
 ```
 ✗ test-coverage    Error: File not found: coverage/lcov.info
 ```
+
 Run your tests with coverage first: `npm test -- --coverage`
 
 **Directory not found:**
+
 ```
 ✗ lines-of-code    Error: Directory not found: ./src
 ```
+
 Update the path in your config to match your project structure.
 
 **Command timeout:**
+
 ```
 ✗ test-coverage    Error: Command timed out after 30000ms
 ```
+
 Increase timeout: `bunx unentropy test --timeout 60000`
 
 ### Test: Debug with verbose mode
+
 Use `-v` to see exactly what commands are being run:
+
 ```bash
 bunx unentropy test -v
 ```
+
 Output:
+
 ```
   ✓ lines-of-code    4,521 (integer)    0.8s
     Command: @collect loc ./src --language TypeScript

@@ -122,7 +122,7 @@ Commit and push these files to start tracking metrics.
 
 ## **Configuration**
 
-Use `unentropy.json` to configure your metrics and quality gate. Each metric can be defined as a reference to a built-in template (`$ref`). You can also define custom metric collection commands. 
+Use `unentropy.json` to configure your metrics and quality gate. Each metric can be defined as a reference to a built-in template (`$ref`). You can also define custom metric collection commands.
 
 ```json
 {
@@ -189,7 +189,6 @@ Set the mode in `unentropy.json`:
 ```
 
 Start with `soft` mode to observe behavior, then switch to `hard` once your thresholds are stable.
-
 
 ## **Support**
 

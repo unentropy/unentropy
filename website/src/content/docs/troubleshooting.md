@@ -214,9 +214,9 @@ This ensures only one workflow processes metrics at a time per branch.
 ## Getting Help
 
 1. **Check GitHub Issues**: https://github.com/unentropy/unentropy/issues
-2. **Enable Verbose Logging**:
+2. **Validate Configuration**:
    ```bash
-   bunx unentropy test --verbose
+   bunx unentropy test
    ```
 3. **Collect Debug Info**:
    - Unentropy version: `bunx unentropy --version`
@@ -232,7 +232,7 @@ This ensures only one workflow processes metrics at a time per branch.
 
 ## Related Resources
 
-- [Getting Started Guide](getting-started.md) - Initial setup
-- [Configuration Reference](reference/config.md) - Config syntax
-- [CLI Commands](reference/cli.md) - Command reference
-- [GitHub Actions](reference/actions.md) - Workflow setup
+- [Getting Started Guide](/getting-started/) - Initial setup
+- [Configuration Reference](/reference/config/) - Config syntax
+- [CLI Commands](/reference/cli/) - Command reference
+- [GitHub Actions](/reference/actions/) - Workflow setup

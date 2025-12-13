@@ -11,11 +11,11 @@ unentropy_docs:
   scope: all
 ---
 
-Unentropy helps you track code metrics that matter to your project. Use built-in metrics for common indicators like coverage and bundle size, or define custom metrics specific to your domain.
+Unentropy helps you track code metrics that matter to your project. Use built-in metrics for common indicators like coverage and bundle size, or define custom metrics specific to your needs.
 
 ## Built-in Metrics
 
-Unentropy includes pre-configured metric templates that work out of the box. Reference them with minimal configuration:
+Unentropy includes pre-configured metric templates that work out of the box. Reference them with minimal configuration using the `$ref` property:
 
 ```json
 {
@@ -32,6 +32,8 @@ Unentropy includes pre-configured metric templates that work out of the box. Ref
 ```
 
 This will generate reports with two metrics: lines of code (calculated from the whole repository) and test coverage (you need to run tests first with appropriate flags).
+
+The `command` property can be any shell command that outputs a single number to be tracked. `@collect` is a shortcut for running built-in collectors.
 
 ### Coverage Metrics
 
@@ -93,7 +95,8 @@ Count lines of code in your project:
 }
 ```
 
-This uses the default command `@collect loc .` which counts all lines in your project.
+This uses the default command `@collect loc .` which counts all lines in your project. 
+Internally, Unentropy uses the [scc](https://github.com/boyter/scc) tool to do the counting.
 
 **Customize the path or language:**
 
@@ -198,7 +201,7 @@ Track the number of direct dependencies:
 
 ## Custom Metrics
 
-Define metrics specific to your project needs. Any metric without `$ref` is a custom metric:
+You can define metrics specific to your project needs:
 
 ```json
 {
@@ -234,21 +237,7 @@ Choose the right unit for proper formatting:
 | `duration` | `1m 30s` | Build/test time     |
 | `decimal`  | `3.14`   | Generic numbers     |
 
-## Using Metric Templates
-
-### Minimal Configuration
-
-For templates with default commands, reference them directly:
-
-```json
-{
-  "metrics": {
-    "loc": { "$ref": "loc" }
-  }
-}
-```
-
-The object key (`loc`) becomes the metric ID.
+## Customizing built-in metrics 
 
 ### Override Display Name
 
@@ -287,7 +276,7 @@ Track the same type of metric for different paths:
 }
 ```
 
-Each gets a unique ID from its object key.
+Each gets a unique ID from its object key, so they can be tracked separately in reports and quality gates.
 
 ## The `@collect` Shortcut
 
@@ -305,7 +294,7 @@ Count lines of code using the SCC tool:
 @collect loc ./app --language "PHP,JavaScript"
 ```
 
-#### `@collect size <path>`
+#### `@collect size <path1> [<path2>] [<path3>] [...]`
 
 Calculate total file size (supports glob patterns):
 
@@ -313,6 +302,7 @@ Calculate total file size (supports glob patterns):
 @collect size ./dist
 @collect size ./dist/**/*.js
 @collect size ./build/*.wasm
+@collect size ./build ./dist
 ```
 
 #### `@collect coverage-lcov <path>`
@@ -437,47 +427,7 @@ Collecting metrics:
 All 3 metrics collected successfully.
 ```
 
-Use `--verbose` to see the exact commands being run:
-
-```bash
-bunx unentropy test --verbose
-```
-
-## Troubleshooting
-
-### Metric Collection Fails
-
-**Problem**: Metric collection returns an error
-
-**Solutions**:
-
-- For coverage metrics: Run tests with coverage before collecting (`bun test --coverage`)
-- For size metrics: Ensure build artifacts exist before collection
-- Use `bunx unentropy test --verbose` to see the exact command being run
-- Check file paths in commands match your project structure
-
-### Invalid Metric Reference
-
-**Problem**: Error: `Unknown metric template "xyz"`
-
-**Solution**: Check the metric reference against the [built-in metrics list](#built-in-metrics). Use `bunx unentropy verify` to validate configuration.
-
-### Missing Command
-
-**Problem**: Error: `Metric requires a command`
-
-**Solution**: Some templates (like `build-time`) don't have default commands. You must provide one:
-
-```json
-{
-  "metrics": {
-    "build-time": {
-      "$ref": "build-time",
-      "command": "your-build-time-command"
-    }
-  }
-}
-```
+Note that `test` runs locally, so - depending on your configuration - you may need to run tests or build artifacts first. Code size (loc) metrics require the scc tool to be installed.
 
 ## Related Resources
 

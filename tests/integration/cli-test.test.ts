@@ -133,31 +133,6 @@ describe("test command integration", () => {
     expect(result.stdout).toContain("1 of 2 metric failed");
   });
 
-  test("shows verbose output with commands when --verbose flag is used", async () => {
-    const configPath = join(tempDir, "unentropy.json");
-    const config = {
-      storage: {
-        type: "sqlite-artifact",
-      },
-      metrics: {
-        "test-metric": {
-          type: "numeric",
-          name: "Test Metric",
-          command: 'echo "123"',
-          unit: "integer",
-        },
-      },
-    };
-
-    await writeFile(configPath, JSON.stringify(config, null, 2));
-
-    const result = runTestCommand(["-c", "unentropy.json", "--verbose"]);
-
-    expect(result.code).toBe(0);
-    expect(result.stdout).toContain("Command:");
-    expect(result.stdout).toContain('echo "123"');
-  });
-
   test("uses default timeout of 30000ms", async () => {
     const configPath = join(tempDir, "unentropy.json");
     const config = {

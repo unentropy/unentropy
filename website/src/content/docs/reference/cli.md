@@ -181,28 +181,6 @@ bunx unentropy test --config custom-config.json
 
 **Default**: `unentropy.json`
 
-#### `--verbose`, `-v`
-
-Show commands executed for each metric.
-
-```bash
-bunx unentropy test --verbose
-```
-
-Example output with verbose:
-
-```
-✓ Config schema valid
-
-Collecting metrics:
-
-  ✓ lines-of-code (integer)    4,521         0.8s
-    Command: @collect loc ./src --language TypeScript
-
-  ✓ test-coverage (percent)    87.3%         2.1s
-    Command: @collect coverage-lcov ./coverage/lcov.info
-```
-
 #### `--timeout`
 
 Override per-metric timeout in milliseconds.
@@ -426,7 +404,7 @@ bunx unentropy preview
 bunx unentropy verify
 
 # Test metric collection
-bunx unentropy test --verbose
+bunx unentropy test
 
 # Preview report
 bunx unentropy preview --force
@@ -435,8 +413,8 @@ bunx unentropy preview --force
 ### Debugging Metric Collection
 
 ```bash
-# See exact commands being run
-bunx unentropy test --verbose
+# Test metric collection
+bunx unentropy test
 
 # Increase timeout for slow metrics
 bunx unentropy test --timeout 60000

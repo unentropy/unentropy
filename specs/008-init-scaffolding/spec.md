@@ -5,7 +5,7 @@
 **Status**: Draft  
 **Input**: User description: "CLI scaffolding command that detects project type and generates unentropy.json configuration, plus a test command to verify metric collection locally"
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Quick Start with Auto-Detection (Priority: P1)
 
@@ -104,8 +104,7 @@ A developer wants to verify that all metrics can be collected successfully befor
 1. **Given** a valid `unentropy.json` with 3 metrics, **When** user runs `bunx unentropy test`, **Then** each metric is collected sequentially with value, unit, and timing displayed
 2. **Given** a config with a metric that fails (e.g., missing coverage file), **When** user runs `bunx unentropy test`, **Then** the error is displayed for that metric and exit code is 2
 3. **Given** an invalid config schema, **When** user runs `bunx unentropy test`, **Then** schema validation error is displayed and exit code is 1
-4. **Given** any config, **When** user runs `bunx unentropy test --verbose`, **Then** the actual command executed for each metric is shown
-5. **Given** a successful `init`, **When** the output is displayed, **Then** it includes a suggestion to run `bunx unentropy test` to verify collection
+4. **Given** a successful `init`, **When** the output is displayed, **Then** it includes a suggestion to run `bunx unentropy test` to verify collection
 
 ---
 
@@ -133,21 +132,24 @@ A developer wants to see what their metrics report will look like before running
 ### Edge Cases
 
 #### Init Command
+
 - What happens when no project type can be detected and `--type` is not provided? Command displays an error with instructions to use `--type` flag.
 - What happens when the current directory is not writable? Command displays a permission error.
 - What happens when detection files exist but are in subdirectories? Only root-level files are checked for detection.
 
 #### Test Command
+
 - What happens when `unentropy.json` does not exist? Command displays an error suggesting to run `init` first.
 - What happens when a metric command times out? Command displays timeout error for that metric and continues to next.
 - What happens when all metrics fail? Command displays all errors and exits with code 2.
 
 #### Preview Command
+
 - What happens when `unentropy.json` does not exist? Command displays an error suggesting to run `init` first.
 - What happens when output directory parent doesn't exist? Command displays a permission/path error.
 - What happens when browser opening fails (headless environment)? Error is caught silently, report is still generated successfully.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -202,7 +204,6 @@ A developer wants to see what their metrics report will look like before running
 - **FR-032**: System MUST run metrics sequentially, displaying each result as it completes
 - **FR-033**: System MUST display metric name, collected value, unit, and collection time for each metric
 - **FR-034**: System MUST support `--config` / `-c` option to specify alternate config file path (default: `unentropy.json`)
-- **FR-035**: System MUST support `--verbose` / `-v` option to show the command executed for each metric
 - **FR-036**: System MUST support `--timeout` option to override default per-metric timeout (default: 30000ms)
 - **FR-037**: System MUST respect per-metric timeout settings from config when `--timeout` is not specified
 
@@ -244,7 +245,7 @@ A developer wants to see what their metrics report will look like before running
 - **Detection Rule**: A set of filenames that indicate a specific project type when present in the current directory
 - **Collection Result**: The outcome of running a metric's collection command, including value, unit, timing, and success/failure status
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

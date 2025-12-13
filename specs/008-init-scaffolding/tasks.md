@@ -24,8 +24,8 @@
 
 **Purpose**: Project initialization and basic structure for init/test commands
 
-- [X] T001 Create init command directory structure at src/cli/init/ with detector.ts, templates.ts, output.ts
-- [X] T002 Create test command directory structure at src/cli/cmd/test.ts
+- [x] T001 Create init command directory structure at src/cli/init/ with detector.ts, templates.ts, output.ts
+- [x] T002 Create test command directory structure at src/cli/cmd/test.ts
 
 ---
 
@@ -35,15 +35,15 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [X] T003 [P] Define ProjectType constants and detection rules in src/cli/init/detector.ts
-- [X] T004 [P] Define ConfigTemplate types and interfaces in src/cli/init/templates.ts
-- [X] T005 [P] Define WorkflowExample types and interfaces in src/cli/init/output.ts
-- [X] T006 Implement project type detection logic (detectProjectType function) in src/cli/init/detector.ts
-- [X] T007 [P] Create config templates for JavaScript/TypeScript in src/cli/init/templates.ts
-- [X] T008 [P] Create config templates for PHP in src/cli/init/templates.ts
-- [X] T009 [P] Create config templates for Go in src/cli/init/templates.ts
-- [X] T010 [P] Create config templates for Python in src/cli/init/templates.ts
-- [X] T011 Implement template selector (getTemplateForProjectType function) in src/cli/init/templates.ts
+- [x] T003 [P] Define ProjectType constants and detection rules in src/cli/init/detector.ts
+- [x] T004 [P] Define ConfigTemplate types and interfaces in src/cli/init/templates.ts
+- [x] T005 [P] Define WorkflowExample types and interfaces in src/cli/init/output.ts
+- [x] T006 Implement project type detection logic (detectProjectType function) in src/cli/init/detector.ts
+- [x] T007 [P] Create config templates for JavaScript/TypeScript in src/cli/init/templates.ts
+- [x] T008 [P] Create config templates for PHP in src/cli/init/templates.ts
+- [x] T009 [P] Create config templates for Go in src/cli/init/templates.ts
+- [x] T010 [P] Create config templates for Python in src/cli/init/templates.ts
+- [x] T011 Implement template selector (getTemplateForProjectType function) in src/cli/init/templates.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -57,16 +57,16 @@
 
 ### Implementation for User Story 1
 
-- [X] T012 [US1] Create InitCommand with basic command structure and arguments interface (InitArgs) in src/cli/cmd/init.ts
-- [X] T013 [US1] Implement init command handler with project type detection flow in src/cli/cmd/init.ts
-- [X] T014 [US1] Add config file generation logic (write JSON to disk) in src/cli/cmd/init.ts
-- [X] T015 [US1] Add detection result display (which project type and files found) in src/cli/cmd/init.ts
-- [X] T016 [US1] Add metrics list display to console output in src/cli/cmd/init.ts
-- [X] T017 [US1] Register InitCommand in src/index.ts
-- [X] T018 [US1] Create integration test for JavaScript project init in tests/integration/cli-init.test.ts
-- [X] T019 [US1] Create integration test for PHP project init in tests/integration/cli-init.test.ts
-- [X] T020 [US1] Create integration test for Go project init in tests/integration/cli-init.test.ts
-- [X] T021 [US1] Create integration test for Python project init in tests/integration/cli-init.test.ts
+- [x] T012 [US1] Create InitCommand with basic command structure and arguments interface (InitArgs) in src/cli/cmd/init.ts
+- [x] T013 [US1] Implement init command handler with project type detection flow in src/cli/cmd/init.ts
+- [x] T014 [US1] Add config file generation logic (write JSON to disk) in src/cli/cmd/init.ts
+- [x] T015 [US1] Add detection result display (which project type and files found) in src/cli/cmd/init.ts
+- [x] T016 [US1] Add metrics list display to console output in src/cli/cmd/init.ts
+- [x] T017 [US1] Register InitCommand in src/index.ts
+- [x] T018 [US1] Create integration test for JavaScript project init in tests/integration/cli-init.test.ts
+- [x] T019 [US1] Create integration test for PHP project init in tests/integration/cli-init.test.ts
+- [x] T020 [US1] Create integration test for Go project init in tests/integration/cli-init.test.ts
+- [x] T021 [US1] Create integration test for Python project init in tests/integration/cli-init.test.ts
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can run init and get auto-detected config
 
@@ -80,12 +80,12 @@
 
 ### Implementation for User Story 2
 
-- [X] T022 [US2] Add --type option to InitCommand options in src/cli/cmd/init.ts
-- [X] T023 [US2] Implement forced type logic (skip detection if --type provided) in src/cli/cmd/init.ts
-- [X] T024 [US2] Add validation for --type values (javascript, php, go, python) in src/cli/cmd/init.ts
-- [X] T025 [US2] Add forced type display to console output in src/cli/cmd/init.ts
-- [X] T026 [US2] Create integration test for --type override in tests/integration/cli-init.test.ts
-- [X] T027 [US2] Create integration test for invalid --type value error in tests/integration/cli-init.test.ts
+- [x] T022 [US2] Add --type option to InitCommand options in src/cli/cmd/init.ts
+- [x] T023 [US2] Implement forced type logic (skip detection if --type provided) in src/cli/cmd/init.ts
+- [x] T024 [US2] Add validation for --type values (javascript, php, go, python) in src/cli/cmd/init.ts
+- [x] T025 [US2] Add forced type display to console output in src/cli/cmd/init.ts
+- [x] T026 [US2] Create integration test for --type override in tests/integration/cli-init.test.ts
+- [x] T027 [US2] Create integration test for invalid --type value error in tests/integration/cli-init.test.ts
 
 **Checkpoint**: User Story 2 complete - users can override detection with --type flag
 
@@ -99,15 +99,15 @@
 
 ### Implementation for User Story 3
 
-- [X] T028 [P] [US3] Implement workflow template generator for JavaScript/TypeScript in src/cli/init/output.ts
-- [X] T029 [P] [US3] Implement workflow template generator for PHP in src/cli/init/output.ts
-- [X] T030 [P] [US3] Implement workflow template generator for Go in src/cli/init/output.ts
-- [X] T031 [P] [US3] Implement workflow template generator for Python in src/cli/init/output.ts
-- [X] T032 [US3] Implement generateWorkflowExamples function (metrics + quality gate) in src/cli/init/output.ts
-- [X] T033 [US3] Add workflow examples output to init command handler in src/cli/cmd/init.ts
-- [X] T034 [US3] Add "next steps" instructions to console output in src/cli/cmd/init.ts
+- [x] T028 [P] [US3] Implement workflow template generator for JavaScript/TypeScript in src/cli/init/output.ts
+- [x] T029 [P] [US3] Implement workflow template generator for PHP in src/cli/init/output.ts
+- [x] T030 [P] [US3] Implement workflow template generator for Go in src/cli/init/output.ts
+- [x] T031 [P] [US3] Implement workflow template generator for Python in src/cli/init/output.ts
+- [x] T032 [US3] Implement generateWorkflowExamples function (metrics + quality gate) in src/cli/init/output.ts
+- [x] T033 [US3] Add workflow examples output to init command handler in src/cli/cmd/init.ts
+- [x] T034 [US3] Add "next steps" instructions to console output in src/cli/cmd/init.ts
 - [ ] T035 [US3] Create unit test for workflow template generation in tests/unit/cli/init/output.test.ts
-- [X] T036 [US3] Create integration test verifying workflow output in tests/integration/cli-init.test.ts
+- [x] T036 [US3] Create integration test verifying workflow output in tests/integration/cli-init.test.ts
 
 **Checkpoint**: User Story 3 complete - users get actionable CI/CD integration guidance
 
@@ -121,14 +121,14 @@
 
 ### Implementation for User Story 4
 
-- [X] T037 [US4] Add --force option to InitCommand options in src/cli/cmd/init.ts
-- [X] T038 [US4] Add --dry-run option to InitCommand options in src/cli/cmd/init.ts
-- [X] T039 [US4] Implement file exists check and error display in src/cli/cmd/init.ts
-- [X] T040 [US4] Implement --force override logic in src/cli/cmd/init.ts
-- [X] T041 [US4] Implement --dry-run preview logic (display without writing) in src/cli/cmd/init.ts
-- [X] T042 [US4] Create integration test for file exists error in tests/integration/cli-init.test.ts
-- [X] T043 [US4] Create integration test for --force overwrite in tests/integration/cli-init.test.ts
-- [X] T044 [US4] Create integration test for --dry-run preview in tests/integration/cli-init.test.ts
+- [x] T037 [US4] Add --force option to InitCommand options in src/cli/cmd/init.ts
+- [x] T038 [US4] Add --dry-run option to InitCommand options in src/cli/cmd/init.ts
+- [x] T039 [US4] Implement file exists check and error display in src/cli/cmd/init.ts
+- [x] T040 [US4] Implement --force override logic in src/cli/cmd/init.ts
+- [x] T041 [US4] Implement --dry-run preview logic (display without writing) in src/cli/cmd/init.ts
+- [x] T042 [US4] Create integration test for file exists error in tests/integration/cli-init.test.ts
+- [x] T043 [US4] Create integration test for --force overwrite in tests/integration/cli-init.test.ts
+- [x] T044 [US4] Create integration test for --dry-run preview in tests/integration/cli-init.test.ts
 
 **Checkpoint**: User Story 4 complete - file safety features working correctly
 
@@ -142,13 +142,13 @@
 
 ### Implementation for User Story 5
 
-- [X] T045 [US5] Add --storage option to InitCommand options in src/cli/cmd/init.ts
-- [X] T046 [US5] Implement storage type mapping (artifact→sqlite-artifact, s3→sqlite-s3, local→sqlite-local) in src/cli/cmd/init.ts
-- [X] T047 [US5] Add storage type validation in src/cli/cmd/init.ts
-- [X] T048 [US5] Implement S3 secrets instructions generator in src/cli/init/output.ts
-- [X] T049 [US5] Add S3 instructions to workflow output when storage=s3 in src/cli/cmd/init.ts
-- [X] T050 [US5] Create integration test for S3 storage selection in tests/integration/cli-init.test.ts
-- [X] T051 [US5] Create integration test for local storage selection in tests/integration/cli-init.test.ts
+- [x] T045 [US5] Add --storage option to InitCommand options in src/cli/cmd/init.ts
+- [x] T046 [US5] Implement storage type mapping (artifact→sqlite-artifact, s3→sqlite-s3, local→sqlite-local) in src/cli/cmd/init.ts
+- [x] T047 [US5] Add storage type validation in src/cli/cmd/init.ts
+- [x] T048 [US5] Implement S3 secrets instructions generator in src/cli/init/output.ts
+- [x] T049 [US5] Add S3 instructions to workflow output when storage=s3 in src/cli/cmd/init.ts
+- [x] T050 [US5] Create integration test for S3 storage selection in tests/integration/cli-init.test.ts
+- [x] T051 [US5] Create integration test for local storage selection in tests/integration/cli-init.test.ts
 
 **Checkpoint**: User Story 5 complete - storage type selection working with appropriate guidance
 
@@ -167,7 +167,7 @@
 - [x] T054 [US6] Implement sequential metric collection logic (reuse collector/runner.ts) in src/cli/cmd/test.ts
 - [x] T055 [US6] Implement CollectionResult formatting and display in src/cli/cmd/test.ts
 - [x] T056 [US6] Add --config option for custom config file path in src/cli/cmd/test.ts
-- [x] T057 [US6] Add --verbose option to show commands executed in src/cli/cmd/test.ts
+- [x] T057 [US6] ~~Add --verbose option to show commands executed in src/cli/cmd/test.ts~~ (Not required - removed)
 - [x] T058 [US6] Add --timeout option for custom per-metric timeout in src/cli/cmd/test.ts
 - [x] T059 [US6] Implement exit code logic (0=success, 1=config error, 2=collection failure) in src/cli/cmd/test.ts
 - [x] T060 [US6] Implement TestSummary display (success/failure counts) in src/cli/cmd/test.ts
@@ -330,13 +330,16 @@ Task: "Implement workflow template generator for Python in src/cli/init/output.t
 With multiple developers after Foundational phase completes:
 
 **Track A - Init Command**:
+
 - Developer A: User Story 1 (P1) - Core init functionality
 - Then add: US2, US3, US4, US5 in priority order
 
 **Track B - Test Command**:
+
 - Developer B: User Story 6 (P2) - Test command (completely independent)
 
 **Track C - Preview Command**:
+
 - Developer C: User Story 7 (P2) - Preview command (depends only on US1 completion)
 
 All tracks can proceed in parallel, then integrate at the end.
