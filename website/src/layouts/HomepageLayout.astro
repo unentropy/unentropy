@@ -1,0 +1,179 @@
+---
+import { attachRouteDataAndRunMiddleware } from '../../node_modules/@astrojs/starlight/utils/routing/middleware';
+import {
+	generateStarlightPageRouteData,
+	type StarlightPageProps as Props,
+} from '../../node_modules/@astrojs/starlight/utils/starlight-page';
+
+import 'virtual:starlight/user-css';
+import '../../node_modules/@astrojs/starlight/style/layers.css';
+import '../../node_modules/@astrojs/starlight/style/props.css';
+import '../../node_modules/@astrojs/starlight/style/reset.css';
+import '../../node_modules/@astrojs/starlight/style/asides.css';
+import '../../node_modules/@astrojs/starlight/style/util.css';
+import 'virtual:starlight/optional-css';
+
+import ContentPanel from 'virtual:starlight/components/ContentPanel';
+import Head from 'virtual:starlight/components/Head';
+import MarkdownContent from 'virtual:starlight/components/MarkdownContent';
+import ThemeProvider from 'virtual:starlight/components/ThemeProvider';
+
+import ThemeSelect from 'starlight-theme-nova/components/ThemeSelect.astro';
+import SocialIcons from 'starlight-theme-nova/components/SocialIcons.astro';
+import logo from '../assets/logo.svg';
+
+const currentYear = new Date().getFullYear();
+
+import printHref from '../../node_modules/@astrojs/starlight/style/print.css?url&no-inline';
+
+await attachRouteDataAndRunMiddleware(
+	Astro,
+	await generateStarlightPageRouteData({ props: Astro.props, context: Astro })
+);
+
+const { starlightRoute } = Astro.locals;
+
+const pagefindEnabled =
+	starlightRoute.entry.slug !== '404' &&
+	!starlightRoute.entry.slug.endsWith('/404') &&
+	starlightRoute.entry.data.pagefind !== false;
+
+const htmlDataAttributes: DOMStringMap = { 'data-theme': 'dark' };
+if (Boolean(starlightRoute.toc)) htmlDataAttributes['data-has-toc'] = '';
+if (starlightRoute.hasSidebar) htmlDataAttributes['data-has-sidebar'] = '';
+if (Boolean(starlightRoute.entry.data.hero)) htmlDataAttributes['data-has-hero'] = '';
+
+const mainDataAttributes: DOMStringMap = {};
+if (pagefindEnabled) mainDataAttributes['data-pagefind-body'] = '';
+---
+
+<html lang={starlightRoute.lang} dir={starlightRoute.dir} {...htmlDataAttributes}>
+	<head>
+		<Head />
+		<style>
+			html:not([data-has-toc]) {
+				--sl-mobile-toc-height: 0rem;
+			}
+			html:not([data-has-sidebar]) {
+				--sl-content-width: 67.5rem;
+			}
+			html {
+				scroll-padding-top: calc(1.5rem + var(--sl-nav-height) + var(--sl-mobile-toc-height));
+			}
+			main {
+				padding: var(--sl-main-pad);
+			}
+			@media (min-width: 50em) {
+				[data-has-sidebar] {
+					--sl-content-inline-start: var(--sl-sidebar-width);
+				}
+			}
+			@media (min-width: 72em) {
+				html {
+					scroll-padding-top: calc(1.5rem + var(--sl-nav-height));
+				}
+			}
+		</style>
+		<ThemeProvider />
+		<link rel="stylesheet" href={printHref} media="print" />
+	</head>
+	<body>
+		<header class="home-header">
+			<div class="home-header-inner">
+				<a href="/" class="site-title">
+					<img src={logo.src} alt="Unentropy" />
+				</a>
+				<nav class="home-nav">
+					<a href="/getting-started/" class="nav-link">Documentation</a>
+					<SocialIcons />
+					<ThemeSelect />
+				</nav>
+			</div>
+		</header>
+
+		<div class="main-frame">
+				<main
+					{...mainDataAttributes}
+					lang={starlightRoute.entryMeta.lang}
+					dir={starlightRoute.entryMeta.dir}
+				>
+					{
+							<>
+								<ContentPanel>
+									<MarkdownContent>
+										<slot />
+									</MarkdownContent>
+								</ContentPanel>
+							</>
+					}
+				</main>
+		</div>
+
+		<footer class="site-footer">
+			<div class="footer-content">
+				<div class="footer-copyright">&copy;{currentYear} Unentropy</div>
+			</div>
+		</footer>
+	</body>
+</html>
+
+<style>
+	.home-header {
+		display: flex;
+		justify-content: center;
+		padding: 1rem;
+	}
+
+	.home-header-inner {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		width: 100%;
+		max-width: 800px;
+	}
+
+	.site-title img {
+		height: 2rem;
+		width: auto;
+	}
+
+	:global([data-theme="light"]) .site-title img {
+		filter: brightness(0);
+	}
+
+	:global([data-theme="dark"]) .site-title img {
+		filter: brightness(0) invert(1);
+	}
+
+	.home-nav {
+		display: flex;
+		gap: 1rem;
+		align-items: center;
+	}
+
+	.nav-link {
+		color: var(--sl-color-text);
+		text-decoration: none;
+		font-weight: 500;
+	}
+
+	.nav-link:hover {
+		color: var(--sl-color-text-accent);
+	}
+
+	.site-footer {
+		border-top: 1px solid var(--sl-color-gray-5);
+		padding: 1rem;
+		margin-top: 3rem;
+	}
+
+	.footer-content {
+		max-width: 800px;
+		margin: 0 auto;
+	}
+
+	.footer-copyright {
+		color: var(--sl-color-gray-3);
+		font-size: 0.85rem;
+	}
+</style>

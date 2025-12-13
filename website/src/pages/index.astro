@@ -1,0 +1,161 @@
+---
+import HomepageLayout from "../layouts/HomepageLayout.astro";
+import { Badge } from "@astrojs/starlight/components";
+import { CodeTabs, CodeTabItem } from "starlight-theme-nova/components";
+---
+
+<HomepageLayout
+  frontmatter={{
+    title: "Unentropy",
+    description:
+      "Track your code metrics in CI/CD - serverless, self-hosted, completely yours.",
+  }}
+  hasSidebar={false}
+>
+  <div class="hero">
+    <div class="hero-content">
+      <h1 class="hero-title">Your code under your control</h1>
+      <p class="hero-tagline">
+        CI-native metrics and quality gates. Zero dependencies.
+      </p>
+      <div class="sl-markdown-content init-code-tabs">
+        <CodeTabs>
+          <CodeTabItem label="npm" lang="bash" code={`npx unentropy init`} />
+          <CodeTabItem label="bun" lang="bash" code={`bunx unentropy init`} />
+        </CodeTabs>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-video">
+    <video src="/demo.webm" autoplay playsinline loop muted preload="auto">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <div class="homepage-content">
+    <p>
+      <Badge text="Beta" variant="caution" /> This project is currently in beta (0.x).
+      APIs may change between minor versions.
+    </p>
+
+    <h2>What is Unentropy?</h2>
+    <p>
+      <strong>Unentropy</strong> is an open-source tool for tracking code metrics
+      directly in your CI pipeline, based on in-repository configuration.
+    </p>
+
+    <h2>Key Features</h2>
+    <ul>
+      <li>
+        <strong>Built-in Metrics:</strong> Start tracking coverage, bundle size or
+        lines of code in minutes
+      </li>
+      <li>
+        <strong>Trend Visualization:</strong> Generate interactive HTML reports showing
+        how your metrics evolve over time
+      </li>
+      <li>
+        <strong>Custom Metrics Support:</strong> Track domain-specific indicators
+        like framework adoption ratios, API endpoint counts, or refactoring progress
+        using simple command outputs
+      </li>
+      <li>
+        <strong>Quality Gates:</strong> Set thresholds and get automated PR feedback—fail
+        the build if coverage drops or bundle size exceeds limits
+      </li>
+      <li>
+        <strong>Complete Ownership:</strong> Store metrics in GitHub Actions artifacts
+        or your own S3-compatible storage—your data never leaves your infrastructure
+      </li>
+      <li>
+        <strong>Git-Native:</strong> Every metric is tied to its commit SHA; configuration
+        lives in your repo and evolves with your code
+      </li>
+    </ul>
+
+    <div class="docs-cta">
+      <a href="/getting-started/">See the documentation →</a>
+    </div>
+  </div>
+</HomepageLayout>
+
+<style>
+  .hero {
+    padding: 4rem 1rem 2rem;
+    text-align: center;
+  }
+
+  .hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .hero-title {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 1rem;
+    color: var(--sl-color-white);
+  }
+
+  .hero-tagline {
+    font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+    color: var(--sl-color-gray-2);
+    margin: 0 0 2rem;
+  }
+
+  .init-code-tabs {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .demo-video {
+    display: flex;
+    justify-content: center;
+    padding: 0 1rem 3rem;
+  }
+
+  .demo-video video {
+    width: 70%;
+    max-width: 840px;
+    height: auto;
+    border-radius: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .demo-video video {
+      width: 100%;
+    }
+  }
+
+  .homepage-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .homepage-content h2 {
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .homepage-content ul {
+    margin-bottom: 2rem;
+  }
+
+  .docs-cta {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .docs-cta a {
+    color: var(--sl-color-white);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .docs-cta a:hover {
+    color: var(--sl-color-accent);
+  }
+</style>
