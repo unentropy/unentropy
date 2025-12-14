@@ -15,10 +15,9 @@
  * and regenerates the report. Refresh your browser to see changes.
  */
 
-import { Storage } from "../src/storage/storage";
 import { generateReport } from "../src/reporter/generator";
-import type { UnitType } from "../src/metrics/types";
-import type { ResolvedUnentropyConfig } from "../src/config/loader";
+import { FIXTURES } from "./fixtures/definitions";
+import { generateFixtureDatabase, createReportConfig } from "./fixtures/generator";
 
 // Import template components to trigger watch on changes
 // These imports ensure bun --watch detects changes to templates
@@ -26,152 +25,14 @@ import "../src/reporter/templates/default/components/index";
 // charts.js is imported via text import in ChartScripts.tsx, so it's already watched
 
 const PORT = 3000;
-const DB_PATH = "tests/fixtures/visual-review/full-featured/full-featured.db";
-
-interface MetricGenerator {
-  id: string;
-  name: string;
-  type: "numeric" | "label";
-  description: string;
-  unit?: UnitType;
-  valueGenerator: (buildIndex: number) => number | string | null;
-}
-
-const METRIC_GENERATORS: MetricGenerator[] = [
-  {
-    id: "test-coverage",
-    name: "Test Coverage",
-    type: "numeric",
-    description: "Percentage of code covered by tests",
-    unit: "percent",
-    valueGenerator: (i) => 75 + Math.sin(i * 0.3) * 10 + i * 0.4,
-  },
-  {
-    id: "bundle-size",
-    name: "Bundle Size",
-    type: "numeric",
-    description: "JavaScript bundle size in KB",
-    unit: "bytes",
-    valueGenerator: (i) => (250 - Math.cos(i * 0.2) * 20 - i * 0.5) * 1024,
-  },
-  {
-    id: "build-status",
-    name: "Build Status",
-    type: "label",
-    description: "CI build result",
-    valueGenerator: (i) => (i % 7 === 0 ? "failure" : i % 10 === 0 ? "warning" : "success"),
-  },
-  {
-    id: "primary-language",
-    name: "Primary Language",
-    type: "label",
-    description: "Most used programming language",
-    valueGenerator: (i) =>
-      ["TypeScript", "JavaScript", "TypeScript", "TypeScript", "Python"][i % 5] || "TypeScript",
-  },
-  {
-    id: "api-response-time",
-    name: "API Response Time",
-    type: "numeric",
-    description: "Average API response time (sparse data)",
-    unit: "duration",
-    valueGenerator: (i) => {
-      const sparseBuilds = [0, 1, 2, 3, 7, 8, 9, 10, 14, 15, 16, 17, 21, 22, 23, 24];
-      if (!sparseBuilds.includes(i)) return null;
-      return (140 - i * 1.2 + Math.sin(i * 0.5) * 8) / 1000;
-    },
-  },
-];
-
-const BUILD_COUNT = 25;
-
-async function generateFixtureData(): Promise<Storage> {
-  const fs = await import("fs/promises");
-  try {
-    await fs.unlink(DB_PATH);
-  } catch {}
-
-  const db = new Storage({
-    type: "sqlite-local",
-    path: DB_PATH,
-  });
-  await db.ready();
-
-  const repo = db.getRepository();
-
-  const hourInMs = 60 * 60 * 1000;
-  const dayInMs = 24 * 60 * 60 * 1000;
-
-  // Calculate base timestamp to end approximately 1 hour before now
-  const endDate = new Date(Date.now() - hourInMs);
-  const baseTimestamp = endDate.getTime() - (BUILD_COUNT - 1) * dayInMs;
-
-  for (let i = 0; i < BUILD_COUNT; i++) {
-    const buildTimestamp = new Date(baseTimestamp + i * dayInMs).toISOString();
-    const commitSha = `abc${i.toString().padStart(4, "0")}def0123456789012345678901234`;
-
-    const metrics: {
-      definition: { id: string; type: "numeric" | "label"; description?: string; unit?: UnitType };
-      value_numeric?: number;
-      value_label?: string;
-    }[] = [];
-
-    for (const metricGen of METRIC_GENERATORS) {
-      const value = metricGen.valueGenerator(i);
-      if (value === null) continue;
-
-      metrics.push({
-        definition: {
-          id: metricGen.id,
-          type: metricGen.type,
-          description: metricGen.description,
-          unit: metricGen.unit || undefined,
-        },
-        value_numeric: metricGen.type === "numeric" ? Number(value) : undefined,
-        value_label: metricGen.type === "label" ? String(value) : undefined,
-      });
-    }
-
-    await repo.recordBuild(
-      {
-        commit_sha: commitSha,
-        branch: "main",
-        run_id: `run-${i + 1000}`,
-        run_number: i + 1,
-        event_name: "push",
-        timestamp: buildTimestamp,
-      },
-      metrics
-    );
-  }
-
-  return db;
-}
+const FIXTURE_CONFIG = FIXTURES["full-featured"];
 
 async function main(): Promise<void> {
   console.log("\n📊 Unentropy Report Dev Server\n");
   console.log("Generating fixture data...");
 
-  const db = await generateFixtureData();
-
-  const config: ResolvedUnentropyConfig = {
-    metrics: Object.fromEntries(
-      METRIC_GENERATORS.map((mg) => [
-        mg.id,
-        {
-          id: mg.id,
-          name: mg.name || mg.id,
-          type: mg.type,
-          description: mg.description,
-          unit: mg.unit,
-          command: "echo 0", // Dummy command, not used in dev
-        },
-      ])
-    ),
-    storage: {
-      type: "sqlite-local",
-    },
-  };
+  const db = await generateFixtureDatabase(FIXTURE_CONFIG, FIXTURE_CONFIG.dbPath);
+  const config = createReportConfig(FIXTURE_CONFIG.metricGenerators);
 
   const html = generateReport("unentropy/dev-preview", db, config);
   await db.close();
