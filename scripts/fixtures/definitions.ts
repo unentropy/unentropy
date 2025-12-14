@@ -125,6 +125,38 @@ export const FIXTURES: Record<string, FixtureConfig> = {
     ],
   },
 
+  empty: {
+    name: "empty",
+    dbPath: "tests/fixtures/visual-review/empty/empty.db",
+    outputPath: "tests/fixtures/visual-review/empty/report.html",
+    buildCount: 0,
+    metricGenerators: [
+      {
+        id: "test-coverage",
+        name: "Test Coverage",
+        type: "numeric",
+        description: "Code coverage percentage",
+        unit: "percent",
+        valueGenerator: () => 80,
+      },
+      {
+        id: "bundle-size",
+        name: "Bundle Size",
+        type: "numeric",
+        description: "JavaScript bundle size",
+        unit: "bytes",
+        valueGenerator: () => 250 * 1024,
+      },
+      {
+        id: "build-status",
+        name: "Build Status",
+        type: "label",
+        description: "CI build result",
+        valueGenerator: () => "success",
+      },
+    ],
+  },
+
   "edge-cases": {
     name: "edge-cases",
     dbPath: "tests/fixtures/visual-review/edge-cases/edge-cases.db",
