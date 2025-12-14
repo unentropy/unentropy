@@ -36,7 +36,7 @@
 * [x] Polish quality gate comment
 * [x] Use Drizzle ORM and proper migration system
 
-## MVP++
+## 0.4 - MVP++
 * [x] Public docs
 * [ ] Public config schema
 * [ ] Non-trackable metrics (affecting quality gate only)
@@ -46,17 +46,18 @@
   * Simplify objects used for data retrieval 
   * Q: do we need the "metric_definitions" table at all?
  
-## Beta
+## 0.5 - Alpha
 * [ ] Collectors and metrics gallery / showcase / examples
+* [ ] Support for more robust, cloud databases (Postgres, MySQL, ...)
+* [ ] Improve graph performance for large datasets
+* [ ] Minify JS chart code
 
 ## TBD
-* Support for more robust, cloud databases (Postgres, MySQL, ...)
-* Templated PR comments
 * Garbage collection from metrics database
 * What to do when the number of metrics grows too large?
-* Heuristic alerts ("Your bundle suddenly increased in size by X%")
 * Custom collectors and metrics / simple plugins
 * Plotting multiple metrics in the same chart
+  * Configurable in report? Or just static?
 
 ## Technical improvements
 * [ ] Use DB transactions when collecting metrics
@@ -74,3 +75,5 @@
 * Badges
 * Browsing coverage reports (can we still do it with small sqlite storage?)
 * Customizable templates
+* Templated PR comments
+* Heuristic alerts ("Your bundle suddenly increased in size by X%")
