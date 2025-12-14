@@ -21,7 +21,6 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
   private artifactName: string;
   private branchFilter: string;
   private databasePath: string;
-  private sourceRunId: number | undefined;
   private firstRun = false;
 
   constructor(config: SqliteArtifactConfig) {
@@ -119,10 +118,6 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
     return this.databasePath;
   }
 
-  getSourceRunId(): number | undefined {
-    return this.sourceRunId;
-  }
-
   isFirstRun(): boolean {
     return this.firstRun;
   }
@@ -140,7 +135,6 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
     const downloadSuccess = await this.downloadArtifact(token, repo, artifact.id);
 
     if (downloadSuccess) {
-      this.sourceRunId = artifact.workflow_run?.id;
       console.log(`Successfully downloaded database to: ${this.databasePath}`);
       return true;
     }

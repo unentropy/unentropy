@@ -35,8 +35,6 @@ interface ActionOutputs {
   metricsCollected?: number;
   totalBuilds?: number;
   duration: number;
-  // Artifact-specific outputs
-  sourceRunId?: number;
   // Error outputs
   errorCode?: string;
   errorMessage?: string;
@@ -222,15 +220,6 @@ export async function runTrackMetricsAction(): Promise<void> {
     // Ignore errors getting file size
   }
 
-  // Get source run ID for artifact storage
-  let sourceRunId: number | undefined;
-  if (inputs.storageType === "sqlite-artifact") {
-    const provider = storage.getProvider();
-    if ("getSourceRunId" in provider && typeof provider.getSourceRunId === "function") {
-      sourceRunId = provider.getSourceRunId() as number | undefined;
-    }
-  }
-
   const duration = Date.now() - startTime;
 
   // Set outputs
@@ -241,7 +230,6 @@ export async function runTrackMetricsAction(): Promise<void> {
     databaseSize,
     metricsCollected: collectionResult.successful,
     totalBuilds,
-    sourceRunId,
     duration,
   };
 
@@ -256,9 +244,6 @@ export async function runTrackMetricsAction(): Promise<void> {
   }
   if (outputs.totalBuilds !== undefined) {
     core.setOutput("total-builds", outputs.totalBuilds.toString());
-  }
-  if (outputs.sourceRunId !== undefined) {
-    core.setOutput("source-run-id", outputs.sourceRunId.toString());
   }
   core.setOutput("duration", outputs.duration.toString());
 

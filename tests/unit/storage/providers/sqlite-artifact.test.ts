@@ -367,36 +367,6 @@ describe("SqliteArtifactStorageProvider", () => {
   });
 
   describe("source run tracking", () => {
-    test("should track source run ID when artifact is downloaded", async () => {
-      const uniquePath = `/tmp/unentropy-artifact-source-${Date.now()}.db`;
-      provider = new SqliteArtifactStorageProvider({
-        ...baseConfig,
-        databasePath: uniquePath,
-      });
-
-      // Create a mock database file to simulate downloaded artifact
-      await createMockDatabase(uniquePath);
-
-      // Mock fetch to return artifacts list (new direct artifact search API)
-      global.fetch = createMockFetch(async (url: string) => {
-        if (url.includes("/actions/artifacts")) {
-          return new Response(JSON.stringify(mockArtifacts), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-        if (url.includes("/zip")) {
-          // Return a mock zip file - this would need proper handling
-          return new Response(null, { status: 404 }); // Force first-run behavior
-        }
-        return new Response("Not found", { status: 404 });
-      });
-
-      await provider.initialize();
-      // In first-run scenario (download failed), sourceRunId should be undefined
-      expect(provider.getSourceRunId()).toBeUndefined();
-    });
-
     test("should report first run when no previous artifact exists", async () => {
       const uniquePath = `/tmp/unentropy-artifact-first-${Date.now()}.db`;
       provider = new SqliteArtifactStorageProvider({
@@ -415,7 +385,6 @@ describe("SqliteArtifactStorageProvider", () => {
       await provider.initialize();
 
       expect(provider.isFirstRun()).toBe(true);
-      expect(provider.getSourceRunId()).toBeUndefined();
     });
   });
 });

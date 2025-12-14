@@ -68,7 +68,6 @@ describe("Artifact Storage Integration", () => {
       expect(db).toBeDefined();
       expect(provider.isInitialized()).toBe(true);
       expect(provider.isFirstRun()).toBe(true);
-      expect(provider.getSourceRunId()).toBeUndefined();
     });
 
     it("should handle complete workflow: initialize, use, persist, cleanup", async () => {
