@@ -29,12 +29,12 @@
 * [x] Properly packaged Github actions
  
 ## 0.3 - MVP+
-* [ ] Support for selecting time range in metrics report
+* [x] Support for selecting time range in metrics report
 * [x] Support for zoom-in and reset in metrics report
 * [x] Support for parsing Cobertura coverage format
+* [x] node/npx compatibility
 * [ ] Polish quality gate comment
 * [ ] Use Drizzle ORM and proper migration system
-* [x] node/npx compatibility
 
 ## MVP++
 * [x] Public docs

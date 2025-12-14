@@ -108,11 +108,11 @@ Users can zoom into charts to examine specific time periods in detail by drag-se
 
 2. **Given** a selection box is visible, **When** the user releases the mouse button, **Then** the chart zooms to show only the selected range (minimum 4 data points).
 
-3. **Given** a zoomed-in chart, **When** the user clicks the "Reset Zoom" button, **Then** the chart returns to showing all data points at the original scale.
+3. **Given** a zoomed-in chart, **When** the user wants to reset the view, **Then** they click a date filter button (especially "All") to return to the full data range.
 
-4. **Given** the user zooms one chart, **When** the zoom is applied, **Then** all other charts in the same sync group synchronize to the same zoom range.
+4. **Given** the user zooms one chart, **When** the zoom is applied, **Then** all other charts in the same sync group synchronize to the same zoom range and the Custom filter activates showing the zoomed date range.
 
-5. **Given** charts at default zoom level, **When** the user views the charts, **Then** no "Reset Zoom" button is visible.
+5. **Given** charts at default zoom level, **When** the user views the charts, **Then** date filters are available for quick navigation (7d/30d/90d/All/Custom).
 
 6. **Given** a chart with fewer than 10 data points, **When** the user tries to drag-select, **Then** zoom is disabled and no selection box appears.
 
@@ -249,11 +249,11 @@ Users can export individual charts as PNG images for use in presentations, docum
 - What happens when the user drags to zoom a chart while a preset filter (e.g., "30 days") is active?
   - The global state changes to `activeFilter: "custom"` and the custom range is set to the zoomed range. The "Custom" button becomes active instead of "30 days".
 
-- What happens when the user clicks "Reset Zoom" after zooming from a preset filter?
-  - The global state returns to the previous preset filter (e.g., "30 days"). The preset button becomes active again, Custom button becomes inactive.
+- What happens when the user wants to reset zoom after zooming from a preset filter?
+  - There is no Reset Zoom button. User clicks the preset filter button (e.g., "30 days") again, or clicks "All" to return to full view.
 
-- What happens when the user clicks "Reset Zoom" after zooming from a custom range?
-  - The global state returns to the previous custom range. The Custom button remains active with the original custom range restored.
+- What happens when the user wants to reset zoom after zooming from a custom range?
+  - There is no Reset Zoom button. User clicks "All" to see full data, or opens Custom popover and selects a different range.
 
 - What happens when the custom date picker popover is open and the user clicks a preset filter button?
   - The popover immediately closes and the preset filter is applied, clearing any custom range.
@@ -265,7 +265,7 @@ Users can export individual charts as PNG images for use in presentations, docum
   - The custom date picker popover is intelligently positioned (may appear above the button if insufficient space below) and calendar is touch-optimized.
 
 - What happens to the footer when switching between filters?
-  - The footer immediately updates to show the visible build count and date range for the active filter (preset or custom).
+  - The footer remains static and always shows total database build count and full date range. Filters do not affect footer content.
 
 ## Requirements *(mandatory)*
 
@@ -335,11 +335,12 @@ Users can export individual charts as PNG images for use in presentations, docum
 - **FR-037**: Charts MUST support drag-to-zoom by clicking and dragging horizontally to select a range.
 - **FR-038**: During drag, a semi-transparent selection box MUST be displayed showing the selected range.
 - **FR-039**: When any chart is zoomed, all charts in the same sync group MUST synchronize to the same X-axis range.
-- **FR-040**: A "Reset Zoom" button MUST appear in the top-right corner of each chart when zoomed in.
-- **FR-041**: Clicking "Reset Zoom" MUST return all synced charts to the original scale.
+- **FR-040**: ~~A "Reset Zoom" button MUST appear in the top-right corner of each chart when zoomed in.~~ **DEPRECATED** - Users click date filter buttons (especially "All") to reset view instead.
+- **FR-041**: ~~Clicking "Reset Zoom" MUST return all synced charts to the original scale.~~ **DEPRECATED** - Date filters replace reset zoom functionality.
 - **FR-042**: Charts with fewer than 10 data points MUST have zoom functionality disabled.
 - **FR-043**: Zoom MUST require a minimum selection of 4 data points to prevent over-zooming.
 - **FR-043a**: Zoom functionality MUST be implemented natively in the crosshair plugin (no external CDN dependency).
+- **FR-043b**: When a user drags to zoom, the Custom date filter MUST activate and its label MUST update to show the zoomed date range.
 
 **Date Range Filtering**
 
@@ -352,26 +353,28 @@ Users can export individual charts as PNG images for use in presentations, docum
 
 **Custom Date Range Filtering**
 
-- **FR-049a**: Clicking the "Custom" button MUST open a popover containing "From" and "To" date pickers and a "Clear" button.
-- **FR-049b**: The date picker popover MUST be positioned below the Custom button on desktop and intelligently positioned on mobile/tablet to stay within viewport.
-- **FR-049c**: Each date picker MUST display a calendar dropdown for date selection.
-- **FR-049d**: The calendar picker MUST disable (gray out) dates before the earliest data point in the database.
-- **FR-049e**: The calendar picker MUST disable (gray out) dates after the latest data point in the database.
-- **FR-049f**: When a valid date range is selected (From ≤ To), all charts MUST immediately filter to that range.
-- **FR-049g**: When "From" date is after "To" date, an error message MUST be displayed and the filter MUST NOT be applied.
-- **FR-049h**: Clicking "Clear" in the custom date picker popover MUST reset the filter to "All" and close the popover.
+- **FR-049a**: Clicking the "Custom" button MUST open a popover containing "From" and "To" date pickers (native HTML5 `<input type="date">`) and a "Clear" button.
+- **FR-049b**: The date picker popover MUST be positioned absolute, right-aligned below the Custom button.
+- **FR-049c**: Each date picker MUST use native HTML5 `<input type="date">` for browser-native calendar dropdown.
+- **FR-049d**: The date pickers MUST have `min` attributes set to the earliest data point in the database.
+- **FR-049e**: The date pickers MUST have `max` attributes set to the latest data point in the database.
+- **FR-049f**: When a valid date range is selected (From ≤ To) and both dates are filled, all charts MUST immediately filter to that range.
+- **FR-049g**: When "From" date is after "To" date, an inline error message MUST be displayed below the inputs and the filter MUST NOT be applied.
+- **FR-049h**: Clicking "Clear" in the custom date picker popover MUST reset the filter to "All", update Custom button label to "Custom", and close the popover.
 - **FR-049i**: Clicking outside the custom date picker popover MUST close the popover while preserving any valid custom range.
-- **FR-049j**: Clicking a preset filter when custom range is active MUST clear the custom range and apply the preset filter.
-- **FR-049k**: When the custom date picker first opens, "From" and "To" fields MUST default to the current effective date range.
-- **FR-049l**: Dates in the picker MUST be displayed in user-friendly format (e.g., "Dec 7, 2025") but stored internally in ISO format (YYYY-MM-DD).
+- **FR-049j**: Clicking a preset filter when custom range is active MUST clear the custom range, reset Custom button label to "Custom", and apply the preset filter.
+- **FR-049k**: When the custom date picker first opens, "From" and "To" fields MUST default to the current effective date range (preset range or custom range if already set).
+- **FR-049l**: Dates in the picker MUST use ISO format (YYYY-MM-DD) as required by HTML5 date inputs.
 
 **Global State Management**
 
 - **FR-049m**: All date filtering (preset and custom) MUST update a single global state object.
 - **FR-049n**: When a chart is zoomed via drag-to-zoom, the global state MUST update to `activeFilter: "custom"` with the custom range set to the zoomed date range.
 - **FR-049o**: The "Custom" button MUST become active (highlighted) when a chart is zoomed via drag.
-- **FR-049p**: The footer MUST display the current build count and active date range, updating in real-time when filters change.
-- **FR-049q**: The footer date range MUST be displayed in ISO format (YYYY-MM-DD).
+- **FR-049p**: ~~The footer MUST display the current build count and active date range, updating in real-time when filters change.~~ **DEPRECATED** - Footer remains static showing total database stats.
+- **FR-049q**: ~~The footer date range MUST be displayed in ISO format (YYYY-MM-DD).~~ **DEPRECATED** - Footer is static.
+- **FR-049r**: The Custom button label MUST display the active custom date range in format "YYYY-MM-DD – YYYY-MM-DD" when a custom range is active.
+- **FR-049s**: The Custom button label MUST reset to "Custom" (no date range) when a preset filter is clicked or custom range is cleared.
 
 **Chart Export**
 

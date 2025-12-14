@@ -388,6 +388,22 @@ export function generateReport(db: Storage, options: GenerateReportOptions = {})
       })
     : undefined;
 
+  let availableDateRange: { min: string; max: string } | undefined;
+  if (timeline.length > 0) {
+    const firstTimestamp = timeline[0];
+    const lastTimestamp = timeline[timeline.length - 1];
+    if (firstTimestamp && lastTimestamp) {
+      const minParts = firstTimestamp.split("T");
+      const maxParts = lastTimestamp.split("T");
+      if (minParts[0] && maxParts[0]) {
+        availableDateRange = {
+          min: minParts[0],
+          max: maxParts[0],
+        };
+      }
+    }
+  }
+
   const chartsData: ChartsData = {
     timeline,
     metadata: sharedMetadata,
@@ -398,6 +414,7 @@ export function generateReport(db: Storage, options: GenerateReportOptions = {})
     buildCount,
     showToggle,
     previewData,
+    availableDateRange,
   };
 
   const reportData: ReportData = {

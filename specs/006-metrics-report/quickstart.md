@@ -418,14 +418,6 @@ Update `src/reporter/templates/default/components/MetricCard.tsx`:
           d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
   </svg>
 </button>
-
-// Add reset zoom button (hidden by default)
-<button
-  id={`reset-zoom-${metricId}`}
-  class="hidden px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300"
->
-  Reset zoom
-</button>
 ```
 
 ---
@@ -458,19 +450,9 @@ chartsData.forEach(({ id }) => {
 });
 
 // === Zoom Synchronization ===
-function syncZoom(sourceChart) {
-  const { min, max } = sourceChart.scales.x;
-  Object.entries(chartInstances).forEach(([id, chart]) => {
-    if (chart !== sourceChart) {
-      chart.zoomScale('x', { min, max }, 'none');
-    }
-    // Show/hide reset button
-    const resetBtn = document.getElementById('reset-zoom-' + id);
-    if (resetBtn) {
-      resetBtn.classList.toggle('hidden', !chart.isZoomedOrPanned());
-    }
-  });
-}
+// Note: Zoom is now handled by the crosshair plugin and date-filters.js
+// Drag-to-zoom automatically activates the Custom date filter
+// Reset zoom by clicking date filter buttons (especially "All")
 
 // === Date Range Filter (Preset + Custom) ===
 const FILTER_DAYS = { '7d': 7, '30d': 30, '90d': 90, 'all': null, 'custom': null };
@@ -609,17 +591,6 @@ function exportChartAsPng(chartId, metricName) {
   link.href = exportCanvas.toDataURL('image/png');
   link.click();
 }
-
-// === Reset Zoom Handlers ===
-chartsData.forEach(({ id }) => {
-  const resetBtn = document.getElementById('reset-zoom-' + id);
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      Object.values(chartInstances).forEach(chart => chart.resetZoom());
-      document.querySelectorAll('[id^="reset-zoom-"]').forEach(b => b.classList.add('hidden'));
-    });
-  }
-});
 ```
 
 ---

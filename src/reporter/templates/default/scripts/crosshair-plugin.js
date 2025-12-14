@@ -31,8 +31,6 @@ var crosshairPlugin = (function () {
       enabled: true,
       zoomboxBackgroundColor: "rgba(59, 130, 246, 0.2)",
       zoomboxBorderColor: "rgba(59, 130, 246, 0.5)",
-      zoomButtonText: "Reset Zoom",
-      zoomButtonClass: "reset-zoom-btn",
       minDataPoints: 10,
       minZoomRange: 4,
     },
@@ -109,42 +107,6 @@ var crosshairPlugin = (function () {
     ctx.restore();
   }
 
-  function createResetButton(chart) {
-    if (chart.crosshair.button) return;
-
-    var button = document.createElement("button");
-    button.textContent = getOption(chart, "zoom", "zoomButtonText");
-    button.className = getOption(chart, "zoom", "zoomButtonClass");
-
-    button.style.cssText =
-      "position: absolute; top: 8px; right: 8px; padding: 4px 12px; " +
-      "font-size: 12px; background: #f3f4f6; border: 1px solid #d1d5db; " +
-      "border-radius: 4px; cursor: pointer; z-index: 10; " +
-      "font-family: system-ui, -apple-system, sans-serif;";
-
-    button.addEventListener("mouseenter", function () {
-      button.style.background = "#e5e7eb";
-    });
-    button.addEventListener("mouseleave", function () {
-      button.style.background = "#f3f4f6";
-    });
-    button.addEventListener("click", function () {
-      resetZoom(chart, true);
-    });
-
-    var parent = chart.canvas.parentNode;
-    parent.style.position = "relative";
-    parent.appendChild(button);
-    chart.crosshair.button = button;
-  }
-
-  function removeResetButton(chart) {
-    if (chart.crosshair.button && chart.crosshair.button.parentNode) {
-      chart.crosshair.button.parentNode.removeChild(chart.crosshair.button);
-      chart.crosshair.button = null;
-    }
-  }
-
   function doZoom(chart, start, end, broadcast) {
     if (start > end) {
       var tmp = start;
@@ -178,8 +140,6 @@ var crosshairPlugin = (function () {
     chart.options.scales.x.min = start;
     chart.options.scales.x.max = end;
 
-    createResetButton(chart);
-
     chart.crosshair.ignoreNextEvents = 2;
     chart.update("none");
 
@@ -198,33 +158,6 @@ var crosshairPlugin = (function () {
     }
   }
 
-  function resetZoom(chart, broadcast) {
-    if (chart.crosshair.originalXRange.min !== undefined) {
-      chart.options.scales.x.min = chart.crosshair.originalXRange.min;
-      chart.options.scales.x.max = chart.crosshair.originalXRange.max;
-      chart.crosshair.originalXRange = {};
-    } else {
-      delete chart.options.scales.x.min;
-      delete chart.options.scales.x.max;
-    }
-
-    removeResetButton(chart);
-
-    chart.update("none");
-
-    if (broadcast) {
-      var syncEnabled = getOption(chart, "sync", "enabled");
-      var syncGroup = getOption(chart, "sync", "group");
-
-      if (syncEnabled) {
-        var event = new CustomEvent("zoom-reset");
-        event.chartId = chart.id;
-        event.syncGroup = syncGroup;
-        window.dispatchEvent(event);
-      }
-    }
-  }
-
   function handleZoomSync(chart, e) {
     var syncGroup = getOption(chart, "sync", "group");
 
@@ -233,15 +166,6 @@ var crosshairPlugin = (function () {
     if (!isZoomEnabled(chart)) return;
 
     doZoom(chart, e.start, e.end, false);
-  }
-
-  function handleZoomReset(chart, e) {
-    var syncGroup = getOption(chart, "sync", "group");
-
-    if (e.chartId === chart.id) return;
-    if (e.syncGroup !== syncGroup) return;
-
-    resetZoom(chart, false);
   }
 
   function handleSyncEvent(chart, e) {
@@ -354,14 +278,10 @@ var crosshairPlugin = (function () {
         chart.crosshair.zoomSyncHandler = function (e) {
           handleZoomSync(chart, e);
         };
-        chart.crosshair.zoomResetHandler = function (e) {
-          handleZoomReset(chart, e);
-        };
 
         window.addEventListener("crosshair-sync", chart.crosshair.syncEventHandler);
         window.addEventListener("crosshair-clear", chart.crosshair.syncClearHandler);
         window.addEventListener("zoom-sync", chart.crosshair.zoomSyncHandler);
-        window.addEventListener("zoom-reset", chart.crosshair.zoomResetHandler);
       }
     },
 
@@ -375,10 +295,7 @@ var crosshairPlugin = (function () {
         window.removeEventListener("crosshair-sync", chart.crosshair.syncEventHandler);
         window.removeEventListener("crosshair-clear", chart.crosshair.syncClearHandler);
         window.removeEventListener("zoom-sync", chart.crosshair.zoomSyncHandler);
-        window.removeEventListener("zoom-reset", chart.crosshair.zoomResetHandler);
       }
-
-      removeResetButton(chart);
     },
 
     afterEvent: function (chart, args) {

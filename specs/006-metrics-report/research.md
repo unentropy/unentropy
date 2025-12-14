@@ -345,8 +345,6 @@ var defaultOptions = {
     enabled: true,
     zoomboxBackgroundColor: "rgba(59, 130, 246, 0.2)",
     zoomboxBorderColor: "rgba(59, 130, 246, 0.5)",
-    zoomButtonText: "Reset Zoom",
-    zoomButtonClass: "reset-zoom-btn",
     minDataPoints: 10,  // Minimum data points to enable zoom
     minZoomRange: 4,    // Minimum data points in zoom range
   },
@@ -358,8 +356,7 @@ var defaultOptions = {
 - `isZoomEnabled(chart)` - Checks if zoom should be enabled based on data point count
 - `drawZoombox(chart)` - Renders semi-transparent selection box during drag
 - `doZoom(chart, start, end, broadcast)` - Applies zoom and broadcasts to synced charts
-- `resetZoom(chart, broadcast)` - Restores original scale and broadcasts reset
-- `createResetButton(chart)` / `removeResetButton(chart)` - Manages reset button DOM
+- `handleZoomSync(chart, e)` - Receives zoom events from other charts
 
 ### Synchronization
 
@@ -373,20 +370,12 @@ event.syncGroup = syncGroup;
 event.start = start;
 event.end = end;
 window.dispatchEvent(event);
-
-// Reset sync event
-var event = new CustomEvent("zoom-reset");
-event.chartId = chart.id;
-event.syncGroup = syncGroup;
-window.dispatchEvent(event);
 ```
 
-### Reset Zoom Button
-- Created dynamically via `document.createElement("button")`
-- Positioned absolutely in top-right corner of chart container
-- Inline CSS styles (no external stylesheet needed)
-- Hover effect via mouseenter/mouseleave event listeners
-- Removed when zoom is reset
+### Zoom Reset Behavior
+- Zoom is reset by clicking date filter buttons (7d/30d/90d/All)
+- Date filters handle zoom clearing via direct scale manipulation
+- No UI button for reset - filters provide consistent UX
 
 ### Disable for Sparse Charts
 ```javascript
@@ -676,68 +665,85 @@ Currently intentionally excluded to keep implementation minimal.
 
 ## 12. Custom Date Range Picker Library
 
-### Status
-**⚠️ RESEARCH PENDING** - This research needs to be completed before implementation.
+### Decision
+**Use native HTML5 `<input type="date">` inputs** for custom date range selection.
 
-### Requirements
+### Rationale
 
-The custom date range picker must:
+After evaluating the requirements and implementation complexity:
 
-1. **Be self-contained**: Can be bundled into the static HTML report (no external CDN)
-2. **Lightweight**: Small footprint (< 20KB minified preferred)
-3. **Vanilla JS**: No framework dependencies (compatible with current vanilla JS + Chart.js stack)
-4. **Date range support**: Allow selecting "from" and "to" dates
-5. **Theme support**: Light/dark mode compatibility
-6. **Touch-friendly**: Works well on mobile devices
-7. **Accessible**: Keyboard navigable, screen reader friendly
-8. **Date constraints**: Ability to disable dates outside min/max range
-9. **ISO format**: Returns dates in ISO format (YYYY-MM-DD)
+1. **Zero dependencies**: No additional library to bundle, no CDN dependency
+2. **Universal browser support**: All modern browsers support `<input type="date">` with native calendar widgets
+3. **Accessibility built-in**: Native inputs include keyboard navigation, screen reader support, and ARIA semantics
+4. **Mobile-optimized**: Browsers provide touch-optimized date pickers on mobile devices
+5. **Date constraints**: Native `min` and `max` attributes prevent invalid date selection
+6. **ISO format**: Native inputs use YYYY-MM-DD format (aligns with our data model)
+7. **Maintenance**: No external library to track, update, or fix
+8. **Simplicity**: ~20 lines of HTML/JS vs. 100+ lines for library integration
 
-### Candidates to Evaluate
+### Implementation
 
-| Library | Initial Notes | Size | Last Updated |
-|---------|--------------|------|--------------|
-| **Flatpickr** | Popular, feature-rich, range mode support | ~15KB min | Active |
-| **Pikaday** | Lightweight, simple API | ~11KB min | Less active |
-| **Vanilla Calendar** | Modern, no dependencies | TBD | TBD |
-| **Litepicker** | Specifically for date ranges | ~20KB min | Active |
-| **Native `<input type="date">`** | Built-in, zero dependencies | 0KB | N/A |
-
-### Evaluation Criteria
-
-For each candidate, research and document:
-
-1. **Bundle size**: Actual minified + gzipped size
-2. **API complexity**: How easy to integrate?
-3. **Range selection**: Does it support "from-to" ranges natively?
-4. **Date constraints**: Can we disable dates before/after specific dates?
-5. **Theme support**: Does it support dark mode? How customizable?
-6. **Mobile UX**: Touch-friendly? Works on small screens?
-7. **Accessibility**: ARIA labels, keyboard nav, screen reader support?
-8. **Maintenance**: Last commit, open issues, active development?
-9. **License**: MIT/Apache/BSD compatible?
-10. **Integration effort**: How many lines of code to integrate?
-
-### Recommended Approach
-
-1. Create a test HTML file with each candidate
-2. Test on desktop and mobile browsers
-3. Verify theme support (light/dark)
-4. Test date constraint features
-5. Measure actual bundle size impact
-6. Document integration code examples
-7. Make final recommendation with rationale
-
-### Fallback Option
-
-If no suitable library meets requirements, use native HTML5 date inputs:
 ```html
-<input type="date" id="date-from" min="2025-01-01" max="2025-12-31">
-<input type="date" id="date-to" min="2025-01-01" max="2025-12-31">
+<!-- CustomDatePickerPopover.tsx -->
+<div id="custom-date-popover" class="hidden absolute ...">
+  <div class="p-4 bg-white dark:bg-gray-800 rounded shadow-lg">
+    <div class="mb-2">
+      <label class="block text-sm mb-1">From</label>
+      <input 
+        type="date" 
+        id="date-from" 
+        class="border rounded px-2 py-1"
+        min="2025-01-01"
+        max="2025-12-31"
+      />
+    </div>
+    <div class="mb-2">
+      <label class="block text-sm mb-1">To</label>
+      <input 
+        type="date" 
+        id="date-to" 
+        class="border rounded px-2 py-1"
+        min="2025-01-01"
+        max="2025-12-31"
+      />
+    </div>
+    <div id="date-error" class="text-red-600 text-sm hidden">
+      From date cannot be after To date
+    </div>
+    <button id="date-clear" class="mt-2 px-3 py-1 text-sm bg-gray-200 rounded">
+      Clear
+    </button>
+  </div>
+</div>
 ```
 
-**Pros**: Zero dependencies, works everywhere, accessible
-**Cons**: Less polished UX, browser-dependent styling, no calendar popover on desktop Firefox
+### Browser Behavior
+
+| Browser | Desktop Calendar | Mobile Calendar | Min/Max Support |
+|---------|-----------------|-----------------|-----------------|
+| **Chrome** | ✅ Dropdown calendar | ✅ Touch-optimized picker | ✅ Yes |
+| **Firefox** | ❌ Text input (user types) | ✅ Native picker | ✅ Yes |
+| **Safari** | ✅ Inline calendar | ✅ iOS wheel picker | ✅ Yes |
+| **Edge** | ✅ Dropdown calendar | ✅ Touch-optimized picker | ✅ Yes |
+
+**Note**: Firefox desktop doesn't show a calendar popover, but users can type dates in YYYY-MM-DD format. This is acceptable for MVP - calendar library can be added later if needed.
+
+### Alternatives Considered (Not Selected)
+
+| Library | Why Not Selected |
+|---------|------------------|
+| **Flatpickr** (~15KB) | Adds bundle size, more complexity than needed for MVP |
+| **Pikaday** (~11KB) | Less maintained, native inputs are simpler |
+| **Litepicker** (~20KB) | Overkill for simple date range, adds dependency |
+
+### Future Enhancement Path
+
+If user feedback indicates native date inputs are insufficient (e.g., Firefox desktop users struggle), we can:
+1. Add Flatpickr library (well-documented upgrade path)
+2. Feature-detect browser support and use library only for Firefox desktop
+3. Keep the same date-filters.js API - only swap the UI component
+
+For now, **native HTML5 date inputs meet all functional requirements with zero overhead**.
 
 ---
 

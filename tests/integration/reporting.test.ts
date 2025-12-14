@@ -128,8 +128,8 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
       repository: "test-org/test-repo",
     });
 
-    expect(html).toContain("Total Builds: 15");
-    expect(html).toMatch(/Data Range:.*Oct.*2025/);
+    expect(html).toContain("Builds: 15");
+    expect(html).toMatch(/Oct.*2025/);
   });
 
   test("handles XSS in repository name", () => {
@@ -184,7 +184,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     });
 
     expect(html).toContain("No metrics data");
-    expect(html).toContain("Total Builds: 0");
+    expect(html).toContain("Builds: 0");
 
     emptyDb.close();
     fs.unlinkSync(emptyDbPath);

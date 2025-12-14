@@ -19,7 +19,9 @@ export function MetricCard({ metric }: MetricCardProps) {
       {metric.chartType === "line" && <StatsGrid stats={metric.stats} unit={metric.unit} />}
       {metric.chartType === "bar" && <div class="h-20"></div>}
 
-      <ChartCanvas id={metric.id} name={metric.name} chartType={metric.chartType} />
+      <div class="chart-container">
+        <ChartCanvas id={metric.id} name={metric.name} chartType={metric.chartType} />
+      </div>
     </div>
   );
 }

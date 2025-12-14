@@ -191,10 +191,10 @@
 4. Full control over behavior and synchronization
 
 - [x] T033 [US5] Add zoom configuration to crosshair plugin defaultOptions in crosshair-plugin.js
-- [x] T034 [US5] Add zoom state (dragStarted, dragStartX, originalXRange, button) to chart.crosshair in afterInit
-- [x] T035 [US5] Add zoom helper functions: isZoomEnabled(), countNonNullDataPoints(), drawZoombox(), doZoom(), resetZoom()
-- [x] T036 [US5] Add zoom sync event handlers (handleZoomSync, handleZoomReset) and event listeners for 'zoom-sync', 'zoom-reset'
-- [x] T037 [US5] Add createResetButton()/removeResetButton() functions with inline CSS styling (positioned top-right)
+- [x] T034 [US5] Add zoom state (dragStarted, dragStartX, originalXRange) to chart.crosshair in afterInit
+- [x] T035 [US5] Add zoom helper functions: isZoomEnabled(), countNonNullDataPoints(), drawZoombox(), doZoom()
+- [x] T036 [US5] Add zoom sync event handler (handleZoomSync) and event listener for 'zoom-sync'
+- [x] T037 [US5] REMOVED - Reset button replaced by date filter buttons
 - [x] T038 [US5] Modify afterEvent to handle drag-to-zoom (mouse down starts drag, mouse up triggers zoom)
 - [x] T039 [US5] Disable zoom for charts with fewer than 10 data points (minDataPoints config option)
 - [x] T040 [US5] Add minimum zoom range check (minZoomRange: 4 data points) to prevent over-zooming
@@ -211,15 +211,30 @@
 
 **Independent Test**: Generate report spanning 100 days, click "30 days", verify all charts show only last 30 days
 
+**Architecture Decision**: Date filter logic extracted to separate script file `date-filters.js` for maintainability and clean separation from chart initialization
+
 ### Implementation for User Story 6 (Date Filter)
 
-- [ ] T040 [US6] Create DateRangeFilter.tsx component at src/reporter/templates/default/components/DateRangeFilter.tsx
-- [ ] T041 [US6] Export DateRangeFilter from src/reporter/templates/default/components/index.ts
-- [ ] T042 [US6] Add DateRangeFilter to Header.tsx
-- [ ] T043 [US6] Add applyDateFilter() function in ChartScripts.tsx that sets scale min/max
-- [ ] T044 [US6] Add click handlers for filter buttons in ChartScripts.tsx
-- [ ] T045 [US6] Add activeFilter state and button highlighting logic
-- [ ] T046 [US6] Handle empty range case - show "No data in selected range" when filter yields no data
+- [x] T040 [US6] Create DateRangeFilter.tsx component at src/reporter/templates/default/components/DateRangeFilter.tsx
+- [x] T041 [US6] Export DateRangeFilter from src/reporter/templates/default/components/index.ts
+- [x] T042 [US6] Add DateRangeFilter to Header.tsx
+- [x] T043 [US6] Create date-filters.js script at src/reporter/templates/default/scripts/date-filters.js
+  - Extract inline date filter logic from HtmlDocument.tsx
+  - Create initializeDateFilters(chartsData, chartInstances) function
+  - Use IIFE module pattern to encapsulate state
+  - Import as text and inject in HtmlDocument.tsx
+- [x] T044 [US6] Add applyDateFilter() function in date-filters.js that sets scale min/max
+  - Calculate date range for 7d/30d/90d (relative to most recent build)
+  - Update chart.options.scales.x.min and max
+  - Call chart.update('none') for instant update
+- [x] T045 [US6] Call initializeDateFilters() in ChartScripts.tsx after chart creation
+  - Pass chartsData and chartInstances to date filter module
+  - Expose chartInstances globally for access
+- [x] T046 [US6] Handle empty range case - show "No data in selected range" overlay on charts
+  - Add metric-card and chart-container CSS classes to MetricCard.tsx
+  - Implement checkEmptyRange() function in date-filters.js
+  - Create overlay DOM element when no data visible in filtered range
+  - Position absolute overlay with "No data in selected range" message
 
 **Checkpoint**: User Story 6 complete - preset date range filtering works
 
@@ -235,156 +250,168 @@
 
 ### Implementation for User Story 6b (Custom Date Range)
 
-**Part A: Research & Library Selection**
+**Part A: Date Picker Decision**
 
-- [ ] T047 [US6b] Research calendar picker libraries per criteria in research.md Section 12
-  - Evaluate Flatpickr, Pikaday, Vanilla Calendar, Litepicker, native HTML5
-  - Test bundle size, accessibility, mobile support, date constraints
-  - Document findings in research.md Section 12
-  - Make final recommendation with rationale
-
-- [ ] T048 [US6b] Select and integrate calendar library
-  - Install selected library (or bundle inline if needed)
-  - Verify works without external CDN (self-contained requirement)
-  - Test basic calendar functionality in isolation
+- [x] T047 [US6b] Calendar library decision
+  - Decision: Use native HTML5 date inputs for MVP
+  - Rationale: Simple, no dependencies, works offline, good mobile support
+  - Future enhancement: Can upgrade to custom calendar library if needed
+  - Native inputs provide min/max date constraints automatically
 
 **Part B: Data Schema & State Management**
 
-- [ ] T049 [US6b] Add availableDateRange to ChartsData interface in src/reporter/types.ts
-  - Add `availableDateRange: { min: string; max: string }` field
+- [x] T048 [US6b] Add availableDateRange to ChartsData interface in src/reporter/types.ts
+  - Add `availableDateRange?: { min: string; max: string }` field (optional)
   - Update type documentation
 
-- [ ] T050 [US6b] Update generateReport() in src/reporter/generator.ts to include availableDateRange
-  - Calculate min date from earliest build timestamp
-  - Calculate max date from latest build timestamp
-  - Convert to ISO format (YYYY-MM-DD)
+- [x] T049 [US6b] Update generateReport() in src/reporter/generator.ts to include availableDateRange
+  - Calculate min date from earliest build timestamp (chartsData.timeline[0])
+  - Calculate max date from latest build timestamp (chartsData.timeline[last])
+  - Convert to ISO format (YYYY-MM-DD) using .split('T')[0]
   - Add to ChartsData output
+  - Handle empty timeline case (undefined if no data)
 
-- [ ] T051 [US6b] Extend global state in ChartScripts.tsx for custom date range
-  - Add `customRange: { from: string | null, to: string | null }` to dateFilterState
-  - Add `availableDateRange` from chartsData
-  - Initialize state with proper defaults
+- [x] T050 [US6b] State management in date-filters.js
+  - State object: activeFilter, customRange, preZoomState
+  - Access chartsData.availableDateRange for date constraints
+  - Initialize with activeFilter = 'all'
 
 **Part C: Custom Date Picker Component**
 
-- [ ] T052 [US6b] Create CustomDatePickerPopover.tsx component at src/reporter/templates/default/components/CustomDatePickerPopover.tsx
-  - Integrate selected calendar library
-  - Add "From" date picker with calendar dropdown
-  - Add "To" date picker with calendar dropdown
+- [x] T051 [US6b] Create CustomDatePickerPopover.tsx component at src/reporter/templates/default/components/CustomDatePickerPopover.tsx
+  - Uses native HTML5 date inputs (type="date")
+  - Add "From" date picker
+  - Add "To" date picker
   - Add "Clear" button
-  - Configure calendar to disable dates outside availableDateRange
-  - Add date validation (From <= To)
-  - Display inline error for invalid ranges
+  - Add inline error message element (hidden by default)
+  - Positioned absolute, right-aligned below Custom button
 
-- [ ] T053 [US6b] Add popover positioning logic to CustomDatePickerPopover
-  - Desktop: position below Custom button, right-aligned
-  - Tablet: adjust if near viewport edge
-  - Mobile: intelligent positioning (may appear above if bottom space limited)
-  - Use CSS or JavaScript positioning library
+- [x] T052 [US6b] Export CustomDatePickerPopover from src/reporter/templates/default/components/index.ts
 
-- [ ] T054 [US6b] Export CustomDatePickerPopover from src/reporter/templates/default/components/index.ts
-
-- [ ] T055 [US6b] Update DateRangeFilter.tsx to include "Custom" button
+- [x] T053 [US6b] Update DateRangeFilter.tsx to include "Custom" button
   - Add "Custom" as 5th button
-  - Add click handler to open/close popover
-  - Manage popover visibility state
+  - Add id="custom-filter-label" span for dynamic text updates
 
-**Part D: Custom Date Range Logic**
+- [x] T054 [US6b] Set min/max constraints on date inputs in date-filters.js
+  - On popover open, set dateFromInput.min/max from chartsData.availableDateRange
+  - Set dateToInput.min/max from chartsData.availableDateRange
+  - Ensures users cannot select dates outside available data range
 
-- [ ] T056 [US6b] Add applyCustomDateRange() function in ChartScripts.tsx
+**Part D: Custom Date Range Logic (date-filters.js)**
+
+- [x] T055 [US6b] Implement applyCustomRange() function in date-filters.js
+  - Read from/to dates from HTML5 date inputs
   - Validate From <= To dates
-  - Show error message if invalid
-  - Update dateFilterState.activeFilter = 'custom'
-  - Update dateFilterState.customRange = { from, to }
-  - Apply date range to all charts (set scale min/max)
-  - Update filter button highlights
-  - Call updateFooter()
+  - Show inline error message if invalid (don't apply filter)
+  - Convert YYYY-MM-DD to ISO timestamps for chart filtering
+  - Update state.activeFilter = 'custom'
+  - Update state.customRange = { from, to }
+  - Apply date range to all charts via scale min/max
+  - Call updateCustomButtonLabel() to show "YYYY-MM-DD – YYYY-MM-DD"
+  - Close popover after successful application
 
-- [ ] T057 [US6b] Add calendar picker event handlers in ChartScripts.tsx
-  - On date selection: call applyCustomDateRange()
-  - On "Clear" button: reset to "All" filter, close popover
-  - On outside click: close popover (preserve valid custom range)
+- [x] T056 [US6b] Add date input event handlers in date-filters.js
+  - Listen for 'change' events on both date inputs
+  - Auto-apply filter when both From and To are selected
+  - Clear error message when user corrects invalid input
 
-- [ ] T058 [US6b] Integrate custom range with drag-to-zoom
-  - When chart is zoomed via drag, extract date range from zoom
-  - Update dateFilterState.activeFilter = 'custom'
-  - Update dateFilterState.customRange with zoomed dates
+- [x] T057 [US6b] Add "Clear" button handler in date-filters.js
+  - Reset to "All" filter (clear scale min/max on all charts)
+  - Update state.activeFilter = 'all'
+  - Clear state.customRange
+  - Update Custom button label to "Custom" (no date range shown)
+  - Close popover
+  - Highlight "All" button
+
+- [x] T058 [US6b] Add outside-click detection for popover in date-filters.js
+  - Listen for click events on document
+  - Close popover if click is outside popover and Custom button
+  - Preserve valid custom range if already applied
+
+- [x] T059 [US6b] Add smart default date range when opening popover
+  - If "All" is active: pre-fill From/To with full availableDateRange
+  - If preset (7d/30d/90d) is active: pre-fill From/To with preset's range
+  - If custom is active: pre-fill From/To with current customRange
+  - Use chartsData.availableDateRange for min/max constraints
+
+- [x] T060 [US6b] Integrate custom range with drag-to-zoom
+  - Listen for 'zoom-sync' CustomEvent from crosshair-plugin.js
+  - Extract start/end timestamps from event
+  - Convert timestamps to YYYY-MM-DD format
+  - Update state.activeFilter = 'custom'
+  - Update state.customRange with zoomed dates
+  - Update Custom button label to show zoomed range
+  - Clear zoom state (all charts)
   - Highlight Custom button
-  - Call updateFooter()
 
-- [ ] T059 [US6b] Update preset filter click handlers
-  - When preset filter clicked: clear customRange
-  - If popover is open: close it
-  - Apply preset filter as before
+- [x] T061 [US6b] Update preset filter handlers to clear zoom/custom
+  - When preset filter (7d/30d/90d/All) clicked:
+    - Clear state.customRange
+    - Close popover if open
+    - Clear any zoom state from crosshair plugin
+    - Update Custom button label to "Custom" (no range)
+    - Apply preset filter as normal
 
-- [ ] T060 [US6b] Add default date range logic when opening popover
-  - If "All" is active: default From/To to full data range
-  - If preset is active: default From/To to current preset range
-  - If custom is active: show current custom range
+**Part E: Custom Button Label Updates (ALREADY COMPLETE)**
 
-**Part E: Footer Updates**
-
-- [ ] T061 [US6b] Update Footer.tsx component to display build count and date range
-  - Move "Builds: X · YYYY-MM-DD – YYYY-MM-DD" from Header to Footer
-  - Display on first row of footer
-  - Version info on second row
-
-- [ ] T062 [US6b] Add updateFooter() function in ChartScripts.tsx
-  - Calculate visible build count based on active filter
-  - Get effective date range (from global state)
-  - Update footer DOM with current values
-  - Format dates in ISO (YYYY-MM-DD)
-
-- [ ] T063 [US6b] Call updateFooter() from all filter change handlers
-  - After preset filter applied
-  - After custom range applied
-  - After zoom applied
-  - After reset zoom
+- [x] T062 [US6b] Custom button label updates (DONE in inline script)
+  - Custom button label updates to "YYYY-MM-DD – YYYY-MM-DD" when range selected
+  - Resets to "Custom" when cleared or preset filter clicked
+  - Label update function already implemented in HtmlDocument.tsx inline script
 
 **Part F: Edge Cases & Validation**
 
-- [ ] T064 [US6b] Handle empty custom date range
-  - Show "No data in selected range" in charts
-  - Display "Builds: 0 · {from} – {to}" in footer
-  - Keep custom filter active (allow user to adjust)
+- [x] T063 [US6b] Implement empty range handling in date-filters.js
+  - Check if custom range contains no data points
+  - Show "No data in selected range" message overlaid on each chart
+  - Custom button still shows the selected range in label
+  - Keep custom filter active (user can adjust dates)
 
-- [ ] T065 [US6b] Add keyboard accessibility for custom date picker
-  - Tab navigation through calendar
-  - Arrow keys to navigate dates
-  - Enter/Space to select dates
-  - Escape to close popover
-  - Verify focus indicators visible
+- [x] T064 [US6b] Add date input min/max constraints in date-filters.js
+  - Set min/max attributes on HTML5 date inputs from availableDateRange
+  - Prevents selection of dates outside available data
+  - Constraint applied when popover opens
 
-- [ ] T066 [US6b] Add ARIA labels for custom date picker
-  - Label "From date" and "To date" pickers
-  - Announce error messages
-  - Announce popover open/close states
+- [ ] T065 [US6b] Verify keyboard accessibility (native HTML5)
+  - Tab navigation through date inputs (native behavior)
+  - Date picker keyboard controls (native browser calendar)
+  - Escape key closes popover
+  - Focus indicators visible on inputs and buttons
 
-- [ ] T067 [US6b] Test mobile responsiveness
-  - Verify popover positioning on mobile
-  - Test touch interaction with calendar
-  - Verify calendar is touch-friendly
+- [ ] T066 [US6b] Verify mobile responsiveness
+  - Popover positioning (absolute, right-aligned below Custom button)
+  - Native mobile date pickers work correctly
+  - Custom button label wraps on narrow screens
+  - Error message displays properly on mobile
 
 **Part G: Integration Testing**
 
-- [ ] T068 [US6b] Test custom range with preset filters
-  - Select custom range → click preset → verify custom cleared
-  - Click preset → open custom popover → verify defaults to preset range
+- [ ] T067 [US6b] Test custom range with preset filters
+  - Select custom range → click preset → verify Custom button resets to "Custom"
+  - Click preset → open custom popover → verify dates default to preset range
+  - Verify charts update correctly
 
-- [ ] T069 [US6b] Test custom range with zoom
-  - Drag-to-zoom → verify Custom button activates
-  - Verify custom range reflects zoomed dates
-  - Reset zoom from preset → verify returns to preset
-  - Reset zoom from custom → verify returns to custom range
+- [ ] T068 [US6b] Test custom range with zoom (bidirectional sync)
+  - Drag-to-zoom on chart → verify Custom button activates
+  - Verify Custom button label shows zoomed date range
+  - Verify zoom clears when clicking preset filter
+  - Select custom dates → verify any existing zoom clears
 
-- [ ] T070 [US6b] Test custom range with preview toggle
-  - Apply custom range → toggle preview → verify filter preserved
-  - Verify footer updates correctly
+- [ ] T069 [US6b] Test custom range with preview toggle
+  - Apply custom range → toggle preview on/off → verify filter preserved
+  - Verify Custom button label unchanged by preview toggle
+
+- [ ] T070 [US6b] Verify footer remains static
+  - Apply any filter (preset or custom) → verify footer unchanged
+  - Footer always shows total database stats (not filtered stats)
+  - Footer shows total build count and full date range
 
 - [ ] T071 [US6b] Add visual fixture for custom date range testing
-  - Create fixture spanning 100+ days
-  - Test custom range selection
-  - Test edge cases (empty range, invalid range)
+  - Create fixture spanning 100+ days (if doesn't exist)
+  - Test custom range selection via browser
+  - Test edge cases: empty range, invalid range (From > To)
+  - Verify Custom button label updates correctly
+  - Verify error messages appear and clear appropriately
 
 **Checkpoint**: User Story 6b complete - custom date range picker fully functional
 
