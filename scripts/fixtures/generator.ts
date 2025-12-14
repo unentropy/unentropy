@@ -24,6 +24,11 @@ export async function generateFixtureDatabase(
   dbPath: string
 ): Promise<Storage> {
   const fs = await import("fs/promises");
+  const path = await import("path");
+
+  const dbDir = path.dirname(dbPath);
+  await fs.mkdir(dbDir, { recursive: true });
+
   try {
     await fs.unlink(dbPath);
   } catch {}
