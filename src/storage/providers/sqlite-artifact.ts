@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import { promises as fs } from "fs";
 import { dirname } from "path";
 import { spawnSync } from "child_process";
+import { DefaultArtifactClient } from "@actions/artifact";
 import type { StorageProvider, SqliteArtifactConfig } from "./interface";
 
 interface Artifact {
@@ -247,18 +248,33 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
     }
   }
 
-  private async uploadArtifact(): Promise<void> {
-    // Verify the database file exists before the workflow step uploads it
+  private async uploadArtifact(): Promise<{ id: number; size: number }> {
     const dbFile = Bun.file(this.databasePath);
     if (!(await dbFile.exists())) {
       throw new Error(`Database file not found: ${this.databasePath}`);
     }
 
-    // Note: GitHub's REST API does not support direct artifact uploads.
-    // Artifact upload must be done via @actions/artifact package or actions/upload-artifact action.
-    // The workflow is configured to use actions/upload-artifact after this action completes.
-    // See: .github/workflows/metrics.yml and .github/workflows/test-artifact-storage.yml
-    console.log(`Database prepared for artifact upload at: ${this.databasePath}`);
+    const artifact = new DefaultArtifactClient();
+    const rootDirectory = dirname(this.databasePath);
+
+    console.log(`Uploading artifact: ${this.artifactName}`);
+    const response = await artifact.uploadArtifact(
+      this.artifactName,
+      [this.databasePath],
+      rootDirectory,
+      {
+        retentionDays: 90,
+      }
+    );
+
+    if (!response.id || !response.size) {
+      throw new Error("Upload response missing artifact ID or size");
+    }
+
+    console.log(
+      `Uploaded artifact: ${this.artifactName} (ID: ${response.id}, size: ${response.size} bytes)`
+    );
+    return { id: response.id, size: response.size };
   }
 
   private async createNewDatabase(): Promise<void> {

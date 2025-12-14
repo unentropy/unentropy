@@ -2,30 +2,6 @@ import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
 import { SqliteArtifactStorageProvider } from "../../../../src/storage/providers/sqlite-artifact";
 import type { SqliteArtifactConfig } from "../../../../src/storage/providers/interface";
 
-// Mock GitHub API responses - artifacts include workflow_run info for branch filtering
-const mockArtifacts = {
-  artifacts: [
-    {
-      id: 67890,
-      name: "unentropy-metrics",
-      size_in_bytes: 1024,
-      created_at: "2024-01-01T00:00:00Z",
-      workflow_run: {
-        id: 12345,
-        head_branch: "main",
-      },
-    },
-  ],
-};
-
-// Create a minimal valid SQLite database as a zip file would be extracted
-const createMockDatabase = async (path: string): Promise<void> => {
-  const { Database } = await import("bun:sqlite");
-  const db = new Database(path, { create: true });
-  db.run("CREATE TABLE test (id INTEGER PRIMARY KEY)");
-  db.close();
-};
-
 // Helper to create a properly typed mock fetch
 const createMockFetch = (
   handler: (url: string, options?: RequestInit) => Promise<Response>
@@ -213,6 +189,18 @@ describe("SqliteArtifactStorageProvider", () => {
         return new Response("Not found", { status: 404 });
       });
 
+      // Mock artifact upload
+      const mockUploadArtifact = mock(() =>
+        Promise.resolve({ id: 12345, size: 1024, digest: "test-digest" })
+      );
+      const MockArtifactClient = mock(() => ({
+        uploadArtifact: mockUploadArtifact,
+      }));
+
+      mock.module("@actions/artifact", () => ({
+        DefaultArtifactClient: MockArtifactClient,
+      }));
+
       await provider.initialize();
 
       // Create some test data
@@ -224,6 +212,44 @@ describe("SqliteArtifactStorageProvider", () => {
 
       // Verify provider is still initialized after persist
       expect(provider.isInitialized()).toBe(true);
+      expect(mockUploadArtifact).toHaveBeenCalled();
+    });
+
+    test("should fail when artifact upload fails", async () => {
+      const uniquePath = `/tmp/unentropy-artifact-persist-fail-${Date.now()}.db`;
+      provider = new SqliteArtifactStorageProvider({
+        ...baseConfig,
+        databasePath: uniquePath,
+      });
+
+      // Mock fetch for initialization
+      global.fetch = createMockFetch(async (url: string) => {
+        if (url.includes("/actions/artifacts")) {
+          return new Response(JSON.stringify({ artifacts: [] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        return new Response("Not found", { status: 404 });
+      });
+
+      // Mock artifact upload to fail
+      const mockUploadArtifact = mock(() => Promise.reject(new Error("Upload failed")));
+      const MockArtifactClient = mock(() => ({
+        uploadArtifact: mockUploadArtifact,
+      }));
+
+      mock.module("@actions/artifact", () => ({
+        DefaultArtifactClient: MockArtifactClient,
+      }));
+
+      await provider.initialize();
+
+      // Create some test data
+      const db = provider.getDb();
+      db.run("CREATE TABLE test_persist (id INTEGER PRIMARY KEY, value TEXT)");
+
+      await expect(provider.persist()).rejects.toThrow("Upload failed");
     });
   });
 

@@ -125,14 +125,6 @@ jobs:
           name: report-${{ matrix.storage.type }}
           path: ${{ matrix.storage.report-dir }}/
 
-      # Upload database artifact (for artifact storage)
-      - name: Upload Database Artifact
-        if: matrix.storage.type == 'sqlite-artifact'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.storage.artifact-name }}
-          path: unentropy-metrics.db
-
       - name: Report summary
         run: |
           echo "## Metrics Collection Summary (${{ matrix.storage.name }})" >> $GITHUB_STEP_SUMMARY
