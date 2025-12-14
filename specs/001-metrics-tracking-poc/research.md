@@ -10,15 +10,16 @@ This document captures the research findings and technical decisions for impleme
 
 ## Key Technical Decisions
 
-### 1. Database Layer: SQLite with bun:sqlite
+### 1. Database Layer: SQLite with bun:sqlite + Drizzle ORM
 
-**Decision**: Use `bun:sqlite` as the SQLite driver
+**Decision**: Use `bun:sqlite` as the SQLite driver, wrapped with Drizzle ORM for type-safe queries
 
 **Rationale**:
 - Native Bun runtime integration provides optimal performance
+- Drizzle adds type safety without runtime overhead
 - Synchronous API simplifies error handling in both local development and GitHub Actions
 - Built-in support for WAL mode and concurrent access patterns
-- Zero external dependencies (part of Bun runtime)
+- Zero external dependencies for driver (part of Bun runtime)
 - Consistent API across all environments (local dev and CI/CD)
 
 **Alternatives Considered**:
@@ -26,12 +27,14 @@ This document captures the research findings and technical decisions for impleme
 - `node-sqlite3`: Rejected due to async-only API and callback hell
 - `sql.js`: Rejected due to WASM overhead and lack of native performance
 - External database: Violates serverless constraint
+- Raw SQL only: Functional but lacks type safety, error-prone refactoring
 
 **Implementation Notes**:
 - Enable WAL (Write-Ahead Logging) mode for better concurrent write support
 - Use IMMEDIATE transactions to reduce lock contention
 - Implement retry logic with exponential backoff for SQLITE_BUSY errors
-- Database adapter pattern retained for future extensibility (e.g., Postgres support)
+- Drizzle wraps Database instance: `drizzle({ client: db })`
+- Schema defined in TypeScript, queries are type-checked at compile time
 
 ### 2. Configuration Validation: Zod
 
@@ -305,6 +308,36 @@ gh api repos/:owner/:repo/actions/artifacts/$ARTIFACT_ID/zip \
 - GitHub Action interface (inputs/outputs)
 - Artifact upload/download
 - Environment variable access
+
+### 11. Query Layer: Drizzle ORM
+
+**Decision**: Use Drizzle ORM for type-safe database queries
+
+**Rationale**:
+- Type-safe queries with full TypeScript inference from schema
+- SQL-like API reduces learning curve ("if you know SQL, you know Drizzle")
+- Zero dependencies, lightweight (~31KB), serverless-ready
+- Native Bun SQLite support via `drizzle-orm/bun-sqlite`
+- Future-proofs for PostgreSQL support via dialect change
+- Drizzle Kit provides migration tooling for schema evolution
+
+**Alternatives Considered**:
+- Raw SQL (previous): Functional but lacks type safety, error-prone refactoring
+- Prisma: Heavier, requires code generation, less SQL-like
+- Kysely: Similar benefits but less active community, no migration tooling
+- better-sqlite3 wrapper: Not an ORM, still raw SQL
+
+**Implementation Notes**:
+- Schema defined in `src/storage/schema.ts` as single source of truth
+- Drizzle wraps `bun:sqlite` Database instance from StorageProvider
+- MetricsRepository uses Drizzle's query builder API
+- Complex date queries use `sql` template literal for SQLite functions
+- Existing `DatabaseAdapter` interface removed (Drizzle handles abstraction)
+
+**Migration Strategy**:
+- Queries migrated incrementally with existing tests as safety net
+- Schema matches existing tables exactly (no database changes)
+- Backward compatible with existing SQLite database files
 
 ## Open Questions
 

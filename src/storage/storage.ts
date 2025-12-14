@@ -1,14 +1,15 @@
 import type { Database } from "bun:sqlite";
+import { drizzle, type BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 import type { StorageProvider, StorageProviderConfig } from "./providers/interface";
 import { createStorageProvider } from "./providers/factory";
-import { SqliteDatabaseAdapter } from "./adapters/sqlite";
 import { MetricsRepository } from "./repository";
 import { initializeSchema } from "./migrations";
+import * as schema from "./schema";
 
 export class Storage {
   private readonly provider: StorageProvider;
   private readonly initPromise: Promise<void>;
-  private adapter: SqliteDatabaseAdapter | null = null;
+  private drizzleDb: BunSQLiteDatabase<typeof schema> | null = null;
   private repository: MetricsRepository | null = null;
 
   constructor(private config: StorageProviderConfig) {
@@ -20,9 +21,9 @@ export class Storage {
     await this.provider.initialize();
     initializeSchema(this);
 
-    // Create adapter and repository (three-layer architecture)
-    this.adapter = new SqliteDatabaseAdapter(this.provider.getDb());
-    this.repository = new MetricsRepository(this.adapter);
+    const rawDb = this.provider.getDb();
+    this.drizzleDb = drizzle(rawDb, { schema });
+    this.repository = new MetricsRepository(this.drizzleDb);
   }
 
   async ready(): Promise<void> {
@@ -33,10 +34,6 @@ export class Storage {
     return this.provider?.getDb();
   }
 
-  /**
-   * Get the repository for domain operations.
-   * This is the recommended API for application code.
-   */
   getRepository(): MetricsRepository {
     if (!this.repository) throw new Error("Database not initialized");
     return this.repository;
@@ -50,17 +47,7 @@ export class Storage {
     await this.provider.cleanup();
   }
 
-  /**
-   * Get the storage provider for provider-specific operations.
-   */
   getProvider(): StorageProvider {
     return this.provider;
-  }
-
-  /**
-   * Get the storage configuration.
-   */
-  getConfig(): StorageProviderConfig {
-    return this.config;
   }
 }

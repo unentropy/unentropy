@@ -14,6 +14,8 @@ This plan covers the foundational proof-of-concept for the Unentropy metrics tra
 **Language/Version**: TypeScript 5.x / Bun 1.2.x (matches existing project setup and constitution requirements)  
 **Primary Dependencies**: 
 - `bun:sqlite` for database operations (Bun native)
+- `drizzle-orm` for type-safe database queries
+- `drizzle-kit` for schema management (dev dependency)
 - `@actions/core` and `@actions/github` for GitHub Actions integration
 - Chart.js (via CDN) for HTML report visualizations
 - `zod` for configuration validation
@@ -112,14 +114,11 @@ specs/001-metrics-tracking-poc/
  │   │   ├── factory.ts      # createStorageProvider() factory function
  │   │   ├── sqlite-local.ts # SqliteLocalStorageProvider (local file)
  │   │   └── sqlite-s3.ts    # SqliteS3StorageProvider (S3-compatible)
- │   ├── adapters/
- │   │   ├── interface.ts    # DatabaseAdapter interface
- │   │   └── sqlite.ts       # SqliteDatabaseAdapter implementation
- │   ├── storage.ts          # Storage orchestrator (coordinates provider + adapter + repository)
- │   ├── repository.ts       # MetricsRepository (domain operations: recordBuild, getMetricComparison)
- │   ├── migrations.ts       # Schema initialization
- │   ├── queries.ts          # Low-level SQL query functions (used by adapter)
- │   └── types.ts            # Database entity types
+ │   ├── schema.ts           # Drizzle schema definitions (tables, indexes)
+ │   ├── storage.ts          # Storage orchestrator (coordinates provider + drizzle + repository)
+ │   ├── repository.ts       # MetricsRepository (domain operations using Drizzle)
+ │   ├── migrations.ts       # Schema initialization (Drizzle migrate)
+ │   └── types.ts            # Database entity types (inferred from Drizzle schema)
  ├── collector/
  │   ├── runner.ts           # Execute metric collection commands
  │   ├── collector.ts        # Main collection orchestration
@@ -176,20 +175,21 @@ unentropy.json               # Self-monitoring configuration (test coverage + Lo
 
 This architecture enables independent testing of each layer and future extensibility (e.g., PostgreSQL adapter, alternative storage providers).
 
-**Storage Architecture**: The `storage/` directory implements a three-layer separation:
+**Storage Architecture**: The `storage/` directory implements a two-layer architecture with Drizzle ORM:
 
 1. **StorageProvider** (`providers/`): Manages database lifecycle and storage location (local file, S3, GitHub Artifacts). Handles initialization, open/close, and persistence.
-2. **DatabaseAdapter** (`adapters/`): Abstracts database query execution. SQLite adapter provides SQL-based operations; future PostgreSQL adapter would provide Postgres-specific queries.
-3. **MetricsRepository** (`repository.ts`): Exposes domain-specific operations (`recordBuild()`, `getMetricComparison()`) that use the adapter internally.
-4. **Storage** (`storage.ts`): Orchestrates the three layers, providing a unified API.
+2. **Drizzle ORM** (`schema.ts`): Provides type-safe database queries. Schema defined in TypeScript serves as single source of truth.
+3. **MetricsRepository** (`repository.ts`): Exposes domain-specific operations (`recordBuild()`, `getMetricComparison()`) using Drizzle queries.
+4. **Storage** (`storage.ts`): Orchestrates provider + Drizzle + repository, providing a unified API.
 
 This separation enables:
-- Future database engines (PostgreSQL) via new adapters
+- Future database engines (PostgreSQL) via Drizzle dialect change
 - Alternative storage locations (S3, Artifacts) via new providers
-- Clean business logic in repository without coupling to SQL or storage details
+- Type-safe queries with compile-time checking
+- Clean business logic in repository without raw SQL
 - Independent testing of each layer
 
-Provider naming: `<database-engine>-<storage-location>` (e.g., `sqlite-local`, `sqlite-s3`). See `contracts/storage-provider-interface.md` and `contracts/database-adapter-interface.md` for detailed contracts.
+Provider naming: `<database-engine>-<storage-location>` (e.g., `sqlite-local`, `sqlite-s3`). See `contracts/storage-provider-interface.md` for detailed contracts.
 
 ## Foundational Contracts
 
@@ -202,12 +202,46 @@ This PoC establishes contracts that are referenced by subsequent specs:
 | Storage Provider Interface | Three-layer architecture | 003 |
 | HTML Report Template | Report structure | 006 |
 
+## Active Enhancements (In Progress)
+
+The following technical improvements are being implemented:
+
+### Drizzle ORM Migration
+
+**Status**: In Progress  
+**Goal**: Replace raw SQL queries with type-safe Drizzle ORM
+
+**Scope**:
+- Add `drizzle-orm` and `drizzle-kit` dependencies
+- Create TypeScript schema in `src/storage/schema.ts`
+- Update `MetricsRepository` to use Drizzle queries
+- Update `Storage` class to wrap `bun:sqlite` with Drizzle
+- Remove `DatabaseAdapter` interface (Drizzle handles dialect abstraction)
+- Maintain backward compatibility with existing SQLite databases
+
+**Architecture Change**:
+```
+Before: Storage → Provider → DatabaseAdapter (raw SQL) → bun:sqlite
+After:  Storage → Provider → Drizzle ORM → bun:sqlite
+```
+
+**Migration Approach**:
+1. Phase 1: Improve test coverage for existing queries
+2. Phase 2: Add Drizzle schema matching existing tables
+3. Phase 3: Migrate queries one-by-one with tests
+4. Phase 4: Evaluate Drizzle Kit for migration management
+
+**Non-Goals**:
+- Changing database schema (tables remain identical)
+- Breaking existing SQLite database files
+- PostgreSQL support (deferred to future spec)
+
 ## Future Enhancements (Out of Scope)
 
 The following enhancements are documented here for future specs:
 
-- **Drizzle ORM Migration**: Replace raw SQL with type-safe Drizzle schema (tracked in Roadmap)
-- **Database Migrations**: Proper versioned migration system
+- **PostgreSQL Support**: Add PostgreSQL dialect support via Drizzle
+- **Drizzle Kit Migrations**: Proper versioned migration system using Drizzle Kit
 - **Transaction Support**: Improved transaction handling for concurrent writes
 - **Connection Pooling**: Better connection lifecycle management
 

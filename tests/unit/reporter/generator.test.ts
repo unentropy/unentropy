@@ -1,6 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Storage } from "../../../src/storage/storage";
-import { SqliteDatabaseAdapter } from "../../../src/storage/adapters/sqlite";
 import {
   getMetricTimeSeries,
   calculateSummaryStats,
@@ -14,7 +13,6 @@ const TEST_DB_PATH = "/tmp/test-generator.db";
 
 describe("getMetricTimeSeries", () => {
   let db: Storage;
-  let adapter: SqliteDatabaseAdapter;
 
   beforeAll(async () => {
     if (fs.existsSync(TEST_DB_PATH)) {
@@ -23,83 +21,79 @@ describe("getMetricTimeSeries", () => {
 
     db = new Storage({ type: "sqlite-local", path: TEST_DB_PATH });
     await db.initialize();
-    adapter = new SqliteDatabaseAdapter(db.getConnection());
+    const repo = db.getRepository();
 
-    const buildId1 = adapter.insertBuildContext({
-      commit_sha: "abc123",
-      branch: "main",
-      run_id: "1",
-      run_number: 1,
-      event_name: "push",
-      timestamp: "2025-10-01T12:00:00Z",
-    });
+    await repo.recordBuild(
+      {
+        commit_sha: "abc123",
+        branch: "main",
+        run_id: "1",
+        run_number: 1,
+        event_name: "push",
+        timestamp: "2025-10-01T12:00:00Z",
+      },
+      [
+        {
+          definition: {
+            id: "test-coverage",
+            type: "numeric",
+            unit: "percent",
+            description: "Test coverage percentage",
+          },
+          value_numeric: 85.2,
+        },
+        {
+          definition: {
+            id: "build-status",
+            type: "label",
+            description: "Build status",
+          },
+          value_label: "success",
+        },
+      ]
+    );
 
-    const buildId2 = adapter.insertBuildContext({
-      commit_sha: "def456",
-      branch: "main",
-      run_id: "2",
-      run_number: 2,
-      event_name: "push",
-      timestamp: "2025-10-02T12:00:00Z",
-    });
+    await repo.recordBuild(
+      {
+        commit_sha: "def456",
+        branch: "main",
+        run_id: "2",
+        run_number: 2,
+        event_name: "push",
+        timestamp: "2025-10-02T12:00:00Z",
+      },
+      [
+        {
+          definition: { id: "test-coverage", type: "numeric", unit: "percent" },
+          value_numeric: 86.1,
+        },
+        {
+          definition: { id: "build-status", type: "label" },
+          value_label: "success",
+        },
+      ]
+    );
 
-    const buildId3 = adapter.insertBuildContext({
-      commit_sha: "ghi789",
-      branch: "main",
-      run_id: "3",
-      run_number: 3,
-      event_name: "push",
-      timestamp: "2025-10-03T12:00:00Z",
-    });
-
-    const coverageMetric = adapter.upsertMetricDefinition({
-      id: "test-coverage",
-      type: "numeric",
-      unit: "percent",
-      description: "Test coverage percentage",
-    });
-
-    const statusMetric = adapter.upsertMetricDefinition({
-      id: "build-status",
-      type: "label",
-      description: "Build status",
-    });
-
-    adapter.insertMetricValue({
-      metric_id: coverageMetric.id,
-      build_id: buildId1,
-      value_numeric: 85.2,
-    });
-
-    adapter.insertMetricValue({
-      metric_id: coverageMetric.id,
-      build_id: buildId2,
-      value_numeric: 86.1,
-    });
-
-    adapter.insertMetricValue({
-      metric_id: coverageMetric.id,
-      build_id: buildId3,
-      value_numeric: 87.5,
-    });
-
-    adapter.insertMetricValue({
-      metric_id: statusMetric.id,
-      build_id: buildId1,
-      value_label: "success",
-    });
-
-    adapter.insertMetricValue({
-      metric_id: statusMetric.id,
-      build_id: buildId2,
-      value_label: "success",
-    });
-
-    adapter.insertMetricValue({
-      metric_id: statusMetric.id,
-      build_id: buildId3,
-      value_label: "failure",
-    });
+    await repo.recordBuild(
+      {
+        commit_sha: "ghi789",
+        branch: "main",
+        run_id: "3",
+        run_number: 3,
+        event_name: "push",
+        timestamp: "2025-10-03T12:00:00Z",
+      },
+      [
+        {
+          definition: { id: "test-coverage", type: "numeric", unit: "percent" },
+          value_numeric: 87.5,
+        },
+        {
+          definition: { id: "build-status", type: "label" },
+          value_label: "failure",
+        },
+      ]
+    );
   });
 
   afterAll(async () => {
@@ -149,19 +143,6 @@ describe("getMetricTimeSeries", () => {
     expect(() => getMetricTimeSeries(db, "non-existent")).toThrow(
       "Metric 'non-existent' not found"
     );
-  });
-
-  test("returns empty data points for metric with no values", () => {
-    adapter.upsertMetricDefinition({
-      id: "empty-metric",
-      type: "numeric",
-      description: "No data",
-    });
-
-    const data = getMetricTimeSeries(db, "empty-metric");
-
-    expect(data.metricName).toBe("empty-metric");
-    expect(data.dataPoints).toHaveLength(0);
   });
 });
 

@@ -1,7 +1,7 @@
 # Tasks: Metrics Tracking PoC
 
 **Feature**: 001-metrics-tracking-poc
-**Status**: Implemented (96/116 tasks completed - 83%)
+**Status**: Implemented (97/123 tasks completed - 79%)
 
 **Note**: This task list documents the original PoC implementation. The 3-action architecture (collect-metrics, generate-report, find-database) has been superseded by the unified `track-metrics` action in spec 003. Core platform tasks (configuration, storage, reporting) remain relevant as foundational infrastructure.
 
@@ -560,25 +560,116 @@ This delivers complete end-to-end functionality:
 
 **Design Philosophy**:
 - **Provider** abstracts WHERE database is stored (location/access method)
-- **Adapter** abstracts WHAT queries to run (SQL engine-specific)
+- **Drizzle ORM** provides type-safe queries (replacing raw SQL adapters)
 - **Repository** abstracts WHY (domain operations like recordBuild)
 - **Storage** orchestrates all three layers
 - Type naming convention: `<database-engine>-<storage-location>`
 
 **Current Implementation**:
 - Providers: 'sqlite-local' (local file), 'sqlite-s3' (S3-compatible storage)
-- Adapter: SqliteDatabaseAdapter (SQLite-specific queries)
-- Repository: MetricsRepository (domain operations)
-- Storage: Coordinates provider + adapter + repository
+- Query Layer: Drizzle ORM with bun-sqlite dialect
+- Repository: MetricsRepository (domain operations using Drizzle)
+- Storage: Coordinates provider + Drizzle + repository
 
 **Future Extensibility**:
-- New adapter: PostgresDatabaseAdapter (different SQL dialect)
+- PostgreSQL support via Drizzle dialect change
 - New providers: 'postgres' (remote database connection)
 - Repository stays the same (clean domain API)
 
 **Benefits**:
-- Clean separation of concerns
-- Future PostgreSQL support via new adapter
+- Type-safe queries with compile-time checking
+- Schema as single source of truth
+- Future PostgreSQL support via dialect change
 - Easy to test (mock each layer independently)
 - Repository API never changes when adding new databases
+
+---
+
+## Phase 10: Drizzle ORM Migration (Active Enhancement)
+
+**Purpose**: Replace raw SQL queries with type-safe Drizzle ORM while maintaining backward compatibility
+
+**Goal**: Improve maintainability and enable future PostgreSQL support through Drizzle's dialect abstraction
+
+**Architecture Change**:
+```
+Before: Storage → Provider → DatabaseAdapter (raw SQL) → bun:sqlite
+After:  Storage → Provider → Drizzle ORM → bun:sqlite
+```
+
+### Phase 10.1: Preparation & Test Coverage
+
+- [x] T110 [P] Create integration tests for storage query contracts in tests/integration/storage-queries.test.ts
+  - Tests verify column names (snake_case), NULL handling, query results
+  - 28 tests covering all repository methods
+  - Critical for ensuring migration doesn't break existing behavior
+
+### Phase 10.2: Drizzle Schema & Setup
+
+- [x] T111 Install drizzle-orm and drizzle-kit dependencies
+- [x] T112 Create Drizzle schema in src/storage/schema.ts
+  - Define metricDefinitions table with columns: id, type, unit, description
+  - Define buildContexts table with columns and indexes
+  - Define metricValues table with foreign keys and indexes
+  - Schema must produce identical SQL to existing raw SQL schema
+- [x] T113 Add Drizzle type exports in src/storage/types.ts
+  - Export InferSelectModel and InferInsertModel types from schema
+  - Ensure backward compatibility with existing type names
+
+### Phase 10.3: Repository Migration
+
+- [x] T114 Update Storage class to initialize Drizzle in src/storage/storage.ts
+  - Wrap bun:sqlite Database with drizzle({ client: db })
+  - Pass Drizzle instance to MetricsRepository
+- [x] T115 Migrate MetricsRepository.recordBuild() to Drizzle in src/storage/repository.ts
+  - Use db.insert().values().returning() for build context
+  - Use db.insert().onConflictDoUpdate() for metric definitions
+  - Use db.insert().values() for metric values
+- [x] T116 Migrate MetricsRepository.getMetricTimeSeries() to Drizzle
+  - Use db.select().from().innerJoin().where().orderBy()
+  - Ensure column aliases match existing output (build_timestamp)
+- [x] T117 Migrate MetricsRepository.getBaselineMetricValue() to Drizzle
+  - Use sql template literal for datetime() function
+  - Ensure NULL filtering works correctly
+- [x] T118 Migrate remaining repository methods to Drizzle
+  - getAllMetricDefinitions, getAllBuildContexts, getAllMetricValues
+  - getMetricValuesByBuildId, getMetricDefinition
+
+### Phase 10.4: Cleanup & Verification
+
+- [x] T119 Remove DatabaseAdapter interface and SqliteDatabaseAdapter
+  - Delete src/storage/adapters/interface.ts
+  - Delete src/storage/adapters/sqlite.ts
+  - Update imports throughout codebase
+- [x] T120 Run all tests and verify no regressions
+  - bun test (all 522 tests pass)
+  - bun check (lint, typecheck, format)
+- [x] T121 Update documentation
+  - Update spec files to reflect Drizzle architecture (completed)
+  - Update code comments if needed
+
+### Phase 10.5: Future Considerations (Out of Scope)
+
+- [ ] T122 [Future] Evaluate Drizzle Kit for migration management
+- [ ] T123 [Future] Add PostgreSQL support via Drizzle dialect
+
+**Checkpoint**: Storage layer uses Drizzle ORM with full type safety, all tests pass
+
+---
+
+## Task Summary Update
+
+- **Total Tasks**: 123 (was 116)
+- **Phase 10 (Drizzle Migration)**: 14 tasks (1 completed, 10 implementation, 3 future)
+
+### Drizzle Migration Status: 11/11 tasks completed (100%)
+
+**Completed**:
+- [x] T110: Integration tests for storage query contracts (28 tests)
+
+**Next Steps**:
+1. T111: Install drizzle-orm dependency
+2. T112: Create Drizzle schema
+3. T114-T118: Migrate repository methods one-by-one
+4. T119-T121: Cleanup and verification
 

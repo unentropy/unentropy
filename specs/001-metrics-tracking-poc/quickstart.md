@@ -183,143 +183,126 @@ $ unentropy verify bad-key.json
 
 ---
 
-### Phase 2: Storage Layer (Three-Layer Architecture)
+### Phase 2: Storage Layer (with Drizzle ORM)
 
-**Goal**: Storage system with provider, adapter, and repository layers
+**Goal**: Storage system with provider and Drizzle-based repository
 
 **Components**:
-1. `src/storage/providers/` - Storage providers (local, S3)
-2. `src/storage/adapters/` - Database adapters (SQLite, PostgreSQL)
-3. `src/storage/repository.ts` - Domain operations
-4. `src/storage/storage.ts` - Orchestration layer
-5. `src/storage/migrations.ts` - Schema initialization
-6. `src/storage/types.ts` - Entity types
+1. `src/storage/providers/` - Storage providers (unchanged)
+2. `src/storage/schema.ts` - Drizzle schema definitions (NEW)
+3. `src/storage/repository.ts` - Domain operations (uses Drizzle)
+4. `src/storage/storage.ts` - Orchestration layer (wraps with Drizzle)
+5. `src/storage/types.ts` - Types inferred from schema
 
 **Implementation Steps**:
 
 ```typescript
-// 1. Storage provider interface in src/storage/providers/interface.ts
-export interface StorageProvider {
-  initialize(): Promise<Database>;
-  persist(): Promise<void>;
-  cleanup(): void;
-  readonly isInitialized: boolean;
-}
+// 1. Drizzle schema in src/storage/schema.ts
+import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-// 2. SQLite local provider in src/storage/providers/sqlite-local.ts
-export class SqliteLocalStorageProvider implements StorageProvider {
-  async initialize(): Promise<Database> {
-    const db = new Database(this.config.path);
-    return db;
-  }
-  
-  async persist(): Promise<void> {
-    // No-op for local (writes are immediate)
-  }
-  
-  cleanup(): void {
-    this.db?.close();
-  }
-}
+export const metricDefinitions = sqliteTable('metric_definitions', {
+  id: text('id').primaryKey(),
+  type: text('type', { enum: ['numeric', 'label'] }).notNull(),
+  unit: text('unit'),
+  description: text('description'),
+});
 
-// 3. Database adapter interface in src/storage/adapters/interface.ts
-export interface DatabaseAdapter {
-  insertBuildContext(context: BuildContext): Promise<number>;
-  upsertMetricDefinition(metric: MetricDefinition): Promise<string>;
-  insertMetricValue(value: MetricValue): Promise<void>;
-  getMetricTimeSeries(metricId: string, options?: TimeSeriesOptions): Promise<MetricValue[]>;
-  // ... other query methods
-}
+export const buildContexts = sqliteTable('build_contexts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  commitSha: text('commit_sha').notNull(),
+  branch: text('branch').notNull(),
+  runId: text('run_id').notNull(),
+  runNumber: integer('run_number').notNull(),
+  eventName: text('event_name'),
+  timestamp: text('timestamp').notNull(),
+}, (table) => [
+  index('idx_build_timestamp').on(table.timestamp),
+  uniqueIndex('unique_commit_run').on(table.commitSha, table.runId),
+]);
 
-// 4. SQLite adapter in src/storage/adapters/sqlite.ts
-export class SqliteDatabaseAdapter implements DatabaseAdapter {
-  constructor(private db: Database) {}
-  
-  async insertBuildContext(context: BuildContext): Promise<number> {
-    const stmt = this.db.prepare(`
-      INSERT INTO build_contexts (commit_sha, branch, run_id, run_number, event_name, event_timestamp)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    const result = stmt.run(
-      context.commitSha,
-      context.branch,
-      context.runId,
-      context.runNumber,
-      context.eventName,
-      context.eventTimestamp
-    );
-    return result.lastInsertRowid as number;
-  }
-  
-  async upsertMetricDefinition(metric: MetricDefinition): Promise<string> {
-    const stmt = this.db.prepare(`
-      INSERT INTO metric_definitions (id, type, unit, description)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET
-        unit = excluded.unit,
-        description = excluded.description
-      RETURNING id
-    `);
-    const row = stmt.get(metric.id, metric.type, metric.unit, metric.description) as { id: string };
-    return row.id;
-  }
-  // ... other query methods
-}
+export const metricValues = sqliteTable('metric_values', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  metricId: text('metric_id').notNull().references(() => metricDefinitions.id),
+  buildId: integer('build_id').notNull().references(() => buildContexts.id),
+  valueNumeric: real('value_numeric'),
+  valueLabel: text('value_label'),
+}, (table) => [
+  uniqueIndex('unique_metric_build').on(table.metricId, table.buildId),
+]);
 
-// 5. Repository in src/storage/repository.ts
+// 2. Repository using Drizzle in src/storage/repository.ts
+import { eq, and, desc, asc, sql, isNotNull, gte } from 'drizzle-orm';
+import { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
+import * as schema from './schema';
+
 export class MetricsRepository {
-  constructor(private adapter: DatabaseAdapter) {}
+  constructor(private db: BunSQLiteDatabase<typeof schema>) {}
   
-  async recordBuild(buildContext: BuildContext, metrics: MetricValue[]): Promise<number> {
-    const buildId = await this.adapter.insertBuildContext(buildContext);
+  async recordBuild(buildContext: InsertBuildContext, metrics: MetricInput[]): Promise<number> {
+    const [{ id: buildId }] = await this.db.insert(schema.buildContexts)
+      .values(buildContext)
+      .returning({ id: schema.buildContexts.id });
     
     for (const metric of metrics) {
-      const metricId = await this.adapter.upsertMetricDefinition(metric.definition);
-      await this.adapter.insertMetricValue({
-        metricId,
+      await this.db.insert(schema.metricDefinitions)
+        .values(metric.definition)
+        .onConflictDoUpdate({
+          target: schema.metricDefinitions.id,
+          set: { unit: metric.definition.unit, description: metric.definition.description }
+        });
+      
+      await this.db.insert(schema.metricValues).values({
+        metricId: metric.definition.id,
         buildId,
-        ...metric
+        valueNumeric: metric.value_numeric,
+        valueLabel: metric.value_label,
       });
     }
     
     return buildId;
   }
   
-  async getMetricHistory(name: string, options?: HistoryOptions): Promise<MetricHistory> {
-    const values = await this.adapter.getMetricTimeSeries(name, options);
-    return {
-      metricName: name,
-      values,
-      // ... computed summary stats
-    };
-  }
-  
-  // For test assertions
-  get queries(): DatabaseAdapter {
-    return this.adapter;
+  getMetricTimeSeries(metricName: string) {
+    return this.db.select({
+      id: schema.metricValues.id,
+      metricId: schema.metricValues.metricId,
+      buildId: schema.metricValues.buildId,
+      valueNumeric: schema.metricValues.valueNumeric,
+      valueLabel: schema.metricValues.valueLabel,
+      metricName: schema.metricDefinitions.id,
+      commitSha: schema.buildContexts.commitSha,
+      branch: schema.buildContexts.branch,
+      runNumber: schema.buildContexts.runNumber,
+      timestamp: schema.buildContexts.timestamp,
+    })
+    .from(schema.metricValues)
+    .innerJoin(schema.metricDefinitions, eq(schema.metricValues.metricId, schema.metricDefinitions.id))
+    .innerJoin(schema.buildContexts, eq(schema.metricValues.buildId, schema.buildContexts.id))
+    .where(and(
+      eq(schema.metricDefinitions.id, metricName),
+      eq(schema.buildContexts.eventName, 'push')
+    ))
+    .orderBy(asc(schema.buildContexts.timestamp))
+    .all();
   }
 }
 
-// 6. Storage orchestrator in src/storage/storage.ts
+// 3. Storage orchestrator in src/storage/storage.ts
+import { drizzle, BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
+import * as schema from './schema';
+
 export class Storage {
   private provider: StorageProvider;
-  private adapter: DatabaseAdapter;
+  private db: BunSQLiteDatabase<typeof schema>;
   private repository: MetricsRepository;
   
   async initialize(): Promise<void> {
-    this.provider = await createStorageProvider(this.config.provider);
-    const db = await this.provider.initialize();
+    this.provider = createStorageProvider(this.config);
+    const rawDb = await this.provider.initialize();
     
-    // Configure connection
-    db.run("PRAGMA journal_mode = WAL");
-    db.run("PRAGMA foreign_keys = ON");
-    db.run("PRAGMA busy_timeout = 5000");
-    
-    this.adapter = new SqliteDatabaseAdapter(db);
-    this.repository = new MetricsRepository(this.adapter);
-    
-    // Initialize schema
-    await initializeSchema(db);
+    // Wrap with Drizzle
+    this.db = drizzle(rawDb, { schema });
+    this.repository = new MetricsRepository(this.db);
   }
   
   getRepository(): MetricsRepository {
@@ -330,63 +313,20 @@ export class Storage {
     await this.provider.persist();
     this.provider.cleanup();
   }
-  
-  async transaction<T>(fn: () => Promise<T>): Promise<T> {
-    // Delegate to provider's database transaction
-  }
-}
-
-// 7. Schema initialization in src/storage/migrations.ts
-export function initializeSchema(db: Database): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS metric_definitions (
-      id TEXT PRIMARY KEY,
-      type TEXT NOT NULL CHECK(type IN ('numeric', 'label')),
-      unit TEXT,
-      description TEXT
-    );
-    
-    CREATE TABLE IF NOT EXISTS build_contexts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      commit_sha TEXT NOT NULL,
-      branch TEXT NOT NULL,
-      run_id TEXT NOT NULL,
-      run_number INTEGER NOT NULL,
-      event_name TEXT,
-      event_timestamp TEXT NOT NULL,
-      UNIQUE(commit_sha, run_id)
-    );
-    
-    CREATE TABLE IF NOT EXISTS metric_values (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      metric_id TEXT NOT NULL,
-      build_id INTEGER NOT NULL,
-      value_numeric REAL,
-      value_label TEXT,
-      FOREIGN KEY (metric_id) REFERENCES metric_definitions(id),
-      FOREIGN KEY (build_id) REFERENCES build_contexts(id),
-      UNIQUE(metric_id, build_id)
-    );
-    
-    CREATE INDEX IF NOT EXISTS idx_build_event_timestamp 
-      ON build_contexts(event_timestamp);
-  `);
 }
 ```
 
 **Tests** (`tests/unit/storage/`):
-- Provider tests: `providers/sqlite-local.test.ts`, `providers/factory.test.ts`
-- Adapter tests: `adapters/sqlite.test.ts`
-- Repository tests: `repository.test.ts`
-- Storage tests: `storage.test.ts`
-- Schema tests: `migrations.test.ts`
+- Schema tests: Verify Drizzle schema matches existing SQL
+- Repository tests: All queries return expected results
+- Storage tests: Drizzle integration works with providers
 
 **Key Benefits**:
-- Clean separation: Provider (WHERE), Adapter (WHAT), Repository (WHY)
-- Future PostgreSQL support via new adapter
-- S3 storage support via new provider
-- Repository exposes clean domain API
-- No SQL in application code
+- Type-safe queries with compile-time checking
+- Schema as single source of truth
+- Future PostgreSQL support via dialect change
+- Clean domain API without raw SQL
+- Simplified architecture (no separate adapter layer)
 
 **Acceptance**: FR-009, FR-011
 
