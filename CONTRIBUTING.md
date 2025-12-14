@@ -25,6 +25,22 @@ cd unentropy
 bun install
 ```
 
+### Visual Review
+
+This repository includes helper scripts for working on the report generation code.
+
+```bash
+bun dev-report
+```
+
+Starts a local HTTP server at port 3000 that serves the report HTML filled with dummy data. Use it when working on report template (src/reporter/templates), to get the immediate feedback.
+
+```bash
+bun visual-review
+```
+
+This will generate a set of fixture data and open a browser window with HTML reports. The fixtures are exploring various common scenarios and edge cases. You can use it to quickly verify your changes under different scenarios.
+
 ### Commands
 
 ```bash

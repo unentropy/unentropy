@@ -1,0 +1,39 @@
+{
+  "metrics": {
+    "test-coverage": {
+      "type": "numeric",
+      "description": "Code coverage percentage",
+      "command": "echo '85.5'",
+      "unit": "percent"
+    },
+    "bundle-size": {
+      "type": "numeric",
+      "description": "Production JavaScript bundle size",
+      "command": "echo '1048576'",
+      "unit": "bytes"
+    },
+    "build-duration": {
+      "type": "numeric",
+      "description": "CI pipeline execution time",
+      "command": "echo '300'",
+      "unit": "duration"
+    },
+    "active-contributors": {
+      "type": "numeric",
+      "description": "Number of unique contributors in past 30 days",
+      "command": "echo '8'",
+      "unit": "integer"
+    },
+    "dependency-count": {
+      "type": "numeric",
+      "description": "Total number of npm dependencies",
+      "command": "echo '250'",
+      "unit": "integer"
+    },
+    "deployment-target": {
+      "type": "label",
+      "description": "Deployment environment for this build",
+      "command": "echo 'staging'"
+    }
+  }
+}

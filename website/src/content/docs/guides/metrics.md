@@ -95,7 +95,7 @@ Count lines of code in your project:
 }
 ```
 
-This uses the default command `@collect loc .` which counts all lines in your project. 
+This uses the default command `@collect loc .` which counts all lines in your project.
 Internally, Unentropy uses the [scc](https://github.com/boyter/scc) tool to do the counting.
 
 **Customize the path or language:**
@@ -237,7 +237,7 @@ Choose the right unit for proper formatting:
 | `duration` | `1m 30s` | Build/test time     |
 | `decimal`  | `3.14`   | Generic numbers     |
 
-## Customizing built-in metrics 
+## Customizing built-in metrics
 
 ### Override Display Name
 
