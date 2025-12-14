@@ -674,6 +674,73 @@ Currently intentionally excluded to keep implementation minimal.
 
 ---
 
+## 12. Custom Date Range Picker Library
+
+### Status
+**⚠️ RESEARCH PENDING** - This research needs to be completed before implementation.
+
+### Requirements
+
+The custom date range picker must:
+
+1. **Be self-contained**: Can be bundled into the static HTML report (no external CDN)
+2. **Lightweight**: Small footprint (< 20KB minified preferred)
+3. **Vanilla JS**: No framework dependencies (compatible with current vanilla JS + Chart.js stack)
+4. **Date range support**: Allow selecting "from" and "to" dates
+5. **Theme support**: Light/dark mode compatibility
+6. **Touch-friendly**: Works well on mobile devices
+7. **Accessible**: Keyboard navigable, screen reader friendly
+8. **Date constraints**: Ability to disable dates outside min/max range
+9. **ISO format**: Returns dates in ISO format (YYYY-MM-DD)
+
+### Candidates to Evaluate
+
+| Library | Initial Notes | Size | Last Updated |
+|---------|--------------|------|--------------|
+| **Flatpickr** | Popular, feature-rich, range mode support | ~15KB min | Active |
+| **Pikaday** | Lightweight, simple API | ~11KB min | Less active |
+| **Vanilla Calendar** | Modern, no dependencies | TBD | TBD |
+| **Litepicker** | Specifically for date ranges | ~20KB min | Active |
+| **Native `<input type="date">`** | Built-in, zero dependencies | 0KB | N/A |
+
+### Evaluation Criteria
+
+For each candidate, research and document:
+
+1. **Bundle size**: Actual minified + gzipped size
+2. **API complexity**: How easy to integrate?
+3. **Range selection**: Does it support "from-to" ranges natively?
+4. **Date constraints**: Can we disable dates before/after specific dates?
+5. **Theme support**: Does it support dark mode? How customizable?
+6. **Mobile UX**: Touch-friendly? Works on small screens?
+7. **Accessibility**: ARIA labels, keyboard nav, screen reader support?
+8. **Maintenance**: Last commit, open issues, active development?
+9. **License**: MIT/Apache/BSD compatible?
+10. **Integration effort**: How many lines of code to integrate?
+
+### Recommended Approach
+
+1. Create a test HTML file with each candidate
+2. Test on desktop and mobile browsers
+3. Verify theme support (light/dark)
+4. Test date constraint features
+5. Measure actual bundle size impact
+6. Document integration code examples
+7. Make final recommendation with rationale
+
+### Fallback Option
+
+If no suitable library meets requirements, use native HTML5 date inputs:
+```html
+<input type="date" id="date-from" min="2025-01-01" max="2025-12-31">
+<input type="date" id="date-to" min="2025-01-01" max="2025-12-31">
+```
+
+**Pros**: Zero dependencies, works everywhere, accessible
+**Cons**: Less polished UX, browser-dependent styling, no calendar popover on desktop Firefox
+
+---
+
 ## Summary of Technical Decisions
 
 | Area | Decision | Rationale |
@@ -688,3 +755,4 @@ Currently intentionally excluded to keep implementation minimal.
 | Zoom/pan | chartjs-plugin-zoom with sync callbacks | Official plugin, good API for synchronization |
 | Date range filter | Scale min/max limits, client-side | No server needed, integrates with zoom |
 | Chart export | Canvas `toDataURL()` + dynamic link | Native browser API, no dependencies |
+| **Custom date range picker** | **TBD - Research pending (Section 12)** | **Evaluate options for best UX/bundle tradeoff** |

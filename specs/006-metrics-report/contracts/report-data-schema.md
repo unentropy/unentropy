@@ -64,6 +64,12 @@ interface ChartsData {
     timeline: string[];                  // 20 timestamps spanning 60 days
     lineCharts: PreviewLineChartData[];  // Synthetic values per metric
   };
+  
+  // Available date range for custom date picker constraints
+  availableDateRange: {
+    min: string;                         // ISO date (YYYY-MM-DD) of earliest build
+    max: string;                         // ISO date (YYYY-MM-DD) of latest build
+  };
 }
 
 interface LineChartData {
@@ -90,12 +96,28 @@ All feature decisions are computed at generation time and embedded as simple boo
 | Feature | Condition | Implementation |
 |---------|-----------|----------------|
 | Preview toggle | `buildCount < 10` | Check `chartsData.buildCount`, toggle visibility in JS |
-| Zoom/pan | `dataPointCount >= 3` | Check per-chart in JS, disable zoom config if sparse |
-| Date filter | Always enabled | Buttons always rendered |
+| Zoom/pan | `dataPointCount >= 3` | Check per-chart in JS, disable zoom config if insufficient data |
+| Preset date filters | Always enabled | Buttons always rendered |
+| Custom date picker | Always enabled | Button always rendered; calendar constraints use `availableDateRange` |
 | Tooltip sync | Always enabled | Event handlers always attached |
 | PNG export | Always enabled | Export buttons always rendered |
 
 No configuration flags are stored in the data - the logic is hardcoded in the client-side JS.
+
+## Custom Date Picker Constraints
+
+The calendar picker uses `availableDateRange` to disable dates outside the available data:
+
+```javascript
+// Calendar configuration
+const calendarConfig = {
+  minDate: chartsData.availableDateRange.min,  // "2025-01-01"
+  maxDate: chartsData.availableDateRange.max,  // "2025-12-31"
+  // Dates outside this range are grayed out and not selectable
+};
+```
+
+This ensures users can only select dates for which data exists or could exist in the report.
 
 ---
 
@@ -135,6 +157,45 @@ function buildLineChart(chart, timeline, metadata) {
       }
     }
   };
+}
+```
+
+## Client-Side State Management for Custom Date Picker
+
+```javascript
+// Global state for date filtering (client-side only)
+const dateFilterState = {
+  activeFilter: 'all',  // '7d' | '30d' | '90d' | 'all' | 'custom'
+  customRange: {
+    from: null,  // ISO date string or null
+    to: null     // ISO date string or null
+  },
+  availableDateRange: chartsData.availableDateRange  // From embedded data
+};
+
+// When custom dates are selected
+function applyCustomDateRange(fromDate, toDate) {
+  // Validate
+  if (fromDate > toDate) {
+    showError("From date cannot be after To date");
+    return;
+  }
+  
+  // Update state
+  dateFilterState.activeFilter = 'custom';
+  dateFilterState.customRange = { from: fromDate, to: toDate };
+  
+  // Apply to all charts
+  updateAllChartsDateRange(fromDate, toDate);
+  updateFooter();
+}
+
+// When drag-to-zoom occurs
+function onChartZoom(startDate, endDate) {
+  dateFilterState.activeFilter = 'custom';
+  dateFilterState.customRange = { from: startDate, to: endDate };
+  highlightCustomButton();
+  updateFooter();
 }
 ```
 

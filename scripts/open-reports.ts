@@ -8,6 +8,7 @@ const REPORT_FILES = [
   "tests/fixtures/visual-review/full-featured/report.html",
   "tests/fixtures/visual-review/sparse-data/report.html",
   "tests/fixtures/visual-review/edge-cases/report.html",
+  "tests/fixtures/visual-review/huge-report/report.html",
 ];
 
 function getOpenCommand(): string | null {

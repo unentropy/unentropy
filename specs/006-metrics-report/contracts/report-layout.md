@@ -2,6 +2,7 @@
 
 **Feature**: 006-metrics-report  
 **Date**: 2025-12-07  
+**Updated**: 2025-12-14 (Added custom date range picker)  
 **Purpose**: Visual and behavioral contract for UX review
 
 ## 1. Overview
@@ -30,7 +31,7 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                           HEADER                                 │
-│  Repository name, build count, generation date, date filters    │
+│  Repository name, date filters (7d/30d/90d/All/Custom)          │
 ├─────────────────────────────────────────────────────────────────┤
 │                       PREVIEW BAR (conditional)                  │
 │  Toggle to show sample data when < 10 builds                    │
@@ -52,7 +53,7 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 │                                                                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                           FOOTER                                 │
-│  Version info, documentation link                                │
+│  Build count, date range, version info, documentation link      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -72,30 +73,91 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
+│  REPOSITORY NAME                                                 │
 │                                                                  │
-│  REPOSITORY NAME                      ┌─────┬─────┬─────┬─────┐ │
-│  Builds: 47 · Oct 1 – Dec 7, 2025    │7 day│30day│90day│ All │ │
-│                                       └─────┴─────┴─────┴─────┘ │
+│  ┌─────┬─────┬─────┬─────┬────────┐                             │
+│  │7 day│30day│90day│ All │ Custom │                             │
+│  └─────┴─────┴─────┴─────┴────────┘                             │
+│                              ↓ (when clicked)                    │
+│                    ┌──────────────────────┐                      │
+│                    │ From: [📅 picker]    │                      │
+│                    │ To:   [📅 picker]    │                      │
+│                    │         [Clear]      │                      │
+│                    └──────────────────────┘                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 **Elements**:
 - Repository name (prominent, left-aligned)
-- Build count
-- Date range of data
 - Date filter buttons (right-aligned on desktop)
+  - Five options: "7 days", "30 days", "90 days", "All", "Custom"
+  - One button is always active (highlighted)
+  - Default: "All" is active on page load
 
 **Date Filter Buttons**:
-- Four options: "7 days", "30 days", "90 days", "All"
-- One button is always active (highlighted)
-- Default: "All" is active on page load
+- **Preset filters**: "7 days", "30 days", "90 days", "All"
+  - Click to apply immediate filter
+  - Clears any custom date range when clicked
+- **Custom filter**: Opens date picker popover
+  - Shows selected range when active
+  - Becomes active when dates are selected or when chart is zoomed via drag
+
+**Custom Date Picker Popover**:
+- **Trigger**: Click on "Custom" button
+- **Position**: 
+  - Desktop: Below the Custom button, right-aligned
+  - Tablet: Below Custom button, adjusted if near viewport edge
+  - Mobile: Intelligently positioned to stay within viewport (may appear above if bottom space limited)
+- **Contains**:
+  - "From" date picker (calendar dropdown)
+  - "To" date picker (calendar dropdown)
+  - "Clear" button (resets to "All" filter)
+- **Behavior**:
+  - Opens immediately on Custom button click
+  - Applies filter immediately when valid date range is selected
+  - Updates in real-time as user adjusts dates
+  - Closes when:
+    - User clicks outside the popover
+    - User clicks "Clear" (reverts to "All")
+    - User selects another preset filter (7 day, 30 day, etc.)
+  - Stays open while user is selecting dates
+- **Validation**:
+  - "From" date cannot be after "To" date
+  - Shows inline error message for invalid ranges
+  - Error prevents filter from applying
+- **Date Constraints**:
+  - Calendar picker disables (grays out) dates before earliest data point
+  - Calendar picker disables (grays out) dates after latest data point
+  - Only dates within available data range are selectable
+- **Default Values**:
+  - When first opened: "From" and "To" default to current filter range (or full range if "All")
+  - When reopened: Shows last selected custom range if Custom was active
+
+**Date Picker Component**:
+- Library: To be researched (see `research.md` Section 12)
+- Requirements: Works offline, no external CDN, bundled in HTML
+- Appearance: Matches report theme (light/dark mode support)
+- Format: Dates displayed in user-friendly format (e.g., "Dec 7, 2025")
+- Returns: ISO format dates (YYYY-MM-DD) for internal state
+- Touch-friendly: Calendar optimized for mobile interaction
 
 **States**:
 | State | Appearance |
 |-------|------------|
-| Default button | Neutral background |
-| Active button | Primary color background, white text |
-| Hover | Slight darkening |
+| Default button | Neutral background (gray), dark gray text |
+| Active preset (7/30/90/All) | Primary blue background, white text |
+| Active custom | Primary blue background, white text |
+| Hover | Slight darkening of background |
+| Popover open | Custom button highlighted, popover visible with shadow |
+| Invalid date range | Red border on date inputs, error message below pickers |
+| Disabled dates in picker | Grayed out, not clickable |
+
+**Responsive Behavior**:
+| Breakpoint | Layout Changes |
+|------------|----------------|
+| **Mobile** (< 640px) | Filter buttons may wrap to multiple rows; popover full width or intelligently positioned |
+| **Tablet** (640px - 1024px) | Filter buttons in single row if space allows; popover below Custom button |
+| **Desktop** (> 1024px) | All filters in single row; popover positioned below Custom button, right-aligned |
 
 ---
 
@@ -157,7 +219,6 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 | State | Appearance |
 |-------|------------|
 | Default | Clean card with subtle shadow |
-| Sparse data (< 5 points) | Yellow warning banner below title |
 | Zoomed | Reset zoom button becomes visible |
 
 ---
@@ -315,36 +376,114 @@ Opacity: 30%
 
 ---
 
-### 3.7 Sparse Data Warning
+### 3.7 Footer
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  ⚠️  Limited data (3 data points). Trends will be more          │
-│      accurate with more builds.                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Visibility**: Appears within a metric card when that metric has fewer than 5 data points.
-
-**Appearance**: Yellow/amber background, warning icon, helpful message.
-
-**Purpose**: Sets expectations that trend calculations may not be reliable yet.
-
----
-
-### 3.8 Footer
-
-```
-┌─────────────────────────────────────────────────────────────────┐
+│  Builds: 47 · 2025-10-01 – 2025-12-07                           │
 │  Generated by Unentropy v1.2.3 · Documentation                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 **Elements**:
-- Tool name and version
-- Link to documentation
+- Build count and active date range (top row)
+  - Updates dynamically based on active filter
+  - Format: "Builds: {count} · {start date} – {end date}"
+  - Dates in ISO format (YYYY-MM-DD)
+- Tool name, version, and documentation link (bottom row)
+
+**Behavior**:
+- Top row updates in real-time when filters change
+- Shows currently visible build count (not total)
+- Date range reflects active filter (preset or custom)
+- If custom range is active, shows the custom date range
+- If zoomed via drag, shows the zoomed date range
 
 **Appearance**: Subtle, doesn't compete with main content.
+
+---
+
+### 3.8 Global Date Filter State
+
+**Purpose**: Single source of truth for date range filtering across all charts and UI elements.
+
+**State Properties**:
+```typescript
+interface GlobalDateFilterState {
+  activeFilter: "7day" | "30day" | "90day" | "all" | "custom";
+  customRange: {
+    from: string | null;  // ISO date string (YYYY-MM-DD)
+    to: string | null;    // ISO date string (YYYY-MM-DD)
+  };
+  effectiveDateRange: {
+    start: string;  // ISO date string (computed)
+    end: string;    // ISO date string (computed)
+  };
+}
+```
+
+**State Synchronization**:
+
+All interactive elements update the same global state:
+
+| User Action | State Update |
+|-------------|--------------|
+| Click "7 days" | Set `activeFilter="7day"`, clear `customRange` |
+| Click "30 days" | Set `activeFilter="30day"`, clear `customRange` |
+| Click "90 days" | Set `activeFilter="90day"`, clear `customRange` |
+| Click "All" | Set `activeFilter="all"`, clear `customRange` |
+| Click "Custom" button | Open popover (state unchanged until dates selected) |
+| Select custom dates (valid) | Set `activeFilter="custom"`, update `customRange.from` and `customRange.to` |
+| Click "Clear" in popover | Set `activeFilter="all"`, clear `customRange`, close popover |
+| Drag-to-zoom on chart | Set `activeFilter="custom"`, update `customRange` based on zoom range |
+| Click "Reset Zoom" | Restore previous `activeFilter` and `customRange` (before zoom) |
+
+**State Effects**:
+
+When state changes, the following updates occur synchronously:
+
+1. **All chart X-axes** update to show filtered range
+2. **Stats grids** recalculate (min/max/trend) for visible range
+3. **Footer** updates build count and date range text
+4. **Active button** highlights in header (appropriate filter button)
+5. **Custom button** shows active state when `activeFilter="custom"`
+
+**Computed Properties**:
+
+`effectiveDateRange` is computed based on current state:
+
+```javascript
+function computeEffectiveDateRange(state, allBuilds) {
+  if (state.activeFilter === "all") {
+    return {
+      start: allBuilds[0].timestamp,
+      end: allBuilds[allBuilds.length - 1].timestamp
+    };
+  }
+  
+  if (state.activeFilter === "custom") {
+    return {
+      start: state.customRange.from,
+      end: state.customRange.to
+    };
+  }
+  
+  // For preset filters (7day, 30day, 90day)
+  const days = { "7day": 7, "30day": 30, "90day": 90 }[state.activeFilter];
+  const endDate = allBuilds[allBuilds.length - 1].timestamp;
+  const startDate = new Date(new Date(endDate) - days * 24 * 60 * 60 * 1000);
+  
+  return {
+    start: startDate.toISOString().split('T')[0],
+    end: endDate
+  };
+}
+```
+
+**State Persistence**:
+- Does NOT persist across page reloads
+- Resets to `{ activeFilter: "all", customRange: { from: null, to: null } }` on page load
+- Zoom state is temporary and can be cleared
 
 ---
 
@@ -352,24 +491,72 @@ Opacity: 30%
 
 ### Synchronization Rules
 
-All charts in the report are interconnected:
+All charts and controls in the report are interconnected through global state:
 
 | User Action | Scope | Effect |
 |-------------|-------|--------|
 | Hover on any chart | All charts | Show tooltip for the same build timestamp |
-| Drag to zoom | All charts | Zoom to selected X-axis range (synced) |
-| Click date filter | All charts | Update visible range, reset any zoom |
-| Toggle preview | All charts | Switch between real and sample data |
-| Click reset zoom | All charts | Return to original scale |
-| Click export | Single chart | Download that chart only |
+| Drag to zoom | All charts + state | Zoom to selected X-axis range (synced), update global state to `activeFilter="custom"` |
+| Click date filter (preset) | All charts + state | Update visible range, reset any zoom, clear custom range |
+| Click "Custom" button | Header only | Open date picker popover |
+| Select custom date range | All charts + state | Apply filter immediately, update all charts, stay popover open for adjustments |
+| Click "Clear" in popover | All charts + state | Reset to "All" filter, close popover |
+| Toggle preview | All charts | Switch between real and sample data (preserves filter state) |
+| Click reset zoom | All charts + state | Return to pre-zoom filter state |
+| Click export | Single chart | Download that chart with current filter applied |
+
+### Date Filter Interaction Flow
+
+**Preset Filters (7/30/90/All)**:
+1. User clicks preset button
+2. Global state updates: `activeFilter` = clicked preset, `customRange` = `{ from: null, to: null }`
+3. All charts re-render with new date range
+4. Stats recalculate for visible range
+5. Footer updates build count and date range
+6. If Custom popover is open, it closes
+
+**Custom Date Filter**:
+1. User clicks "Custom" button
+2. Popover opens below button
+3. User selects "From" date → validated but filter not applied yet
+4. User selects "To" date → immediately validated
+5. If valid: Global state updates to `activeFilter="custom"`, charts filter, popover stays open
+6. If invalid: Error message shown, no state update
+7. User can continue adjusting dates (immediate updates on each change)
+8. User clicks outside or "Clear" → popover closes
+
+**Drag-to-Zoom**:
+1. User drags on any chart (when ≥ 10 data points visible)
+2. Selection box appears on all charts
+3. On release: 
+   - Global state updates to `activeFilter="custom"`
+   - `customRange` set based on zoom range (extracted from data timestamps)
+   - All charts zoom to selected range
+4. "Custom" button becomes active (highlighted)
+5. Footer shows zoomed range and visible build count
+
+**Reset Zoom**:
+1. User clicks "Reset Zoom" button
+2. If previous state was a preset filter: Restore that preset
+3. If previous state was custom: Restore previous custom range
+4. All charts return to pre-zoom scale
+5. Footer updates to reflect restored state
+
+**Empty Range Handling**:
+- When custom date range contains no data points:
+  - Charts display empty state message: "No data in selected range"
+  - Stats show "N/A" for all values
+  - Footer shows "Builds: 0 · {start date} – {end date}"
+  - Filter remains active (user can adjust dates or clear)
 
 ### State Persistence
 
 | State | Persists across page reload? |
 |-------|------------------------------|
-| Date filter selection | No (defaults to "All") |
+| Date filter selection (preset) | No (defaults to "All") |
+| Custom date range | No (defaults to cleared) |
 | Preview toggle | No (defaults to OFF / real data) |
-| Zoom/pan position | No (resets to full range) |
+| Zoom position | No (resets to current filter) |
 
 ---
 
@@ -381,12 +568,14 @@ All charts in the report are interconnected:
 |---------|-----------|---------|
 | Preview Bar | Build count < 10 | ✓ |
 | Preview Bar | Build count ≥ 10 | ✗ |
-| Reset Zoom Button | Chart is zoomed | ✓ |
-| Reset Zoom Button | Chart at default zoom | ✗ |
-| Sparse Warning | Metric has < 5 data points | ✓ |
-| Sparse Warning | Metric has ≥ 5 data points | ✗ |
-| Drag-to-zoom | Metric has ≥ 10 data points | Enabled |
-| Drag-to-zoom | Metric has < 10 data points | Disabled |
+| Custom Date Popover | "Custom" button clicked | ✓ |
+| Custom Date Popover | Click outside, Clear, or preset filter clicked | ✗ |
+| Clear button (in popover) | Always visible in popover | ✓ |
+| Date range error message | Invalid date range entered (from > to) | ✓ |
+| Reset Zoom Button | Chart is zoomed via drag | ✓ |
+| Reset Zoom Button | Chart at filtered state (not zoomed) | ✗ |
+| Drag-to-zoom | Metric has ≥ 10 data points in visible range | Enabled |
+| Drag-to-zoom | Metric has < 10 data points in visible range | Disabled |
 
 ### Empty States
 
@@ -394,6 +583,7 @@ All charts in the report are interconnected:
 |----------|---------|
 | No metrics collected | Friendly message with guidance on how to start tracking |
 | Date filter yields no data | "No data in selected range" message in chart area |
+| Custom range with no data | "No data in selected range" message; footer shows "Builds: 0" |
 | Single data point | Show as dot, trend shows "N/A" |
 
 ---
@@ -406,7 +596,6 @@ All charts in the report are interconnected:
 |---------|--------------|
 | Chart line/fill | Primary blue |
 | Active filter button | Primary blue |
-| Warning banner | Amber/yellow |
 | Positive trend | Green |
 | Negative trend | Red |
 | Neutral/stable | Gray |
@@ -428,11 +617,14 @@ The report respects the user's system preference for light/dark mode:
 |-------------|--------|
 | Tooltip appear/update | Instant |
 | Chart data switch (preview toggle) | Instant |
-| Date filter update | Instant (< 300ms) |
+| Date filter update (preset) | Instant (< 300ms) |
+| Date filter update (custom) | Instant (< 300ms) on date selection |
+| Popover open/close | ~150ms fade in/out |
 | Zoom/pan | Real-time (follows cursor) |
 | Button hover state | ~150ms transition |
+| Footer update | Instant (< 100ms) when filter changes |
 
-**Principle**: Prioritize responsiveness. Data updates should feel instant. Only decorative transitions (hover states) have subtle animation.
+**Principle**: Prioritize responsiveness. Data updates should feel instant. Only decorative transitions (hover states, popover animations) have subtle animation.
 
 ---
 
@@ -442,22 +634,27 @@ The report respects the user's system preference for light/dark mode:
 
 | Key | Action |
 |-----|--------|
-| Tab | Move between interactive elements (filters, toggle, buttons) |
-| Enter/Space | Activate buttons and toggle |
-| Arrow keys | Navigate within filter button group |
+| Tab | Move between interactive elements (filters, toggle, buttons, date pickers) |
+| Enter/Space | Activate buttons, toggle, and open/close popover |
+| Arrow keys | Navigate within filter button group; navigate calendar in date picker |
+| Escape | Close Custom date picker popover |
 
 ### Screen Reader Support
 
 - Charts have descriptive ARIA labels summarizing the data
 - Stats grid is readable as a data table
 - Toggle announces its state ("Show preview, switch, off")
-- Filter buttons announce active state
+- Filter buttons announce active state ("7 days, button, selected")
+- Custom popover announces when opened/closed
+- Date pickers have proper labels ("From date" / "To date")
+- Error messages announced when invalid date range entered
 
 ### Visual Accessibility
 
 - All text meets WCAG AA contrast requirements
 - Information is not conveyed by color alone (arrows supplement trend colors)
-- Focus indicators are clearly visible
+- Focus indicators are clearly visible on all interactive elements
+- Date picker disabled dates are distinguishable by reduced opacity and cursor change
 
 ---
 

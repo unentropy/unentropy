@@ -272,6 +272,28 @@ const FIXTURES: Record<string, FixtureConfig> = {
   },
 };
 
+function calculateBaseTimestamp(endDate: Date, config: FixtureConfig): number {
+  const dayInMs = 24 * 60 * 60 * 1000;
+
+  if (config.timestampGenerator) {
+    // For fixtures with custom timestamp generators (e.g., huge-report),
+    // estimate the time span and work backwards
+    if (config.name === "huge-report") {
+      // huge-report has ~4 builds per day, so approximate the total days
+      const estimatedDays = Math.ceil(config.buildCount / 4);
+      return endDate.getTime() - estimatedDays * dayInMs;
+    }
+
+    // For other custom generators, use a simple backward calculation
+    return endDate.getTime() - config.buildCount * dayInMs;
+  }
+
+  // For simple fixtures, calculate exact base timestamp
+  // Each build is 1 day apart, so subtract (buildCount - 1) days
+  const buildInterval = config.buildCount > 10 ? 1 : 1;
+  return endDate.getTime() - (config.buildCount - 1) * buildInterval * dayInMs;
+}
+
 async function generateFixture(config: FixtureConfig): Promise<void> {
   console.log(`\n📦 Generating fixture: ${config.name}`);
   console.log(`  Database: ${config.dbPath}`);
@@ -291,8 +313,12 @@ async function generateFixture(config: FixtureConfig): Promise<void> {
   // Get adapter for direct data access (test fixture generation)
   const adapter = new SqliteDatabaseAdapter(db.getConnection());
 
-  const baseTimestamp = new Date("2023-08-01T00:00:00Z").getTime();
+  const hourInMs = 60 * 60 * 1000;
   const dayInMs = 24 * 60 * 60 * 1000;
+
+  // Calculate base timestamp to end approximately 1 hour before now
+  const endDate = new Date(Date.now() - hourInMs);
+  const baseTimestamp = calculateBaseTimestamp(endDate, config);
 
   const buildInterval = config.buildCount > 10 ? 1 : 1;
 

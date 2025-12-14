@@ -40,7 +40,6 @@ Represents a single metric's data aligned to the complete build history.
 | description | string \| null | Optional description |
 | values | (number \| null)[] | Values aligned to build history, null for gaps |
 | stats | SummaryStats | Calculated statistics (existing type) |
-| sparse | boolean | True if < 5 data points |
 | dataPointCount | number | Actual number of non-null values |
 
 **Relationships**:
@@ -158,17 +157,43 @@ Runtime state for synchronized drag-to-zoom, stored in `chart.crosshair` object.
 
 ### 7. DateFilterState
 
-Runtime state for date range filtering.
+Runtime state for date range filtering, supporting both preset and custom date ranges.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| activeFilter | '7d' \| '30d' \| '90d' \| 'all' | Currently selected filter |
-| baseTimestamp | number | Most recent build timestamp (filter anchor) |
+| activeFilter | '7d' \| '30d' \| '90d' \| 'all' \| 'custom' | Currently selected filter type |
+| customRange | { from: string \| null, to: string \| null } | Custom date range in ISO format (YYYY-MM-DD) |
+| effectiveDateRange | { start: string, end: string } | Computed effective date range (ISO format) |
+| baseTimestamp | number | Most recent build timestamp (filter anchor for presets) |
+| availableDateRange | { min: string, max: string } | Available data range for calendar constraints (ISO format) |
+
+**State Transitions**:
+
+| User Action | State Change |
+|-------------|--------------|
+| Click "7 days" | `activeFilter = '7d'`, `customRange = { from: null, to: null }` |
+| Click "30 days" | `activeFilter = '30d'`, `customRange = { from: null, to: null }` |
+| Click "90 days" | `activeFilter = '90d'`, `customRange = { from: null, to: null }` |
+| Click "All" | `activeFilter = 'all'`, `customRange = { from: null, to: null }` |
+| Select custom dates | `activeFilter = 'custom'`, `customRange = { from: <date>, to: <date> }` |
+| Drag-to-zoom chart | `activeFilter = 'custom'`, `customRange` = extracted from zoom range |
+| Click "Clear" in popover | `activeFilter = 'all'`, `customRange = { from: null, to: null }` |
+| Click "Reset Zoom" | Restore previous `activeFilter` and `customRange` (before zoom) |
+
+**Computed Properties**:
+
+`effectiveDateRange` is computed based on current state:
+- If `activeFilter === 'all'`: Start = earliest build, End = latest build
+- If `activeFilter === 'custom'`: Start = customRange.from, End = customRange.to
+- If `activeFilter === '7d'|'30d'|'90d'`: Calculated relative to most recent build
 
 **Behavior**:
-- Default is 'all' on page load
-- Filter is calculated relative to most recent build
-- Zoom operates within filtered range
+- Default is `activeFilter = 'all'` on page load
+- Preset filters calculated relative to most recent build
+- Custom range persists when popover is closed (unless cleared)
+- Zoom operates within current filtered range
+- Reset zoom restores pre-zoom filter state
+- Custom range validation occurs before applying filter
 
 ---
 
@@ -231,7 +256,6 @@ NormalizedBuildData
 ### NormalizedMetricData
 - `values.length` MUST equal `NormalizedBuildData.count`
 - `dataPointCount` MUST equal count of non-null values
-- `sparse` MUST be true if `dataPointCount < 5`
 
 ### SyntheticDataSet
 - `values.length` MUST equal 20
@@ -249,9 +273,17 @@ NormalizedBuildData
 - Charts with < 3 data points MUST have zoom disabled
 
 ### DateFilterState
-- `activeFilter` MUST be one of: '7d', '30d', '90d', 'all'
+- `activeFilter` MUST be one of: '7d', '30d', '90d', 'all', 'custom'
 - `baseTimestamp` MUST be the most recent build timestamp in database
 - When filter is 'all', xMin/xMax MUST be undefined (show all data)
+- When `activeFilter === 'custom'`, `customRange.from` and `customRange.to` MUST both be non-null and valid ISO date strings
+- `customRange.from` MUST be less than or equal to `customRange.to` (validated before applying filter)
+- `customRange.from` MUST be greater than or equal to `availableDateRange.min`
+- `customRange.to` MUST be less than or equal to `availableDateRange.max`
+- `availableDateRange.min` MUST equal the timestamp of the earliest build in the database
+- `availableDateRange.max` MUST equal the timestamp of the latest build in the database
+- `effectiveDateRange` MUST accurately reflect the currently visible date range based on `activeFilter`
+- When `activeFilter` is a preset ('7d'|'30d'|'90d'), `customRange` MUST be `{ from: null, to: null }`
 
 ### ReportRenderData
 - `showToggle` MUST be true if `metadata.buildCount < 10`

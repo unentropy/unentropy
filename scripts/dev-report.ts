@@ -92,8 +92,13 @@ async function generateFixtureData(): Promise<Storage> {
   await db.ready();
 
   const adapter = new SqliteDatabaseAdapter(db.getConnection());
-  const baseTimestamp = new Date("2025-01-01T00:00:00Z").getTime();
+
+  const hourInMs = 60 * 60 * 1000;
   const dayInMs = 24 * 60 * 60 * 1000;
+
+  // Calculate base timestamp to end approximately 1 hour before now
+  const endDate = new Date(Date.now() - hourInMs);
+  const baseTimestamp = endDate.getTime() - (BUILD_COUNT - 1) * dayInMs;
 
   for (let i = 0; i < BUILD_COUNT; i++) {
     const buildTimestamp = new Date(baseTimestamp + i * dayInMs).toISOString();

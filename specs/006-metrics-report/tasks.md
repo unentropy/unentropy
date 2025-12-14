@@ -3,9 +3,13 @@
 **Input**: Design documents from `/specs/006-metrics-report/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/report-data-schema.md
 
+**Updated**: 2025-12-14 - Added Phase 8b for User Story 6b (Custom Date Range Picker)
+
 **Tests**: Visual review fixtures serve as the primary validation mechanism for this UI-focused feature.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+**Note**: Phase 8b (Custom Date Range) requires calendar library research to be completed first (see research.md Section 12). Tasks T047-T048 must be completed before proceeding with the remaining custom date picker tasks.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -217,7 +221,172 @@
 - [ ] T045 [US6] Add activeFilter state and button highlighting logic
 - [ ] T046 [US6] Handle empty range case - show "No data in selected range" when filter yields no data
 
-**Checkpoint**: User Story 6 complete - date range filtering works
+**Checkpoint**: User Story 6 complete - preset date range filtering works
+
+---
+
+## Phase 8b: User Story 6b - Custom Date Range Picker (Priority: P2)
+
+**Goal**: Users can select custom date ranges using a calendar picker, with integration to drag-to-zoom and footer updates
+
+**Prerequisites**: Calendar library research must be completed (see research.md Section 12) and library selected
+
+**Independent Test**: Generate report spanning 100 days, click "Custom", select Feb 1-15 in calendar, verify all charts filter to that range
+
+### Implementation for User Story 6b (Custom Date Range)
+
+**Part A: Research & Library Selection**
+
+- [ ] T047 [US6b] Research calendar picker libraries per criteria in research.md Section 12
+  - Evaluate Flatpickr, Pikaday, Vanilla Calendar, Litepicker, native HTML5
+  - Test bundle size, accessibility, mobile support, date constraints
+  - Document findings in research.md Section 12
+  - Make final recommendation with rationale
+
+- [ ] T048 [US6b] Select and integrate calendar library
+  - Install selected library (or bundle inline if needed)
+  - Verify works without external CDN (self-contained requirement)
+  - Test basic calendar functionality in isolation
+
+**Part B: Data Schema & State Management**
+
+- [ ] T049 [US6b] Add availableDateRange to ChartsData interface in src/reporter/types.ts
+  - Add `availableDateRange: { min: string; max: string }` field
+  - Update type documentation
+
+- [ ] T050 [US6b] Update generateReport() in src/reporter/generator.ts to include availableDateRange
+  - Calculate min date from earliest build timestamp
+  - Calculate max date from latest build timestamp
+  - Convert to ISO format (YYYY-MM-DD)
+  - Add to ChartsData output
+
+- [ ] T051 [US6b] Extend global state in ChartScripts.tsx for custom date range
+  - Add `customRange: { from: string | null, to: string | null }` to dateFilterState
+  - Add `availableDateRange` from chartsData
+  - Initialize state with proper defaults
+
+**Part C: Custom Date Picker Component**
+
+- [ ] T052 [US6b] Create CustomDatePickerPopover.tsx component at src/reporter/templates/default/components/CustomDatePickerPopover.tsx
+  - Integrate selected calendar library
+  - Add "From" date picker with calendar dropdown
+  - Add "To" date picker with calendar dropdown
+  - Add "Clear" button
+  - Configure calendar to disable dates outside availableDateRange
+  - Add date validation (From <= To)
+  - Display inline error for invalid ranges
+
+- [ ] T053 [US6b] Add popover positioning logic to CustomDatePickerPopover
+  - Desktop: position below Custom button, right-aligned
+  - Tablet: adjust if near viewport edge
+  - Mobile: intelligent positioning (may appear above if bottom space limited)
+  - Use CSS or JavaScript positioning library
+
+- [ ] T054 [US6b] Export CustomDatePickerPopover from src/reporter/templates/default/components/index.ts
+
+- [ ] T055 [US6b] Update DateRangeFilter.tsx to include "Custom" button
+  - Add "Custom" as 5th button
+  - Add click handler to open/close popover
+  - Manage popover visibility state
+
+**Part D: Custom Date Range Logic**
+
+- [ ] T056 [US6b] Add applyCustomDateRange() function in ChartScripts.tsx
+  - Validate From <= To dates
+  - Show error message if invalid
+  - Update dateFilterState.activeFilter = 'custom'
+  - Update dateFilterState.customRange = { from, to }
+  - Apply date range to all charts (set scale min/max)
+  - Update filter button highlights
+  - Call updateFooter()
+
+- [ ] T057 [US6b] Add calendar picker event handlers in ChartScripts.tsx
+  - On date selection: call applyCustomDateRange()
+  - On "Clear" button: reset to "All" filter, close popover
+  - On outside click: close popover (preserve valid custom range)
+
+- [ ] T058 [US6b] Integrate custom range with drag-to-zoom
+  - When chart is zoomed via drag, extract date range from zoom
+  - Update dateFilterState.activeFilter = 'custom'
+  - Update dateFilterState.customRange with zoomed dates
+  - Highlight Custom button
+  - Call updateFooter()
+
+- [ ] T059 [US6b] Update preset filter click handlers
+  - When preset filter clicked: clear customRange
+  - If popover is open: close it
+  - Apply preset filter as before
+
+- [ ] T060 [US6b] Add default date range logic when opening popover
+  - If "All" is active: default From/To to full data range
+  - If preset is active: default From/To to current preset range
+  - If custom is active: show current custom range
+
+**Part E: Footer Updates**
+
+- [ ] T061 [US6b] Update Footer.tsx component to display build count and date range
+  - Move "Builds: X · YYYY-MM-DD – YYYY-MM-DD" from Header to Footer
+  - Display on first row of footer
+  - Version info on second row
+
+- [ ] T062 [US6b] Add updateFooter() function in ChartScripts.tsx
+  - Calculate visible build count based on active filter
+  - Get effective date range (from global state)
+  - Update footer DOM with current values
+  - Format dates in ISO (YYYY-MM-DD)
+
+- [ ] T063 [US6b] Call updateFooter() from all filter change handlers
+  - After preset filter applied
+  - After custom range applied
+  - After zoom applied
+  - After reset zoom
+
+**Part F: Edge Cases & Validation**
+
+- [ ] T064 [US6b] Handle empty custom date range
+  - Show "No data in selected range" in charts
+  - Display "Builds: 0 · {from} – {to}" in footer
+  - Keep custom filter active (allow user to adjust)
+
+- [ ] T065 [US6b] Add keyboard accessibility for custom date picker
+  - Tab navigation through calendar
+  - Arrow keys to navigate dates
+  - Enter/Space to select dates
+  - Escape to close popover
+  - Verify focus indicators visible
+
+- [ ] T066 [US6b] Add ARIA labels for custom date picker
+  - Label "From date" and "To date" pickers
+  - Announce error messages
+  - Announce popover open/close states
+
+- [ ] T067 [US6b] Test mobile responsiveness
+  - Verify popover positioning on mobile
+  - Test touch interaction with calendar
+  - Verify calendar is touch-friendly
+
+**Part G: Integration Testing**
+
+- [ ] T068 [US6b] Test custom range with preset filters
+  - Select custom range → click preset → verify custom cleared
+  - Click preset → open custom popover → verify defaults to preset range
+
+- [ ] T069 [US6b] Test custom range with zoom
+  - Drag-to-zoom → verify Custom button activates
+  - Verify custom range reflects zoomed dates
+  - Reset zoom from preset → verify returns to preset
+  - Reset zoom from custom → verify returns to custom range
+
+- [ ] T070 [US6b] Test custom range with preview toggle
+  - Apply custom range → toggle preview → verify filter preserved
+  - Verify footer updates correctly
+
+- [ ] T071 [US6b] Add visual fixture for custom date range testing
+  - Create fixture spanning 100+ days
+  - Test custom range selection
+  - Test edge cases (empty range, invalid range)
+
+**Checkpoint**: User Story 6b complete - custom date range picker fully functional
 
 ---
 
@@ -229,11 +398,11 @@
 
 ### Implementation for User Story 7 (PNG Export)
 
-- [ ] T047 [US7] Add export button (download icon) to MetricCard.tsx header area
-- [ ] T048 [US7] Add exportChartAsPng() function in ChartScripts.tsx using canvas.toDataURL()
-- [ ] T049 [US7] Add title drawing to exported image (metric name as header)
-- [ ] T050 [US7] Add "(Preview Data)" watermark when exporting with dummy data active
-- [ ] T051 [US7] Add click handlers for export buttons
+- [ ] T072 [US7] Add export button (download icon) to MetricCard.tsx header area
+- [ ] T073 [US7] Add exportChartAsPng() function in ChartScripts.tsx using canvas.toDataURL()
+- [ ] T074 [US7] Add title drawing to exported image (metric name as header)
+- [ ] T075 [US7] Add "(Preview Data)" watermark when exporting with dummy data active
+- [ ] T076 [US7] Add click handlers for export buttons
 
 **Checkpoint**: User Story 7 complete - PNG export works with proper titles/watermarks
 
@@ -243,32 +412,38 @@
 
 **Purpose**: Visual validation, edge cases, and accessibility
 
-- [ ] T052 [P] Update minimal fixture in tests/fixtures/visual-review/minimal/ to have exactly 5 builds (toggle visible)
-- [ ] T053 [P] Update sparse-data fixture in tests/fixtures/visual-review/sparse-data/ to have 3 builds with gaps in metric data
-- [ ] T054 [P] Verify full-featured fixture in tests/fixtures/visual-review/full-featured/ has 25 builds (toggle hidden)
-- [ ] T055 [P] Update edge-cases fixture in tests/fixtures/visual-review/edge-cases/ to include metric with single data point and flatline data
-- [ ] T056 Add fixture with 50+ builds to test zoom/pan functionality
-- [ ] T057 Add fixture spanning 100+ days to test date range filtering
-- [ ] T058 Run bun run visual-review to generate fixtures and manually verify all acceptance scenarios
-- [ ] T059 Verify toggle keyboard accessibility (Tab navigation, Space/Enter activation, focus ring visibility)
-- [ ] T060 Verify ARIA attributes on toggle (role="switch") and charts (aria-label)
-- [ ] T061 [P] Verify crosshair vertical line appears in all visual fixtures:
+- [ ] T077 [P] Update minimal fixture in tests/fixtures/visual-review/minimal/ to have exactly 5 builds (toggle visible)
+- [ ] T078 [P] Update sparse-data fixture in tests/fixtures/visual-review/sparse-data/ to have 3 builds with gaps in metric data
+- [ ] T079 [P] Verify full-featured fixture in tests/fixtures/visual-review/full-featured/ has 25 builds (toggle hidden)
+- [ ] T080 [P] Update edge-cases fixture in tests/fixtures/visual-review/edge-cases/ to include metric with single data point and flatline data
+- [ ] T081 Add fixture with 50+ builds to test zoom/pan functionality
+- [ ] T082 Add fixture spanning 100+ days to test date range filtering and custom date picker
+- [ ] T083 Run bun run visual-review to generate fixtures and manually verify all acceptance scenarios
+- [ ] T084 Verify toggle keyboard accessibility (Tab navigation, Space/Enter activation, focus ring visibility)
+- [ ] T085 Verify ARIA attributes on toggle (role="switch") and charts (aria-label)
+- [ ] T086 [P] Verify crosshair vertical line appears in all visual fixtures:
   - Hover over any chart → vertical line visible on all metric charts
   - Line appears on line charts and bar charts
   - Line is visible in light mode and dark mode (color contrast OK)
-- [ ] T062 [P] Verify crosshair works with zoom (US5 integration):
+- [ ] T087 [P] Verify crosshair works with zoom (US5 integration):
   - Zoom one chart → vertical line still appears and syncs across charts
   - Line respects zoomed chartArea boundaries (doesn't extend beyond zoom)
   - Reset zoom → vertical line works normally again
-- [ ] T063 [P] Verify crosshair works with date filter (US6 integration):
-  - Apply date filter → vertical line still appears on hover
+- [ ] T088 [P] Verify crosshair works with date filter (US6/US6b integration):
+  - Apply preset filter → vertical line still appears on hover
+  - Apply custom filter → vertical line still appears on hover
   - Line position is visual (not affected by data filtering)
-- [ ] T064 Verify browser compatibility for crosshair:
+- [ ] T089 Verify custom date picker accessibility:
+  - Keyboard navigation through calendar
+  - ARIA labels on date pickers
+  - Error messages announced
+  - Popover open/close announced
+- [ ] T090 Verify browser compatibility for all features:
   - Test on modern Chrome, Firefox, Safari, Edge
-  - Verify no console errors related to canvas or event handling
-- [ ] T065 Run bun run typecheck to ensure no TypeScript errors
-- [ ] T066 Run bun lint to ensure code style compliance
-- [ ] T067 Run bun test to verify existing tests still pass
+  - Verify no console errors related to canvas, calendar, or event handling
+- [ ] T091 Run bun run typecheck to ensure no TypeScript errors
+- [ ] T092 Run bun lint to ensure code style compliance
+- [ ] T093 Run bun test to verify existing tests still pass
 
 ---
 
@@ -283,7 +458,8 @@
 - **User Story 4 (Phase 5)**: Depends on Foundational (Phase 2) completion (gaps/normalized X-axis)
 - **User Story 3 (Phase 6)**: Depends on US1 charts working (synchronized tooltips)
 - **User Story 5 (Phase 7)**: Depends on US1 charts working (zoom/pan)
-- **User Story 6 (Phase 8)**: Depends on US1 charts working (date filtering)
+- **User Story 6 (Phase 8)**: Depends on US1 charts working (preset date filtering)
+- **User Story 6b (Phase 8b)**: Depends on US6 (preset filters) + calendar library research completed
 - **User Story 7 (Phase 9)**: Depends on US1 charts working (PNG export)
 - **Polish (Phase 10)**: Depends on all user stories being complete
 
@@ -294,7 +470,8 @@
 - **User Story 3 (P1)**: Can start after US1 - Synchronized tooltips
 - **User Story 4 (P3)**: Can start after Phase 2 - Consistent build history/gaps
 - **User Story 5 (P2)**: Can start after US1 - Zoom/pan
-- **User Story 6 (P2)**: Can start after US1 - Date range filtering
+- **User Story 6 (P2)**: Can start after US1 - Preset date range filtering
+- **User Story 6b (P2)**: Can start after US6 + calendar library research complete - Custom date range picker
 - **User Story 7 (P3)**: Can start after US1 - PNG export
 
 ### Within Each User Story
@@ -352,9 +529,10 @@
 3. **+Tooltips**: Add US3 → Synchronized tooltips across charts
 4. **+Gaps**: Add US4 → Missing data gap handling
 5. **+Zoom**: Add US5 → Zoom and pan functionality
-6. **+Filter**: Add US6 → Date range filtering
-7. **+Export**: Add US7 → PNG export
-8. **Polish**: Visual validation and accessibility compliance
+6. **+Preset Filters**: Add US6 → Preset date range filtering (7/30/90/All)
+7. **+Custom Range**: Add US6b → Custom date range picker (requires research first)
+8. **+Export**: Add US7 → PNG export
+9. **Polish**: Visual validation and accessibility compliance
 
 ### Recommended Single-Developer Order
 
@@ -367,9 +545,11 @@ Since most files are shared across stories, sequential execution is recommended:
 5. T024-T028 (US4 - gaps) → Validate
 6. T029-T032 (US3 - tooltips) → Validate
 7. T033-T039 (US5 - zoom) → Validate
-8. T040-T046 (US6 - filter) → Validate
-9. T047-T051 (US7 - export) → Validate
-10. T052-T063 (Polish)
+8. T040-T046 (US6 - preset filters) → Validate
+9. **PAUSE** - Complete calendar library research (T047-T048)
+10. T049-T071 (US6b - custom date picker) → Validate
+11. T072-T076 (US7 - export) → Validate
+12. T077-T093 (Polish)
 
 ---
 

@@ -118,7 +118,7 @@ Users can zoom into charts to examine specific time periods in detail by drag-se
 
 ---
 
-### User Story 6 - Filter by Date Range (Priority: P2)
+### User Story 6 - Filter by Preset Date Range (Priority: P2)
 
 Users can quickly filter all charts to show data from predefined time periods (last 7 days, 30 days, 90 days, or all time). This provides a fast way to focus on recent trends without manual zooming.
 
@@ -128,7 +128,7 @@ Users can quickly filter all charts to show data from predefined time periods (l
 
 **Acceptance Scenarios**:
 
-1. **Given** a report is opened, **When** the user views the header area, **Then** they see filter buttons: "7 days", "30 days", "90 days", "All".
+1. **Given** a report is opened, **When** the user views the header area, **Then** they see filter buttons: "7 days", "30 days", "90 days", "All", "Custom".
 
 2. **Given** the filter buttons are visible, **When** the user clicks "30 days", **Then** all charts update to show only data from the last 30 days.
 
@@ -137,6 +137,42 @@ Users can quickly filter all charts to show data from predefined time periods (l
 4. **Given** a report is first opened, **When** no filter has been selected, **Then** "All" is the default active filter.
 
 5. **Given** a date range filter is applied, **When** no data exists within that range, **Then** each chart displays an empty state message within the chart area.
+
+---
+
+### User Story 6b - Filter by Custom Date Range (Priority: P2)
+
+Users can select a custom date range using calendar pickers to analyze specific time periods not covered by preset filters. The custom range integrates with drag-to-zoom, allowing users to zoom charts and have the Custom filter automatically activate with the zoomed range.
+
+**Why this priority**: Enables precise analysis of arbitrary time periods and provides flexibility beyond preset filters. Critical for users investigating specific incidents or milestones.
+
+**Independent Test**: Can be fully tested by generating a report spanning 100 days, opening the custom date picker, selecting a specific date range (e.g., Feb 1 - Feb 15), and verifying all charts filter to that range.
+
+**Acceptance Scenarios**:
+
+1. **Given** the user clicks the "Custom" button, **When** the popover opens, **Then** they see "From" and "To" date pickers with calendar dropdowns and a "Clear" button.
+
+2. **Given** the custom date picker popover is open, **When** the user selects a "From" date (e.g., 2025-02-01) and a "To" date (e.g., 2025-02-15), **Then** all charts immediately filter to show only data within that date range.
+
+3. **Given** a custom date range is active, **When** the user views the header, **Then** the "Custom" button is visually highlighted as the active filter.
+
+4. **Given** the custom date picker is open, **When** the user tries to select a "From" date that is after the "To" date, **Then** an error message is displayed and the filter is not applied.
+
+5. **Given** the calendar picker is displayed, **When** the user views dates, **Then** dates before the earliest data point and after the latest data point are grayed out and not selectable.
+
+6. **Given** a custom date range is active, **When** the user clicks a preset filter (7 days, 30 days, etc.), **Then** the custom range is cleared and the preset filter is applied.
+
+7. **Given** a custom date range is active, **When** the user clicks "Clear" in the popover, **Then** the filter resets to "All" and the popover closes.
+
+8. **Given** the user drags to zoom on any chart, **When** the zoom is applied, **Then** the "Custom" button becomes active and the custom date range reflects the zoomed time period.
+
+9. **Given** the custom date picker popover is open, **When** the user clicks outside the popover, **Then** the popover closes (and keeps any valid custom range that was set).
+
+10. **Given** a custom date range contains no data points, **When** the filter is applied, **Then** each chart displays "No data in selected range" and the footer shows "Builds: 0".
+
+11. **Given** the custom date picker is open, **When** the user initially opens it, **Then** the "From" and "To" fields default to the current filter range (or full range if "All" is active).
+
+12. **Given** the user is on a mobile device, **When** they click the "Custom" button, **Then** the popover is intelligently positioned to stay within the viewport.
 
 ---
 
@@ -198,6 +234,39 @@ Users can export individual charts as PNG images for use in presentations, docum
 - What happens when the user zooms while a date range filter is active?
   - Zoom operates within the filtered range; reset zoom returns to the filtered view, not "All" data.
 
+- What happens when the user selects a custom date range that contains no data?
+  - Charts display "No data in selected range" message, stats show "N/A", footer shows "Builds: 0 · {from} – {to}". The custom range remains active and user can adjust dates or clear.
+
+- What happens when the user tries to select a "From" date after the "To" date?
+  - An inline error message appears below the date pickers: "From date cannot be after To date". The filter is not applied until the range is valid.
+
+- What happens when the user clicks "Custom" while a preset filter is active?
+  - The popover opens with "From" and "To" defaulting to the current preset's date range (e.g., if "30 days" was active, From = 30 days ago, To = today).
+
+- What happens when the user drags to zoom a chart while a custom date range is already active?
+  - The existing custom range is replaced with the new zoomed range. The Custom button remains active (highlighted).
+
+- What happens when the user drags to zoom a chart while a preset filter (e.g., "30 days") is active?
+  - The global state changes to `activeFilter: "custom"` and the custom range is set to the zoomed range. The "Custom" button becomes active instead of "30 days".
+
+- What happens when the user clicks "Reset Zoom" after zooming from a preset filter?
+  - The global state returns to the previous preset filter (e.g., "30 days"). The preset button becomes active again, Custom button becomes inactive.
+
+- What happens when the user clicks "Reset Zoom" after zooming from a custom range?
+  - The global state returns to the previous custom range. The Custom button remains active with the original custom range restored.
+
+- What happens when the custom date picker popover is open and the user clicks a preset filter button?
+  - The popover immediately closes and the preset filter is applied, clearing any custom range.
+
+- What happens when the user selects future dates in the custom date picker?
+  - Future dates (after the latest data point) are grayed out and not selectable in the calendar.
+
+- What happens when the user is on a mobile device with limited viewport space?
+  - The custom date picker popover is intelligently positioned (may appear above the button if insufficient space below) and calendar is touch-optimized.
+
+- What happens to the footer when switching between filters?
+  - The footer immediately updates to show the visible build count and date range for the active filter (preset or custom).
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -236,7 +305,6 @@ Users can export individual charts as PNG images for use in presentations, docum
 
 **Data Quality Indicators**
 
-- **FR-021**: Metrics with fewer than 5 data points MUST display a "sparse data" warning indicator.
 - **FR-022**: Reports with zero metrics MUST display an empty state with guidance on how to start collecting data.
 
 **Styling and Responsiveness**
@@ -275,12 +343,35 @@ Users can export individual charts as PNG images for use in presentations, docum
 
 **Date Range Filtering**
 
-- **FR-044**: Report MUST display filter buttons in the header: "7 days", "30 days", "90 days", "All".
-- **FR-045**: Clicking a filter button MUST update all charts to display only data within that time range.
+- **FR-044**: Report MUST display filter buttons in the header: "7 days", "30 days", "90 days", "All", "Custom".
+- **FR-045**: Clicking a preset filter button (7d/30d/90d/All) MUST update all charts to display only data within that time range.
 - **FR-046**: The active filter MUST be visually highlighted (e.g., different background color).
 - **FR-047**: The default active filter MUST be "All" when the report is first opened.
 - **FR-048**: When no data exists within the selected range, charts MUST display "No data in selected range" message.
-- **FR-049**: Date range filtering MUST be calculated relative to the most recent build timestamp in the database.
+- **FR-049**: Preset date range filtering MUST be calculated relative to the most recent build timestamp in the database.
+
+**Custom Date Range Filtering**
+
+- **FR-049a**: Clicking the "Custom" button MUST open a popover containing "From" and "To" date pickers and a "Clear" button.
+- **FR-049b**: The date picker popover MUST be positioned below the Custom button on desktop and intelligently positioned on mobile/tablet to stay within viewport.
+- **FR-049c**: Each date picker MUST display a calendar dropdown for date selection.
+- **FR-049d**: The calendar picker MUST disable (gray out) dates before the earliest data point in the database.
+- **FR-049e**: The calendar picker MUST disable (gray out) dates after the latest data point in the database.
+- **FR-049f**: When a valid date range is selected (From ≤ To), all charts MUST immediately filter to that range.
+- **FR-049g**: When "From" date is after "To" date, an error message MUST be displayed and the filter MUST NOT be applied.
+- **FR-049h**: Clicking "Clear" in the custom date picker popover MUST reset the filter to "All" and close the popover.
+- **FR-049i**: Clicking outside the custom date picker popover MUST close the popover while preserving any valid custom range.
+- **FR-049j**: Clicking a preset filter when custom range is active MUST clear the custom range and apply the preset filter.
+- **FR-049k**: When the custom date picker first opens, "From" and "To" fields MUST default to the current effective date range.
+- **FR-049l**: Dates in the picker MUST be displayed in user-friendly format (e.g., "Dec 7, 2025") but stored internally in ISO format (YYYY-MM-DD).
+
+**Global State Management**
+
+- **FR-049m**: All date filtering (preset and custom) MUST update a single global state object.
+- **FR-049n**: When a chart is zoomed via drag-to-zoom, the global state MUST update to `activeFilter: "custom"` with the custom range set to the zoomed date range.
+- **FR-049o**: The "Custom" button MUST become active (highlighted) when a chart is zoomed via drag.
+- **FR-049p**: The footer MUST display the current build count and active date range, updating in real-time when filters change.
+- **FR-049q**: The footer date range MUST be displayed in ISO format (YYYY-MM-DD).
 
 **Chart Export**
 
@@ -292,7 +383,7 @@ Users can export individual charts as PNG images for use in presentations, docum
 
 ### Key Entities
 
-- **MetricSection**: A visual card containing a single metric's chart, statistics, and metadata. Attributes: metric name, description, chart type, data points, summary stats, sparse flag.
+- **MetricSection**: A visual card containing a single metric's chart, statistics, and metadata. Attributes: metric name, description, chart type, data points, summary stats.
 
 - **BuildContext**: A single CI/CD run that may contain values for one or more metrics. Attributes: timestamp, commit SHA, branch, run number.
 

@@ -2,7 +2,7 @@
 
 **Feature**: 006-metrics-report  
 **Date**: 2025-11-29  
-**Updated**: 2025-12-07
+**Updated**: 2025-12-14 (Added custom date range picker)
 
 ## Overview
 
@@ -206,7 +206,7 @@ function initializeChartsWithPreview(timeline, metadata, lineCharts, barCharts, 
     var ctx = document.getElementById("chart-" + chart.id);
     if (ctx) {
       var config = buildLineChart(chart, timeline, metadata);
-      // Disable zoom if sparse
+      // Disable zoom if insufficient data points
       if (chart.dataPointCount < 3) {
         config.options.plugins.zoom = { zoom: { enabled: false }, pan: { enabled: false } };
       }
@@ -338,6 +338,8 @@ bun run visual-review
 
 ## Step 7: Add Date Range Filter Component
 
+**Note**: Before implementing the custom date picker, complete the calendar library research documented in `research.md` Section 12.
+
 Create `src/reporter/templates/default/components/DateRangeFilter.tsx`:
 
 ```tsx
@@ -349,6 +351,7 @@ export function DateRangeFilter(): JSX.Element {
     { key: '30d', label: '30 days' },
     { key: '90d', label: '90 days' },
     { key: 'all', label: 'All' },
+    { key: 'custom', label: 'Custom' },
   ];
 
   return (
@@ -368,6 +371,32 @@ export function DateRangeFilter(): JSX.Element {
       ))}
     </div>
   );
+}
+```
+
+### Custom Date Picker Popover
+
+After research phase, create the custom date picker popover component:
+
+```tsx
+// This will be implemented after selecting a calendar library
+// See research.md Section 12 for library evaluation
+
+export function CustomDatePickerPopover({ 
+  visible, 
+  availableDateRange,
+  onRangeSelect,
+  onClear,
+  onClose 
+}: CustomDatePickerProps): JSX.Element {
+  // Implementation depends on selected calendar library
+  // Key requirements:
+  // - Calendar dropdowns for From/To dates
+  // - Disable dates outside availableDateRange
+  // - Validation: From <= To
+  // - Clear button
+  // - Intelligent positioning (mobile/desktop)
+  return null; // Placeholder
 }
 ```
 
@@ -443,23 +472,29 @@ function syncZoom(sourceChart) {
   });
 }
 
-// === Date Range Filter ===
-const FILTER_DAYS = { '7d': 7, '30d': 30, '90d': 90, 'all': null };
-let activeFilter = 'all';
+// === Date Range Filter (Preset + Custom) ===
+const FILTER_DAYS = { '7d': 7, '30d': 30, '90d': 90, 'all': null, 'custom': null };
+let dateFilterState = {
+  activeFilter: 'all',
+  customRange: { from: null, to: null },
+  availableDateRange: chartsData.availableDateRange
+};
 
 document.querySelectorAll('[data-filter]').forEach(btn => {
   btn.addEventListener('click', () => {
     const filterKey = btn.dataset.filter;
-    activeFilter = filterKey;
-    applyDateFilter(filterKey);
     
-    // Update button styles
-    document.querySelectorAll('[data-filter]').forEach(b => {
-      const isActive = b.dataset.filter === filterKey;
-      b.classList.toggle('bg-blue-600', isActive);
-      b.classList.toggle('text-white', isActive);
-      b.classList.toggle('bg-gray-200', !isActive);
-    });
+    if (filterKey === 'custom') {
+      // Open custom date picker popover
+      openCustomDatePicker();
+    } else {
+      // Apply preset filter
+      dateFilterState.activeFilter = filterKey;
+      dateFilterState.customRange = { from: null, to: null };
+      applyDateFilter(filterKey);
+    }
+    
+    updateFilterButtonStyles(filterKey);
   });
 });
 
@@ -468,9 +503,15 @@ function applyDateFilter(filterKey) {
   const maxTs = Math.max(...reportData.allTimestamps);
   
   Object.values(chartInstances).forEach(chart => {
-    if (days === null) {
+    if (filterKey === 'all') {
       chart.options.scales.x.min = undefined;
       chart.options.scales.x.max = undefined;
+    } else if (filterKey === 'custom') {
+      // Apply custom range from dateFilterState
+      const fromDate = new Date(dateFilterState.customRange.from).getTime();
+      const toDate = new Date(dateFilterState.customRange.to).getTime();
+      chart.options.scales.x.min = fromDate;
+      chart.options.scales.x.max = toDate;
     } else {
       chart.options.scales.x.min = maxTs - (days * 24 * 60 * 60 * 1000);
       chart.options.scales.x.max = maxTs;
@@ -478,6 +519,53 @@ function applyDateFilter(filterKey) {
     chart.resetZoom();
     chart.update('none');
   });
+  
+  updateFooter();
+}
+
+function applyCustomDateRange(fromDate, toDate) {
+  // Validate
+  if (fromDate > toDate) {
+    showError("From date cannot be after To date");
+    return;
+  }
+  
+  // Update global state
+  dateFilterState.activeFilter = 'custom';
+  dateFilterState.customRange = { from: fromDate, to: toDate };
+  
+  // Apply filter
+  applyDateFilter('custom');
+  updateFilterButtonStyles('custom');
+}
+
+function updateFilterButtonStyles(activeKey) {
+  document.querySelectorAll('[data-filter]').forEach(b => {
+    const isActive = b.dataset.filter === activeKey;
+    b.classList.toggle('bg-blue-600', isActive);
+    b.classList.toggle('text-white', isActive);
+    b.classList.toggle('bg-gray-200', !isActive);
+  });
+}
+
+function updateFooter() {
+  const footerEl = document.querySelector('footer .date-range');
+  if (footerEl) {
+    const visibleBuilds = getVisibleBuildCount();
+    const { start, end } = getEffectiveDateRange();
+    footerEl.textContent = `Builds: ${visibleBuilds} · ${start} – ${end}`;
+  }
+}
+
+// When chart is zoomed via drag
+function onChartZoom(startDate, endDate) {
+  dateFilterState.activeFilter = 'custom';
+  dateFilterState.customRange = { 
+    from: startDate.split('T')[0],  // Convert to ISO date
+    to: endDate.split('T')[0] 
+  };
+  updateFilterButtonStyles('custom');
+  updateFooter();
 }
 
 // === PNG Export ===
@@ -651,3 +739,17 @@ bun run visual-review
 - [ ] Synthetic data updated to span 60 days
 - [ ] Visual fixtures updated for new features
 - [ ] Integration tests added for zoom/filter/export
+
+### New (from 2025-12-14 update - Custom Date Range)
+- [ ] Calendar picker library research completed (see research.md Section 12)
+- [ ] Calendar picker library selected and integrated
+- [ ] `CustomDatePickerPopover.tsx` component created
+- [ ] Custom date picker popover positioning implemented (mobile/desktop)
+- [ ] Calendar constraints implemented (disable dates outside available range)
+- [ ] Date validation implemented (From <= To)
+- [ ] Global state updated to support custom date ranges
+- [ ] Drag-to-zoom updates custom date range state
+- [ ] Footer component updated to display build count and date range
+- [ ] `availableDateRange` added to ChartsData schema
+- [ ] Custom date picker tests added (validation, constraints, integration)
+- [ ] Visual fixtures verified with custom date picker
