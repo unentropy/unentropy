@@ -10,7 +10,7 @@ Defines the interface contract for storage providers that abstract where SQLite 
 
 ## Architecture Overview
 
-### Class Dependency Diagram
+### Class Dependency Diagram (with Drizzle ORM)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -22,7 +22,7 @@ Defines the interface contract for storage providers that abstract where SQLite 
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                            Storage                                       │
-│                (Orchestrates provider + repository)                      │
+│                (Orchestrates provider + drizzle + repository)            │
 └──────────────┬────────────────────────────────────────┬─────────────────┘
                │                                        │
                │ Manages                                │ Exposes
@@ -31,78 +31,65 @@ Defines the interface contract for storage providers that abstract where SQLite 
 │   StorageProvider            │          │  MetricsRepository            │
 │   (interface)                │          │  (domain operations)          │
 │   + initialize()             │          │  + recordBuild()              │
-│   + getDb()                  │          │  + getMetricComparison()      │
-│   + persist()                │          └───────────┬───────────────────┘
-│   + cleanup()                │                      │
-│   + isInitialized()          │                      │ Uses
-└───────────┬──────────────────┘                      ▼
-            │                          ┌──────────────────────────────────┐
-            │ implements               │  DatabaseAdapter                 │
-            ▼                          │  (interface)                     │
-┌───────────┴───────────┬──────────────┤  + insertBuildContext()         │
-│                       │              │  + getMetricTimeSeries()         │
-│                       │              │  + upsertMetricDefinition()      │
-│                       │              └──────────────┬───────────────────┘
-│                       │                             │
-│                       │                             │ implements
-▼                       ▼                             ▼
-┌──────────────┐  ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐
-│ SqliteLocal  │  │  SqliteS3   │  │  Artifact    │  │  Postgres        │
-│ Provider     │  │  Provider   │  │  Provider    │  │  Provider        │
-│ (MVP)        │  │  (future)   │  │  (future)    │  │  (future)        │
-└──────┬───────┘  └──────┬──────┘  └──────┬───────┘  └────────┬─────────┘
-       │                 │                │                    │
-       │ all return Database instance     │                    │
-       └─────────────────┴────────────────┴────────────────────┘
-                         │
-                         ▼
-       ┌──────────────────────────────────────┐
-       │  Database (bun:sqlite)               │
-       │  - query(), run(), exec()            │
-       │  - transaction(), close()            │
-       └─────────────────┬────────────────────┘
-                         │
-                         │ passed to adapter implementations
-                         ▼
-              ┌──────────┴───────────┐
-              │                      │
-              ▼                      ▼
-   ┌──────────────────────┐  ┌─────────────────────────┐
-   │ SqliteDatabaseAdapter│  │ PostgresDatabaseAdapter │
-   │ (MVP)                │  │ (future)                │
-   │ implements           │  │ implements              │
-   │ DatabaseAdapter      │  │ DatabaseAdapter         │
-   └──────────────────────┘  └─────────────────────────┘
+│   + getDb()                  │          │  + getMetricTimeSeries()      │
+│   + persist()                │          │  + getBaselineMetricValue()   │
+│   + cleanup()                │          └───────────┬───────────────────┘
+│   + isInitialized()          │                      │
+└───────────┬──────────────────┘                      │ Uses
+            │                                         ▼
+            │ returns Database        ┌──────────────────────────────────┐
+            │                         │  Drizzle ORM                     │
+            │                         │  (drizzle-orm/bun-sqlite)        │
+            │                         │                                  │
+            │                         │  Type-safe query builder         │
+            │                         │  Schema-driven types             │
+            │                         └──────────────┬───────────────────┘
+            │                                        │
+            │                                        │ wraps
+            ▼                                        ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Database (bun:sqlite)                                                  │
+│  - query(), run(), exec()                                               │
+│  - transaction(), close()                                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ StorageProvider Implementations                                          │
+├──────────────────┬──────────────────┬──────────────────┬────────────────┤
+│ SqliteLocal      │ SqliteS3         │ Artifact         │ Postgres       │
+│ Provider         │ Provider         │ Provider         │ Provider       │
+│ (implemented)    │ (implemented)    │ (future)         │ (future)       │
+└──────────────────┴──────────────────┴──────────────────┴────────────────┘
 ```
 
 **Key Design Principles:**
 
 1. **Storage (Orchestration Layer)**: 
-   - Coordinates provider initialization and repository creation
-   - Manages the lifecycle: initialize provider → get database → create adapter → create repository
+   - Coordinates provider initialization, Drizzle setup, and repository creation
+   - Manages the lifecycle: initialize provider → wrap with Drizzle → create repository
    - Public API for application code
 
 2. **StorageProvider (Infrastructure Layer)**:
    - Abstract interface for **WHERE** the database is stored (local file, S3, artifact)
    - Manages database lifecycle: download/open → persist/upload → cleanup
-   - Returns raw Database connection for use by adapters
+   - Returns raw Database connection for wrapping with Drizzle
 
-3. **DatabaseAdapter (Query Layer)**:
-   - Abstract interface for **WHAT** queries to execute
-   - Handles database-specific SQL (SQLite queries vs Postgres queries)
-   - Takes Database connection from provider, executes queries
-   - Enables future multi-database support (SQLite, Postgres, etc.)
+3. **Drizzle ORM (Query Layer)**:
+   - Type-safe query builder wrapping the raw Database connection
+   - Schema defined in TypeScript as single source of truth
+   - Handles database-specific SQL via dialect (SQLite, PostgreSQL)
+   - Provides compile-time type checking for all queries
 
 4. **MetricsRepository (Domain Layer)**:
-   - High-level business operations (recordBuild, getMetricComparison)
-   - Encapsulates domain logic and orchestrates adapter queries
+   - High-level business operations (recordBuild, getMetricTimeSeries)
+   - Uses Drizzle ORM for all data access
+   - Encapsulates domain logic without raw SQL
    - Primary API for actions and business logic
-   - Exposes adapter via `queries` accessor for advanced/test use
 
 **Key Separation:**
 - Provider knows **WHERE** (location/lifecycle) but not **WHAT** (queries)
-- Adapter knows **WHAT** (queries) but not **WHERE** (location/lifecycle)
-- Repository knows **WHY** (business operations) and uses adapter for data access
+- Drizzle knows **WHAT** (type-safe queries) but not **WHERE** (location/lifecycle)
+- Repository knows **WHY** (business operations) and uses Drizzle for data access
 
 ## Interface Definition
 
@@ -286,55 +273,37 @@ provider.cleanup();
 
 ## Integration with Storage
 
-The Storage class orchestrates the provider, adapter, and repository:
+The Storage class orchestrates the provider, Drizzle ORM, and repository:
 
 ```typescript
 import type { Database } from "bun:sqlite";
+import { drizzle, BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
+import * as schema from './schema';
 import type { StorageProvider, StorageProviderConfig } from "./providers/interface";
 import { createStorageProvider } from "./providers/factory";
-import { SqliteDatabaseAdapter } from "./adapters/sqlite";
-import type { DatabaseAdapter } from "./adapters/interface";
 import { MetricsRepository } from "./repository";
-import { initializeSchema } from "./migrations";
 
 class Storage {
   private readonly provider: StorageProvider;
-  private adapter: DatabaseAdapter | null = null;
+  private db: BunSQLiteDatabase<typeof schema> | null = null;
   private repository: MetricsRepository | null = null;
 
   constructor(private config: StorageProviderConfig) {
     this.provider = createStorageProvider(this.config);
-    this.initPromise = this.initialize();
   }
 
   async initialize(): Promise<void> {
     // Step 1: Initialize provider (creates/downloads database)
-    await this.provider.initialize();
+    const rawDb = await this.provider.initialize();
 
-    // Step 2: Get database connection and run migrations
-    const db = this.provider.getDb();
-    initializeSchema(db);
+    // Step 2: Wrap with Drizzle ORM
+    this.db = drizzle(rawDb, { schema });
 
-    // Step 3: Create adapter with database connection
-    this.adapter = this.createAdapter(db, this.config.type);
+    // Step 3: Run migrations (if needed)
+    // await migrate(this.db, { migrationsFolder: './drizzle' });
 
-    // Step 4: Create repository with adapter
-    this.repository = new MetricsRepository(this.adapter);
-  }
-
-  private createAdapter(db: Database, type: string): DatabaseAdapter {
-    // Future: switch based on database type
-    switch (type) {
-      case "sqlite-local":
-      case "sqlite-s3":
-      case "sqlite-artifact":
-        return new SqliteDatabaseAdapter(db);
-      // Future support:
-      // case "postgres":
-      //   return new PostgresDatabaseAdapter(db);
-      default:
-        return new SqliteDatabaseAdapter(db);
-    }
+    // Step 4: Create repository with Drizzle instance
+    this.repository = new MetricsRepository(this.db);
   }
 
   /**
@@ -347,11 +316,12 @@ class Storage {
   }
 
   /**
-   * Get raw database connection
+   * Get Drizzle database instance
    * Use sparingly - prefer repository methods
    */
-  getConnection(): Database {
-    return this.provider?.getDb();
+  getDb(): BunSQLiteDatabase<typeof schema> {
+    if (!this.db) throw new Error("Database not initialized");
+    return this.db;
   }
 
   async close(): Promise<void> {
@@ -362,11 +332,6 @@ class Storage {
       // Cleanup resources
       this.provider.cleanup();
     }
-  }
-
-  transaction<T>(fn: () => T): T {
-    const tx = this.provider.getDb().transaction(fn);
-    return tx();
   }
 }
 ```
@@ -391,53 +356,51 @@ await storage.close();
 
 ## Design Rationale
 
-### Why DatabaseAdapter Interface?
+### Why Drizzle ORM?
 
-The system includes a `DatabaseAdapter` interface that abstracts query execution:
+The system uses Drizzle ORM for type-safe database queries:
 
-1. **Multi-database support**: Enables future support for PostgreSQL, MySQL, etc. without rewriting business logic
-2. **Query abstraction**: Different databases use different SQL dialects (SQLite vs Postgres)
-3. **Testability**: Can mock adapter for testing repository without real database
-4. **Separation of concerns**: Query execution is separate from storage location management
-5. **Clean architecture**: Adapter knows **WHAT** to query, Provider knows **WHERE** database lives
+1. **Type safety**: Full TypeScript inference from schema definition
+2. **SQL-like API**: Familiar syntax for developers ("if you know SQL, you know Drizzle")
+3. **Multi-database support**: Future PostgreSQL support via dialect change
+4. **Testability**: Can mock Drizzle instance for testing repository
+5. **Lightweight**: Zero dependencies, ~31KB, serverless-ready
+6. **Schema as source of truth**: TypeScript schema defines both types and queries
 
-**Example: Future Postgres Support**
+**Example: Type-Safe Queries**
 ```typescript
-class PostgresDatabaseAdapter implements DatabaseAdapter {
-  constructor(private readonly connection: PostgresConnection) {}
-  
-  insertBuildContext(data: InsertBuildContext): number {
-    // Postgres SQL with $1, $2 placeholders instead of ?
-    const result = this.connection.query(
-      'INSERT INTO build_contexts (...) VALUES ($1, $2, ...) RETURNING id',
-      [data.commit_sha, data.branch, ...]
-    );
-    return result.rows[0].id;
-  }
-}
+// Drizzle provides full type inference
+const results = await db.select({
+  metricName: metricDefinitions.id,      // TypeScript knows this is string
+  valueNumeric: metricValues.valueNumeric, // TypeScript knows this is number | null
+})
+.from(metricValues)
+.innerJoin(metricDefinitions, eq(metricValues.metricId, metricDefinitions.id));
+
+// results is typed as { metricName: string; valueNumeric: number | null }[]
 ```
 
 ### Why MetricsRepository Layer?
 
-The repository provides domain-level operations above the adapter:
+The repository provides domain-level operations using Drizzle:
 
-1. **Business logic encapsulation**: High-level operations like `recordBuild()` and `getMetricComparison()`
-2. **Query orchestration**: Combines multiple adapter queries into single business operation
-3. **Consistent API**: Actions use repository methods instead of raw queries
-4. **Testability**: Repository exposes `queries` accessor for testing while keeping production API clean
+1. **Business logic encapsulation**: High-level operations like `recordBuild()` and `getMetricTimeSeries()`
+2. **Query orchestration**: Combines multiple Drizzle queries into single business operation
+3. **Consistent API**: Actions use repository methods instead of raw Drizzle queries
+4. **Testability**: Repository methods are easy to mock for unit testing
 5. **Domain focus**: Repository speaks the language of metrics, not SQL
 
 **Example: Domain Operation**
 ```typescript
-// Instead of multiple low-level queries:
-const buildId = adapter.insertBuildContext(context);
+// Instead of multiple Drizzle queries:
+const [{ id: buildId }] = await db.insert(buildContexts).values(context).returning();
 for (const metric of metrics) {
-  const def = adapter.upsertMetricDefinition({...});
-  adapter.insertMetricValue({...});
+  await db.insert(metricDefinitions).values(metric.definition).onConflictDoUpdate({...});
+  await db.insert(metricValues).values({ buildId, ...metric });
 }
 
 // Use single domain operation:
-const buildId = repository.recordBuild(context, metrics);
+const buildId = await repository.recordBuild(context, metrics);
 ```
 
 ### Why Storage Provider Pattern?
@@ -455,20 +418,21 @@ The provider manages database lifecycle and location:
 - Adapter: Receives Database connection → executes queries
 - Clean separation: Provider doesn't know about queries, Adapter doesn't know about S3
 
-### Why Three Layers?
+### Why Two Layers (Provider + Repository)?
 
-The three-layer separation provides clear responsibilities:
+With Drizzle ORM, the architecture simplifies to two layers:
 
 | Layer | Responsibility | Knows About | Doesn't Know About |
 |-------|---------------|-------------|-------------------|
 | **StorageProvider** | WHERE to store | S3, local files, artifacts | Queries, business logic |
-| **DatabaseAdapter** | WHAT queries to run | SQL, database schema | Storage location, business logic |
-| **MetricsRepository** | WHY (business ops) | Domain concepts, metrics | Storage location, SQL details |
+| **Drizzle ORM** | Type-safe queries | Schema, SQL generation | Storage location, business logic |
+| **MetricsRepository** | WHY (business ops) | Domain concepts, Drizzle | Storage location, raw SQL |
 
 This enables:
-- Switching from SQLite to Postgres without changing business logic
+- Switching from SQLite to Postgres by changing Drizzle dialect
 - Switching from local file to S3 without changing queries
-- Adding new domain operations without modifying infrastructure
+- Adding new domain operations with full type safety
+- Compile-time query validation
 
 ### Why Async initialize()?
 
@@ -537,16 +501,16 @@ For future storage providers:
 
 When adding new storage providers, no changes needed to:
 - Storage orchestration logic (uses StorageProvider interface)
-- DatabaseAdapter implementations (use Database connection from provider)
-- MetricsRepository (uses DatabaseAdapter interface)
-- Migrations (run against Database directly)
+- Drizzle schema and queries (database-agnostic)
+- MetricsRepository (uses Drizzle ORM)
+- Migrations (managed by Drizzle Kit)
 - Existing tests (if they use interface abstractions)
 
 When adding new database engines:
-- Implement new DatabaseAdapter (e.g., PostgresDatabaseAdapter)
-- Implement corresponding StorageProvider (e.g., PostgresStorageProvider)
-- Update Storage.createAdapter() to handle new type
-- No changes to MetricsRepository or business logic
+- Implement new StorageProvider (e.g., PostgresStorageProvider)
+- Switch Drizzle dialect (e.g., `drizzle-orm/postgres-js`)
+- Update Storage to use appropriate Drizzle dialect
+- No changes to MetricsRepository or business logic (Drizzle handles SQL differences)
 
 ## Examples
 

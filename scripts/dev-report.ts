@@ -16,7 +16,6 @@
  */
 
 import { Storage } from "../src/storage/storage";
-import { SqliteDatabaseAdapter } from "../src/storage/adapters/sqlite";
 import { generateReport } from "../src/reporter/generator";
 import type { UnitType } from "../src/metrics/types";
 
@@ -91,7 +90,7 @@ async function generateFixtureData(): Promise<Storage> {
   });
   await db.ready();
 
-  const adapter = new SqliteDatabaseAdapter(db.getConnection());
+  const repo = db.getRepository();
 
   const hourInMs = 60 * 60 * 1000;
   const dayInMs = 24 * 60 * 60 * 1000;
@@ -104,33 +103,39 @@ async function generateFixtureData(): Promise<Storage> {
     const buildTimestamp = new Date(baseTimestamp + i * dayInMs).toISOString();
     const commitSha = `abc${i.toString().padStart(4, "0")}def0123456789012345678901234`;
 
-    const buildId = adapter.insertBuildContext({
-      commit_sha: commitSha,
-      branch: "main",
-      run_id: `run-${i + 1000}`,
-      run_number: i + 1,
-      event_name: "push",
-      timestamp: buildTimestamp,
-    });
+    const metrics: {
+      definition: { id: string; type: "numeric" | "label"; description?: string; unit?: UnitType };
+      value_numeric?: number;
+      value_label?: string;
+    }[] = [];
 
     for (const metricGen of METRIC_GENERATORS) {
-      const metricDef = adapter.upsertMetricDefinition({
-        id: metricGen.name,
-        type: metricGen.type,
-        description: metricGen.description,
-        unit: metricGen.unit || null,
-      });
-
       const value = metricGen.valueGenerator(i);
       if (value === null) continue;
 
-      adapter.insertMetricValue({
-        metric_id: metricDef.id,
-        build_id: buildId,
-        value_numeric: metricGen.type === "numeric" ? Number(value) : null,
-        value_label: metricGen.type === "label" ? String(value) : null,
+      metrics.push({
+        definition: {
+          id: metricGen.name,
+          type: metricGen.type,
+          description: metricGen.description,
+          unit: metricGen.unit || undefined,
+        },
+        value_numeric: metricGen.type === "numeric" ? Number(value) : undefined,
+        value_label: metricGen.type === "label" ? String(value) : undefined,
       });
     }
+
+    await repo.recordBuild(
+      {
+        commit_sha: commitSha,
+        branch: "main",
+        run_id: `run-${i + 1000}`,
+        run_number: i + 1,
+        event_name: "push",
+        timestamp: buildTimestamp,
+      },
+      metrics
+    );
   }
 
   return db;

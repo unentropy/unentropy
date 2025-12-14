@@ -143,6 +143,88 @@ CREATE INDEX idx_metric_value_build ON metric_values(build_id);
 
 ---
 
+## Drizzle Schema Definition
+
+The database schema is defined in TypeScript using Drizzle ORM. This serves as the single source of truth for both runtime queries and migration management.
+
+### Schema File: `src/storage/schema.ts`
+
+```typescript
+import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
+
+// Schema version tracking (managed separately from Drizzle migrations)
+export const schemaVersion = sqliteTable('schema_version', {
+  version: text('version').primaryKey(),
+  appliedAt: text('applied_at').notNull(),
+  description: text('description'),
+});
+
+// Metric definitions
+export const metricDefinitions = sqliteTable('metric_definitions', {
+  id: text('id').primaryKey(),
+  type: text('type', { enum: ['numeric', 'label'] }).notNull(),
+  unit: text('unit'),
+  description: text('description'),
+});
+
+// Build contexts
+export const buildContexts = sqliteTable('build_contexts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  commitSha: text('commit_sha').notNull(),
+  branch: text('branch').notNull(),
+  runId: text('run_id').notNull(),
+  runNumber: integer('run_number').notNull(),
+  eventName: text('event_name'),
+  timestamp: text('timestamp').notNull(),
+}, (table) => [
+  index('idx_build_timestamp').on(table.timestamp),
+  index('idx_build_branch').on(table.branch),
+  index('idx_build_commit').on(table.commitSha),
+  index('idx_build_event_timestamp').on(table.eventName, table.timestamp),
+  uniqueIndex('unique_commit_run').on(table.commitSha, table.runId),
+]);
+
+// Metric values
+export const metricValues = sqliteTable('metric_values', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  metricId: text('metric_id').notNull().references(() => metricDefinitions.id),
+  buildId: integer('build_id').notNull().references(() => buildContexts.id),
+  valueNumeric: real('value_numeric'),
+  valueLabel: text('value_label'),
+}, (table) => [
+  uniqueIndex('unique_metric_build').on(table.metricId, table.buildId),
+  index('idx_metric_value_build').on(table.buildId),
+]);
+```
+
+### Type Inference
+
+Drizzle automatically infers TypeScript types from the schema:
+
+```typescript
+import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+import { metricDefinitions, buildContexts, metricValues } from './schema';
+
+// Select types (for query results)
+type MetricDefinition = InferSelectModel<typeof metricDefinitions>;
+type BuildContext = InferSelectModel<typeof buildContexts>;
+type MetricValue = InferSelectModel<typeof metricValues>;
+
+// Insert types (for write operations)
+type InsertMetricDefinition = InferInsertModel<typeof metricDefinitions>;
+type InsertBuildContext = InferInsertModel<typeof buildContexts>;
+type InsertMetricValue = InferInsertModel<typeof metricValues>;
+```
+
+### Schema Compatibility
+
+The Drizzle schema produces identical SQL to the existing raw SQL schema. This ensures:
+- Existing SQLite databases remain compatible
+- No migration required for existing installations
+- Schema can be verified with `drizzle-kit pull` to compare
+
+---
+
 ## Database Configuration
 
 ### Connection Settings
@@ -180,7 +262,76 @@ PRAGMA temp_store = MEMORY;         -- Use memory for temp tables
 
 ## Query Patterns
 
-### Common Queries
+### Common Queries (Drizzle ORM)
+
+**Insert new build context**:
+```typescript
+const [{ id }] = await db.insert(buildContexts)
+  .values({ commitSha, branch, runId, runNumber, eventName, timestamp })
+  .returning({ id: buildContexts.id });
+```
+
+**Insert or update metric definition**:
+```typescript
+await db.insert(metricDefinitions)
+  .values({ id, type, unit, description })
+  .onConflictDoUpdate({
+    target: metricDefinitions.id,
+    set: { unit: sql`excluded.unit`, description: sql`excluded.description` }
+  });
+```
+
+**Insert metric value**:
+```typescript
+await db.insert(metricValues)
+  .values({ metricId, buildId, valueNumeric, valueLabel })
+  .onConflictDoUpdate({
+    target: [metricValues.metricId, metricValues.buildId],
+    set: { valueNumeric: sql`excluded.value_numeric`, valueLabel: sql`excluded.value_label` }
+  });
+```
+
+**Get time-series data for report**:
+```typescript
+const results = await db.select({
+  metricName: metricDefinitions.id,
+  type: metricDefinitions.type,
+  unit: metricDefinitions.unit,
+  description: metricDefinitions.description,
+  valueNumeric: metricValues.valueNumeric,
+  valueLabel: metricValues.valueLabel,
+  commitSha: buildContexts.commitSha,
+  branch: buildContexts.branch,
+  buildTimestamp: buildContexts.timestamp,
+})
+.from(metricValues)
+.innerJoin(metricDefinitions, eq(metricValues.metricId, metricDefinitions.id))
+.innerJoin(buildContexts, eq(metricValues.buildId, buildContexts.id))
+.where(and(
+  eq(metricDefinitions.id, metricId),
+  eq(buildContexts.eventName, 'push')
+))
+.orderBy(asc(buildContexts.timestamp));
+```
+
+**Get baseline metric value**:
+```typescript
+const result = await db.select({ valueNumeric: metricValues.valueNumeric })
+  .from(metricValues)
+  .innerJoin(metricDefinitions, eq(metricValues.metricId, metricDefinitions.id))
+  .innerJoin(buildContexts, eq(metricValues.buildId, buildContexts.id))
+  .where(and(
+    eq(metricDefinitions.id, metricId),
+    eq(buildContexts.branch, referenceBranch),
+    eq(buildContexts.eventName, 'push'),
+    gte(buildContexts.timestamp, sql`datetime('now', '-' || ${maxAgeDays} || ' days')`),
+    isNotNull(metricValues.valueNumeric)
+  ))
+  .orderBy(desc(buildContexts.timestamp))
+  .limit(1);
+```
+
+### Raw SQL Equivalents (for reference)
 
 **Insert new build context**:
 ```sql

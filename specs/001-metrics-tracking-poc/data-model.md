@@ -169,7 +169,7 @@ The storage layer implements a **three-layer architecture** to separate concerns
 
 This separation enables future extensibility for different database engines (PostgreSQL) and storage backends (S3, GitHub Artifacts) while keeping business logic clean and testable.
 
-### Architecture Diagram
+### Architecture Diagram (with Drizzle ORM)
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -180,23 +180,30 @@ This separation enables future extensibility for different database engines (Pos
                          ▼
 ┌──────────────────────────────────────────────────────────────┐
 │ Storage (Orchestrator)                                       │
-│ - coordinates provider, adapter, repository                  │
+│ - coordinates provider, drizzle, repository                  │
 │ - initialize(), close(), transaction()                       │
-└──┬───────────────────┬─────────────────────┬────────────────┘
-   │                   │                     │
-   │ manages           │ manages             │ provides
-   │                   │                     │
-   ▼                   ▼                     ▼
-┌─────────────┐  ┌──────────────┐  ┌─────────────────────┐
-│ Provider    │  │ Adapter      │  │ Repository          │
-│             │  │              │  │                     │
-│ WHERE       │  │ WHAT         │  │ WHY                 │
-│ (location)  │  │ (queries)    │  │ (domain ops)        │
-└──────┬──────┘  └──────┬───────┘  └──────┬──────────────┘
-       │                │                  │
-       │ implements     │ implements       │ uses adapter
-       │                │                  │
-       ▼                ▼                  ▼
+└──┬───────────────────┬─────────────────────────┬────────────┘
+   │                   │                         │
+   │ manages           │ creates                 │ provides
+   │                   │                         │
+   ▼                   ▼                         ▼
+┌─────────────┐  ┌──────────────────┐  ┌─────────────────────┐
+│ Provider    │  │ Drizzle ORM      │  │ Repository          │
+│             │  │ (bun-sqlite)     │  │                     │
+│ WHERE       │  │                  │  │ WHY                 │
+│ (location)  │  │ Type-safe        │  │ (domain ops)        │
+│             │  │ queries          │  │                     │
+└──────┬──────┘  └──────┬───────────┘  └──────┬──────────────┘
+       │                │                      │
+       │ returns        │                      │ uses drizzle
+       │ Database       │                      │
+       ▼                ▼                      │
+┌─────────────────────────────────────────────────────────────┐
+│ bun:sqlite Database                                         │
+│ - Native SQLite driver                                      │
+│ - Passed to drizzle({ client: db })                         │
+└─────────────────────────────────────────────────────────────┘
+
 ┌─────────────────────────────────────────────────────────────┐
 │ StorageProvider Interface                                   │
 │ + initialize(): Promise<Database>                           │
@@ -211,25 +218,11 @@ This separation enables future extensibility for different database engines (Pos
    └─> PostgresStorageProvider (future: remote database)
 
 ┌─────────────────────────────────────────────────────────────┐
-│ DatabaseAdapter Interface                                   │
-│ + insertBuildContext(...)                                   │
-│ + upsertMetricDefinition(...)                               │
-│ + insertMetricValue(...)                                    │
-│ + getMetricTimeSeries(...)                                  │
-│ + ... (all query methods)                                   │
-└──┬──────────────────────────────────────────────────────────┘
-   │
-   │ implementations
-   ▼
-   ├─> SqliteDatabaseAdapter (SQLite-specific SQL)
-   └─> PostgresDatabaseAdapter (future: PostgreSQL-specific SQL)
-
-┌─────────────────────────────────────────────────────────────┐
 │ MetricsRepository                                           │
 │ + recordBuild(buildContext, metrics)                        │
 │ + getMetricComparison(name, baseCommit, currentCommit)      │
 │ + getMetricHistory(name, options)                           │
-│ + queries (accessor for test assertions)                   │
+│ + getMetricTimeSeries(metricName)                           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -275,63 +268,136 @@ interface StorageProviderConfig {
 **Future Implementations**:
 - `PostgresStorageProvider`: Connects to remote PostgreSQL database
 
-#### 2. DatabaseAdapter (WHAT)
+#### 2. Drizzle ORM (Query Layer)
 
-Abstracts query execution engine.
+Provides type-safe database queries using Drizzle ORM's SQLite dialect.
+
+**Schema Definition** (`src/storage/schema.ts`):
 
 ```typescript
-interface DatabaseAdapter {
-  // Write operations
-  insertBuildContext(context: BuildContext): number;
-  upsertMetricDefinition(metric: MetricDefinition): MetricDefinition;
-  insertMetricValue(value: MetricValue): number;
-  
-  // Read operations
-  getMetricTimeSeries(metricName: string): MetricValue[];
-  getAllMetricDefinitions(): MetricDefinition[];
-  getBuildContext(buildId: number): BuildContext | undefined;
-  getAllBuildContexts(options?: { onlyWithMetrics?: boolean }): BuildContext[];
-  getMetricDefinition(id: string): MetricDefinition | undefined;
-  
-  // Quality gate queries
-  getBaselineMetricValue(metricName: string, referenceBranch: string, maxAgeDays?: number): number | undefined;
-  getPullRequestMetricValue(metricName: string, pullRequestBuildId: number): { value_numeric: number } | undefined;
-}
+import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
+
+export const metricDefinitions = sqliteTable('metric_definitions', {
+  id: text('id').primaryKey(),
+  type: text('type', { enum: ['numeric', 'label'] }).notNull(),
+  unit: text('unit'),
+  description: text('description'),
+});
+
+export const buildContexts = sqliteTable('build_contexts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  commitSha: text('commit_sha').notNull(),
+  branch: text('branch').notNull(),
+  runId: text('run_id').notNull(),
+  runNumber: integer('run_number').notNull(),
+  eventName: text('event_name'),
+  timestamp: text('timestamp').notNull(),
+}, (table) => [
+  index('idx_build_timestamp').on(table.timestamp),
+  index('idx_build_branch').on(table.branch),
+  index('idx_build_commit').on(table.commitSha),
+  index('idx_build_event_timestamp').on(table.eventName, table.timestamp),
+  uniqueIndex('unique_commit_run').on(table.commitSha, table.runId),
+]);
+
+export const metricValues = sqliteTable('metric_values', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  metricId: text('metric_id').notNull().references(() => metricDefinitions.id),
+  buildId: integer('build_id').notNull().references(() => buildContexts.id),
+  valueNumeric: real('value_numeric'),
+  valueLabel: text('value_label'),
+}, (table) => [
+  uniqueIndex('unique_metric_build').on(table.metricId, table.buildId),
+  index('idx_metric_value_build').on(table.buildId),
+]);
 ```
 
-**Current Implementations**:
-- `SqliteDatabaseAdapter`: SQLite-specific SQL queries using prepared statements
+**Query Examples**:
 
-**Future Implementations**:
-- `PostgresDatabaseAdapter`: PostgreSQL-specific SQL queries
+```typescript
+// Insert build context
+const [inserted] = await db.insert(buildContexts)
+  .values({ commitSha, branch, runId, runNumber, eventName, timestamp })
+  .returning({ id: buildContexts.id });
+
+// Upsert metric definition
+await db.insert(metricDefinitions)
+  .values({ id, type, unit, description })
+  .onConflictDoUpdate({
+    target: metricDefinitions.id,
+    set: { unit, description }
+  });
+
+// Get time series with joins
+const results = await db.select({
+  ...metricValues,
+  metricName: metricDefinitions.id,
+  commitSha: buildContexts.commitSha,
+  branch: buildContexts.branch,
+  runNumber: buildContexts.runNumber,
+  timestamp: buildContexts.timestamp,
+})
+.from(metricValues)
+.innerJoin(metricDefinitions, eq(metricValues.metricId, metricDefinitions.id))
+.innerJoin(buildContexts, eq(metricValues.buildId, buildContexts.id))
+.where(and(
+  eq(metricDefinitions.id, metricName),
+  eq(buildContexts.eventName, 'push')
+))
+.orderBy(asc(buildContexts.timestamp));
+```
+
+**Benefits**:
+- Type-safe queries with TypeScript inference
+- Schema as single source of truth
+- SQL-like API familiar to developers
+- Future PostgreSQL support via dialect change
 
 #### 3. MetricsRepository (WHY)
 
-Provides domain-specific operations without exposing SQL details.
+Provides domain-specific operations using Drizzle for data access.
 
 ```typescript
+import { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
+import * as schema from './schema';
+
 class MetricsRepository {
-  constructor(private adapter: DatabaseAdapter) {}
+  constructor(private db: BunSQLiteDatabase<typeof schema>) {}
   
-  // Domain operations
-  async recordBuild(buildContext: InsertBuildContext, metrics: { 
-    definition: InsertMetricDefinition; 
-    value_numeric?: number; 
-    value_label?: string 
-  }[]): Promise<number>;
+  async recordBuild(buildContext: InsertBuildContext, metrics: MetricInput[]): Promise<number> {
+    const [{ id: buildId }] = await this.db.insert(schema.buildContexts)
+      .values(buildContext)
+      .returning({ id: schema.buildContexts.id });
+    
+    for (const metric of metrics) {
+      await this.db.insert(schema.metricDefinitions)
+        .values(metric.definition)
+        .onConflictDoUpdate({
+          target: schema.metricDefinitions.id,
+          set: { unit: metric.definition.unit, description: metric.definition.description }
+        });
+      
+      await this.db.insert(schema.metricValues)
+        .values({
+          metricId: metric.definition.id,
+          buildId,
+          valueNumeric: metric.value_numeric,
+          valueLabel: metric.value_label,
+        });
+    }
+    
+    return buildId;
+  }
   
-  getAllMetricDefinitions(): MetricDefinition[];
-  getAllBuildContexts(options?: { onlyWithMetrics?: boolean }): BuildContext[];
-  getMetricDefinition(id: string): MetricDefinition | undefined;
-  getMetricTimeSeries(metricName: string): MetricValue[];
-  getBaselineMetricValue(metricName: string, referenceBranch: string, maxAgeDays?: number): number | undefined;
+  // ... other methods using Drizzle queries
 }
 ```
 
 **Benefits**:
 - Clean API for application code
-- No SQL knowledge required for users of repository
+- No raw SQL knowledge required for users of repository
 - Easy to mock for testing
+- Type-safe query results
 
 #### 4. Storage (Orchestrator)
 
@@ -389,13 +455,13 @@ await storage.close();
 ```
 
 **Key Design Decisions**:
-- Three-layer separation: Provider (WHERE), Adapter (WHAT), Repository (WHY)
+- Two-layer separation with Drizzle ORM: Provider (WHERE) and Repository (WHY)
 - Provider manages database lifecycle and location
-- Adapter abstracts query execution (enables PostgreSQL support)
-- Repository provides clean domain API
-- Storage orchestrates all layers
+- Drizzle ORM provides type-safe queries, replacing raw SQL adapters
+- Repository provides clean domain API using Drizzle
+- Storage orchestrates provider + Drizzle + repository
 - Metric IDs are strings matching the config key
-- No SQL in application code (only in adapter implementations)
+- Schema defined in TypeScript, queries are type-checked at compile time
 
 ---
 
@@ -589,7 +655,50 @@ When multiple concurrent jobs need to write to the database:
 
 ## Query Patterns
 
-### Common Queries
+### Common Queries (Drizzle ORM)
+
+**Get time-series data for a metric**:
+```typescript
+const results = await db.select({
+  id: schema.metricValues.id,
+  metricId: schema.metricValues.metricId,
+  buildId: schema.metricValues.buildId,
+  valueNumeric: schema.metricValues.valueNumeric,
+  valueLabel: schema.metricValues.valueLabel,
+  metricName: schema.metricDefinitions.id,
+  commitSha: schema.buildContexts.commitSha,
+  branch: schema.buildContexts.branch,
+  runNumber: schema.buildContexts.runNumber,
+  timestamp: schema.buildContexts.timestamp,
+})
+.from(schema.metricValues)
+.innerJoin(schema.metricDefinitions, eq(schema.metricValues.metricId, schema.metricDefinitions.id))
+.innerJoin(schema.buildContexts, eq(schema.metricValues.buildId, schema.buildContexts.id))
+.where(and(
+  eq(schema.metricDefinitions.id, metricName),
+  eq(schema.buildContexts.eventName, 'push')
+))
+.orderBy(asc(schema.buildContexts.timestamp));
+```
+
+**Get baseline metric value**:
+```typescript
+const result = await db.select({ valueNumeric: schema.metricValues.valueNumeric })
+  .from(schema.metricValues)
+  .innerJoin(schema.metricDefinitions, eq(schema.metricValues.metricId, schema.metricDefinitions.id))
+  .innerJoin(schema.buildContexts, eq(schema.metricValues.buildId, schema.buildContexts.id))
+  .where(and(
+    eq(schema.metricDefinitions.id, metricId),
+    eq(schema.buildContexts.branch, referenceBranch),
+    eq(schema.buildContexts.eventName, 'push'),
+    gte(schema.buildContexts.timestamp, sql`datetime('now', '-' || ${maxAgeDays} || ' days')`),
+    isNotNull(schema.metricValues.valueNumeric)
+  ))
+  .orderBy(desc(schema.buildContexts.timestamp))
+  .limit(1);
+```
+
+### Raw SQL Equivalents (for reference)
 
 **Get time-series data for a metric**:
 ```sql

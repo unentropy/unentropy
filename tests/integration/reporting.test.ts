@@ -1,6 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Storage } from "../../src/storage/storage";
-import { SqliteDatabaseAdapter } from "../../src/storage/adapters/sqlite";
 import { generateReport } from "../../src/reporter/generator";
 import fs from "fs";
 
@@ -8,7 +7,6 @@ const TEST_DB_PATH = "/tmp/test-integration-reporting.db";
 
 describe("Full reporting workflow integration (Bun runtime)", () => {
   let db: Storage;
-  let adapter: SqliteDatabaseAdapter;
 
   beforeAll(async () => {
     if (fs.existsSync(TEST_DB_PATH)) {
@@ -17,55 +15,47 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
 
     db = new Storage({ type: "sqlite-local", path: TEST_DB_PATH });
     await db.initialize();
-    adapter = new SqliteDatabaseAdapter(db.getConnection());
-
-    const coverageMetric = adapter.upsertMetricDefinition({
-      id: "test-coverage",
-      type: "numeric",
-      unit: "percent",
-      description: "Code coverage percentage",
-    });
-
-    const bundleSizeMetric = adapter.upsertMetricDefinition({
-      id: "size",
-      type: "numeric",
-      unit: "bytes",
-      description: "Total bundle size",
-    });
-
-    const statusMetric = adapter.upsertMetricDefinition({
-      id: "build-status",
-      type: "label",
-      description: "Build status result",
-    });
+    const repo = db.getRepository();
 
     for (let i = 0; i < 15; i++) {
-      const buildId = adapter.insertBuildContext({
-        commit_sha: `commit-${i}`,
-        branch: "main",
-        run_id: `run-${i}`,
-        run_number: i + 1,
-        event_name: "push",
-        timestamp: new Date(Date.UTC(2025, 9, i + 1, 12, 0, 0)).toISOString(),
-      });
-
-      adapter.insertMetricValue({
-        metric_id: coverageMetric.id,
-        build_id: buildId,
-        value_numeric: 80 + Math.random() * 10,
-      });
-
-      adapter.insertMetricValue({
-        metric_id: bundleSizeMetric.id,
-        build_id: buildId,
-        value_numeric: 450 + Math.random() * 50,
-      });
-
-      adapter.insertMetricValue({
-        metric_id: statusMetric.id,
-        build_id: buildId,
-        value_label: i % 10 === 0 ? "failure" : "success",
-      });
+      await repo.recordBuild(
+        {
+          commit_sha: `commit-${i}`,
+          branch: "main",
+          run_id: `run-${i}`,
+          run_number: i + 1,
+          event_name: "push",
+          timestamp: new Date(Date.UTC(2025, 9, i + 1, 12, 0, 0)).toISOString(),
+        },
+        [
+          {
+            definition: {
+              id: "test-coverage",
+              type: "numeric",
+              unit: "percent",
+              description: "Code coverage percentage",
+            },
+            value_numeric: 80 + Math.random() * 10,
+          },
+          {
+            definition: {
+              id: "size",
+              type: "numeric",
+              unit: "bytes",
+              description: "Total bundle size",
+            },
+            value_numeric: 450 + Math.random() * 50,
+          },
+          {
+            definition: {
+              id: "build-status",
+              type: "label",
+              description: "Build status result",
+            },
+            value_label: i % 10 === 0 ? "failure" : "success",
+          },
+        ]
+      );
     }
   });
 

@@ -16,7 +16,7 @@
     "README.md"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "keywords": [
     "metrics",
@@ -57,6 +57,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/yargs": "^17.0.35",
+    "drizzle-kit": "^0.31.8",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.0.0",
     "prettier": "^3.0.0",
@@ -70,6 +71,7 @@
     "@actions/github": "^6.0.1",
     "@markusberg/lcov-parse": "^2.0.4",
     "@types/serialize-javascript": "^5.0.4",
+    "drizzle-orm": "^0.45.1",
     "fast-xml-parser": "^5.3.2",
     "preact": "^10.27.2",
     "preact-render-to-string": "^6.6.3",
