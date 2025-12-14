@@ -290,8 +290,7 @@ function calculateBaseTimestamp(endDate: Date, config: FixtureConfig): number {
 
   // For simple fixtures, calculate exact base timestamp
   // Each build is 1 day apart, so subtract (buildCount - 1) days
-  const buildInterval = config.buildCount > 10 ? 1 : 1;
-  return endDate.getTime() - (config.buildCount - 1) * buildInterval * dayInMs;
+  return endDate.getTime() - (config.buildCount - 1) * dayInMs;
 }
 
 async function generateFixture(config: FixtureConfig): Promise<void> {

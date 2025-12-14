@@ -98,8 +98,11 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 - **Preset filters**: "7 days", "30 days", "90 days", "All"
   - Click to apply immediate filter
   - Clears any custom date range when clicked
+  - Button text remains static (e.g., "7 days")
 - **Custom filter**: Opens date picker popover
-  - Shows selected range when active
+  - **Button text dynamically updates** to show selected date range
+  - When inactive: Shows "Custom"
+  - When active: Shows "YYYY-MM-DD – YYYY-MM-DD" (e.g., "2025-12-01 – 2025-12-14")
   - Becomes active when dates are selected or when chart is zoomed via drag
 
 **Custom Date Picker Popover**:
@@ -142,15 +145,15 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 - Touch-friendly: Calendar optimized for mobile interaction
 
 **States**:
-| State | Appearance |
-|-------|------------|
-| Default button | Neutral background (gray), dark gray text |
-| Active preset (7/30/90/All) | Primary blue background, white text |
-| Active custom | Primary blue background, white text |
-| Hover | Slight darkening of background |
-| Popover open | Custom button highlighted, popover visible with shadow |
-| Invalid date range | Red border on date inputs, error message below pickers |
-| Disabled dates in picker | Grayed out, not clickable |
+| State | Appearance | Button Label |
+|-------|------------|--------------|
+| Default button | Neutral background (gray), dark gray text | "Custom" |
+| Active preset (7/30/90/All) | Primary blue background, white text | Static text (e.g., "7 days") |
+| Active custom | Primary blue background, white text | "YYYY-MM-DD – YYYY-MM-DD" |
+| Hover | Slight darkening of background | No change |
+| Popover open | Custom button highlighted, popover visible with shadow | Shows current state |
+| Invalid date range | Red border on date inputs, error message below pickers | No change until valid |
+| Disabled dates in picker | Grayed out, not clickable | N/A |
 
 **Responsive Behavior**:
 | Breakpoint | Layout Changes |
@@ -386,18 +389,18 @@ Opacity: 30%
 ```
 
 **Elements**:
-- Build count and active date range (top row)
-  - Updates dynamically based on active filter
-  - Format: "Builds: {count} · {start date} – {end date}"
+- Build count and **total database date range** (top row)
+  - **Static**: Shows total data available in database (not affected by filters)
+  - Format: "Builds: {total count} · {earliest date} – {latest date}"
   - Dates in ISO format (YYYY-MM-DD)
 - Tool name, version, and documentation link (bottom row)
 
 **Behavior**:
-- Top row updates in real-time when filters change
-- Shows currently visible build count (not total)
-- Date range reflects active filter (preset or custom)
-- If custom range is active, shows the custom date range
-- If zoomed via drag, shows the zoomed date range
+- **Remains static** regardless of filter changes
+- Shows **total** build count in database
+- Date range shows **full database range** (earliest to latest build)
+- **Does NOT update** when filters are applied
+- **Rationale**: Footer is not visible enough to be the primary indicator of active filters. Active filter state is displayed in the Custom button label in the header.
 
 **Appearance**: Subtle, doesn't compete with main content.
 
@@ -426,17 +429,17 @@ interface GlobalDateFilterState {
 
 All interactive elements update the same global state:
 
-| User Action | State Update |
-|-------------|--------------|
-| Click "7 days" | Set `activeFilter="7day"`, clear `customRange` |
-| Click "30 days" | Set `activeFilter="30day"`, clear `customRange` |
-| Click "90 days" | Set `activeFilter="90day"`, clear `customRange` |
-| Click "All" | Set `activeFilter="all"`, clear `customRange` |
-| Click "Custom" button | Open popover (state unchanged until dates selected) |
-| Select custom dates (valid) | Set `activeFilter="custom"`, update `customRange.from` and `customRange.to` |
-| Click "Clear" in popover | Set `activeFilter="all"`, clear `customRange`, close popover |
-| Drag-to-zoom on chart | Set `activeFilter="custom"`, update `customRange` based on zoom range |
-| Click "Reset Zoom" | Restore previous `activeFilter` and `customRange` (before zoom) |
+| User Action | State Update | Custom Button Label Update |
+|-------------|--------------|---------------------------|
+| Click "7 days" | Set `activeFilter="7day"`, clear `customRange` | Reset to "Custom" |
+| Click "30 days" | Set `activeFilter="30day"`, clear `customRange` | Reset to "Custom" |
+| Click "90 days" | Set `activeFilter="90day"`, clear `customRange` | Reset to "Custom" |
+| Click "All" | Set `activeFilter="all"`, clear `customRange` | Reset to "Custom" |
+| Click "Custom" button | Open popover (state unchanged until dates selected) | No change |
+| Select custom dates (valid) | Set `activeFilter="custom"`, update `customRange.from` and `customRange.to` | Update to "YYYY-MM-DD – YYYY-MM-DD" |
+| Click "Clear" in popover | Set `activeFilter="all"`, clear `customRange`, close popover | Reset to "Custom" |
+| Drag-to-zoom on chart | Set `activeFilter="custom"`, update `customRange` based on zoom range | Update to "YYYY-MM-DD – YYYY-MM-DD" |
+| Click "Reset Zoom" | Restore previous `activeFilter` and `customRange` (before zoom) | Restore previous label |
 
 **State Effects**:
 
@@ -444,9 +447,9 @@ When state changes, the following updates occur synchronously:
 
 1. **All chart X-axes** update to show filtered range
 2. **Stats grids** recalculate (min/max/trend) for visible range
-3. **Footer** updates build count and date range text
+3. **Custom button label** updates to show date range (or "Custom" when cleared)
 4. **Active button** highlights in header (appropriate filter button)
-5. **Custom button** shows active state when `activeFilter="custom"`
+5. **Footer** remains static (shows total database stats, not affected by filters)
 
 **Computed Properties**:
 

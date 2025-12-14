@@ -123,16 +123,17 @@ The actual data structure embedded in the HTML report, optimized for minimal pay
 
 ---
 
-### 6. ZoomState (per chart)
+### 6. ZoomState (per chart) - crosshair-plugin.js
 
 Runtime state for synchronized drag-to-zoom, stored in `chart.crosshair` object.
+
+**Location**: `src/reporter/templates/default/scripts/crosshair-plugin.js` (integrated with crosshair plugin)
 
 | Field | Type | Description |
 |-------|------|-------------|
 | dragStarted | boolean | True if drag-to-zoom in progress |
 | dragStartX | number \| null | Pixel X position where drag started |
 | originalXRange | object | Stores `{min, max}` of original scale before zoom |
-| button | HTMLButtonElement \| null | Reference to reset button element |
 | ignoreNextEvents | number | Counter to skip events after zoom update |
 
 **Zoom Configuration** (in `defaultOptions.zoom`):
@@ -142,58 +143,71 @@ Runtime state for synchronized drag-to-zoom, stored in `chart.crosshair` object.
 | enabled | boolean | true | Enable/disable zoom feature |
 | zoomboxBackgroundColor | string | "rgba(59, 130, 246, 0.2)" | Selection box fill color |
 | zoomboxBorderColor | string | "rgba(59, 130, 246, 0.5)" | Selection box border color |
-| zoomButtonText | string | "Reset Zoom" | Button label text |
-| zoomButtonClass | string | "reset-zoom-btn" | CSS class for button |
 | minDataPoints | number | 10 | Minimum data points to enable zoom |
 | minZoomRange | number | 4 | Minimum data points in zoom selection |
 
 **Behavior**:
-- Synchronized across all charts via `zoom-sync` and `zoom-reset` CustomEvents
-- Reset restores original scale stored in `originalXRange`
+- Synchronized across all charts via `zoom-sync` CustomEvent
+- **No Reset Zoom button** - zoom is reset by clicking date filter buttons (especially "All")
+- Drag-to-zoom activates Custom date filter and updates Custom button label
 - Disabled for charts with < 10 non-null data points
 - Zoom rejected if selection contains < 4 data points
+- Zoom communicates with date-filters.js via CustomEvent to update filter state
 
 ---
 
-### 7. DateFilterState
+### 7. DateFilterState (date-filters.js)
 
-Runtime state for date range filtering, supporting both preset and custom date ranges.
+Runtime state for date range filtering, managed in `date-filters.js` script file.
+
+**Location**: `src/reporter/templates/default/scripts/date-filters.js` (separate script, bundled as text import)
 
 | Field | Type | Description |
 |-------|------|-------------|
 | activeFilter | '7d' \| '30d' \| '90d' \| 'all' \| 'custom' | Currently selected filter type |
 | customRange | { from: string \| null, to: string \| null } | Custom date range in ISO format (YYYY-MM-DD) |
-| effectiveDateRange | { start: string, end: string } | Computed effective date range (ISO format) |
-| baseTimestamp | number | Most recent build timestamp (filter anchor for presets) |
-| availableDateRange | { min: string, max: string } | Available data range for calendar constraints (ISO format) |
+| customButtonLabel | string | Dynamic button text ("Custom" or "YYYY-MM-DD – YYYY-MM-DD") |
+| availableDateRange | { min: string, max: string } | Available data range from chartsData (ISO format YYYY-MM-DD) |
 
 **State Transitions**:
 
-| User Action | State Change |
-|-------------|--------------|
-| Click "7 days" | `activeFilter = '7d'`, `customRange = { from: null, to: null }` |
-| Click "30 days" | `activeFilter = '30d'`, `customRange = { from: null, to: null }` |
-| Click "90 days" | `activeFilter = '90d'`, `customRange = { from: null, to: null }` |
-| Click "All" | `activeFilter = 'all'`, `customRange = { from: null, to: null }` |
-| Select custom dates | `activeFilter = 'custom'`, `customRange = { from: <date>, to: <date> }` |
-| Drag-to-zoom chart | `activeFilter = 'custom'`, `customRange` = extracted from zoom range |
-| Click "Clear" in popover | `activeFilter = 'all'`, `customRange = { from: null, to: null }` |
-| Click "Reset Zoom" | Restore previous `activeFilter` and `customRange` (before zoom) |
+| User Action | State Change | Custom Button Label | Zoom Clearing |
+|-------------|--------------|---------------------|---------------|
+| Click "7 days" | `activeFilter = '7d'`, `customRange = { from: null, to: null }` | "Custom" | ✅ Clears zoom |
+| Click "30 days" | `activeFilter = '30d'`, `customRange = { from: null, to: null }` | "Custom" | ✅ Clears zoom |
+| Click "90 days" | `activeFilter = '90d'`, `customRange = { from: null, to: null }` | "Custom" | ✅ Clears zoom |
+| Click "All" | `activeFilter = 'all'`, `customRange = { from: null, to: null }` | "Custom" | ✅ Clears zoom |
+| Select custom dates | `activeFilter = 'custom'`, `customRange = { from, to }` | "YYYY-MM-DD – YYYY-MM-DD" | ✅ Clears zoom |
+| Drag-to-zoom chart | `activeFilter = 'custom'`, `customRange` = extracted from zoom range | "YYYY-MM-DD – YYYY-MM-DD" | N/A (creates zoom) |
+| Click "Clear" in popover | `activeFilter = 'all'`, `customRange = { from: null, to: null }` | "Custom" | ✅ Clears zoom |
 
-**Computed Properties**:
+**Custom Button Label Formatting**:
 
-`effectiveDateRange` is computed based on current state:
-- If `activeFilter === 'all'`: Start = earliest build, End = latest build
-- If `activeFilter === 'custom'`: Start = customRange.from, End = customRange.to
-- If `activeFilter === '7d'|'30d'|'90d'`: Calculated relative to most recent build
+The `customButtonLabel` displays in the Custom button and is computed as:
+- If `activeFilter !== 'custom'` OR `customRange.from === null`: Show "Custom" (no date range)
+- If `activeFilter === 'custom'` AND `customRange.from` is set: Show "{from} – {to}" in YYYY-MM-DD format
+
+This makes the active custom filter immediately visible in the header without needing to scroll to footer.
 
 **Behavior**:
 - Default is `activeFilter = 'all'` on page load
-- Preset filters calculated relative to most recent build
-- Custom range persists when popover is closed (unless cleared)
-- Zoom operates within current filtered range
-- Reset zoom restores pre-zoom filter state
-- Custom range validation occurs before applying filter
+- Preset filters (7d/30d/90d) are relative to most recent build timestamp
+- Custom range persists when popover is closed (unless explicitly cleared)
+- Drag-to-zoom activates Custom filter and updates button label
+- Clicking any filter button (preset or Clear) clears zoom state
+- Custom range validated before applying (From <= To, within availableDateRange)
+- **No Reset Zoom button** - users click filter buttons to reset view
+
+**UI Display Strategy**:
+- **Custom button label** is the primary indicator of active custom date range (shows "YYYY-MM-DD – YYYY-MM-DD")
+- **Footer** remains static, always showing total database stats (not affected by filters)
+- This ensures the active filter is immediately visible without scrolling
+
+**Architecture**:
+- Date filter logic is extracted to `date-filters.js` (separate from HtmlDocument.tsx)
+- Initialized via `window.initializeDateFilters(chartsData, chartInstances)` in ChartScripts.tsx
+- Communicates with crosshair-plugin.js via CustomEvents ('zoom-sync')
+- Uses native HTML5 `<input type="date">` for calendar pickers (zero dependencies)
 
 ---
 
@@ -267,23 +281,26 @@ NormalizedBuildData
   - Numeric without unit: no lower bound enforced
   - Label metrics: N/A (no synthetic data)
 
-### ZoomPanState
-- `isZoomed` MUST be true if `xMin` or `xMax` differs from filter range
-- When `isZoomed` is true, "Reset zoom" button MUST be visible
-- Charts with < 3 data points MUST have zoom disabled
+### ZoomState
+- Zoom MUST be disabled for charts with < 10 non-null data points
+- Zoom selection MUST contain at least 4 data points to be applied
+- When zoom is applied via drag, Custom date filter MUST activate
+- Custom button label MUST update to show zoomed date range
+- **No Reset Zoom button exists** - users reset via date filter buttons
 
 ### DateFilterState
 - `activeFilter` MUST be one of: '7d', '30d', '90d', 'all', 'custom'
-- `baseTimestamp` MUST be the most recent build timestamp in database
-- When filter is 'all', xMin/xMax MUST be undefined (show all data)
-- When `activeFilter === 'custom'`, `customRange.from` and `customRange.to` MUST both be non-null and valid ISO date strings
+- When filter is 'all', chart scale min/max MUST be undefined (show all data)
+- When `activeFilter === 'custom'`, `customRange.from` and `customRange.to` MUST both be non-null and valid ISO date strings (YYYY-MM-DD format)
 - `customRange.from` MUST be less than or equal to `customRange.to` (validated before applying filter)
 - `customRange.from` MUST be greater than or equal to `availableDateRange.min`
 - `customRange.to` MUST be less than or equal to `availableDateRange.max`
-- `availableDateRange.min` MUST equal the timestamp of the earliest build in the database
-- `availableDateRange.max` MUST equal the timestamp of the latest build in the database
-- `effectiveDateRange` MUST accurately reflect the currently visible date range based on `activeFilter`
+- `availableDateRange.min` MUST equal the date of the earliest build in the database (YYYY-MM-DD format)
+- `availableDateRange.max` MUST equal the date of the latest build in the database (YYYY-MM-DD format)
 - When `activeFilter` is a preset ('7d'|'30d'|'90d'), `customRange` MUST be `{ from: null, to: null }`
+- When `activeFilter === 'custom'`, `customButtonLabel` MUST show the formatted date range
+- When `activeFilter !== 'custom'`, `customButtonLabel` MUST show "Custom"
+- HTML5 date inputs MUST have `min` and `max` attributes set from `availableDateRange`
 
 ### ReportRenderData
 - `showToggle` MUST be true if `metadata.buildCount < 10`

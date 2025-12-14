@@ -316,4 +316,7 @@ function initializeCharts(
       });
     });
   }
+
+  // Return chart instances for date filter integration
+  return chartInstances;
 }

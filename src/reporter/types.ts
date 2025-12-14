@@ -91,6 +91,10 @@ export interface ChartsData {
   buildCount: number;
   showToggle: boolean;
   previewData: PreviewDataSet[];
+  availableDateRange?: {
+    min: string;
+    max: string;
+  };
 }
 
 export interface ReportData {

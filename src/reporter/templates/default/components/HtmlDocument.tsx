@@ -55,7 +55,7 @@ export function HtmlDocument({ data, chartsData }: HtmlDocumentProps) {
           </div>
         </main>
 
-        <Footer />
+        <Footer metadata={data.metadata} />
 
         <ChartScripts chartsData={chartsData} />
       </body>
