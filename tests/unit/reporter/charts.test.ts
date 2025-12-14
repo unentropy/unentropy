@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { buildLineChartData, buildBarChartData } from "../../../src/reporter/charts";
-import type { NormalizedDataPoint, TimeSeriesData } from "../../../src/reporter/types";
+import type { NormalizedDataPoint, TimeSeriesDataPoint } from "../../../src/reporter/types";
 
 describe("buildLineChartData", () => {
   const createNormalizedData = (
@@ -71,30 +71,25 @@ describe("buildLineChartData", () => {
 });
 
 describe("buildBarChartData", () => {
-  const createLabelTimeSeries = (
+  const createLabelDataPoints = (
     dataPoints: {
       timestamp: string;
       valueLabel: string | null;
       commitSha: string;
       runNumber: number;
     }[]
-  ): TimeSeriesData => ({
-    metricName: "build-status",
-    metricType: "label",
-    unit: null,
-    description: "Build status",
-    dataPoints: dataPoints.map((dp) => ({
+  ): TimeSeriesDataPoint[] =>
+    dataPoints.map((dp) => ({
       timestamp: dp.timestamp,
       valueNumeric: null,
       valueLabel: dp.valueLabel,
       commitSha: dp.commitSha,
       branch: "main",
       runNumber: dp.runNumber,
-    })),
-  });
+    }));
 
   test("sets id and name correctly", () => {
-    const timeSeries = createLabelTimeSeries([
+    const dataPoints = createLabelDataPoints([
       {
         timestamp: "2025-10-01T12:00:00Z",
         valueLabel: "success",
@@ -103,14 +98,14 @@ describe("buildBarChartData", () => {
       },
     ]);
 
-    const data = buildBarChartData("my-bar-id", "My Bar Name", timeSeries);
+    const data = buildBarChartData("my-bar-id", "My Bar Name", dataPoints, null);
 
     expect(data.id).toBe("my-bar-id");
     expect(data.name).toBe("My Bar Name");
   });
 
   test("aggregates label occurrences", () => {
-    const timeSeries = createLabelTimeSeries([
+    const dataPoints = createLabelDataPoints([
       {
         timestamp: "2025-10-01T12:00:00Z",
         valueLabel: "success",
@@ -131,7 +126,7 @@ describe("buildBarChartData", () => {
       },
     ]);
 
-    const data = buildBarChartData("test-id", "Test", timeSeries);
+    const data = buildBarChartData("test-id", "Test", dataPoints, null);
 
     const successIndex = data.labels.indexOf("success");
     const failureIndex = data.labels.indexOf("failure");
@@ -141,32 +136,32 @@ describe("buildBarChartData", () => {
   });
 
   test("sorts labels alphabetically", () => {
-    const timeSeries = createLabelTimeSeries([
+    const dataPoints = createLabelDataPoints([
       { timestamp: "2025-10-01T12:00:00Z", valueLabel: "zebra", commitSha: "abc123", runNumber: 1 },
       { timestamp: "2025-10-02T12:00:00Z", valueLabel: "apple", commitSha: "def456", runNumber: 2 },
       { timestamp: "2025-10-03T12:00:00Z", valueLabel: "mango", commitSha: "ghi789", runNumber: 3 },
     ]);
 
-    const data = buildBarChartData("test-id", "Test", timeSeries);
+    const data = buildBarChartData("test-id", "Test", dataPoints, null);
 
     expect(data.labels).toEqual(["apple", "mango", "zebra"]);
   });
 
   test("counts are aligned with sorted labels", () => {
-    const timeSeries = createLabelTimeSeries([
+    const dataPoints = createLabelDataPoints([
       { timestamp: "2025-10-01T12:00:00Z", valueLabel: "zebra", commitSha: "abc123", runNumber: 1 },
       { timestamp: "2025-10-02T12:00:00Z", valueLabel: "zebra", commitSha: "def456", runNumber: 2 },
       { timestamp: "2025-10-03T12:00:00Z", valueLabel: "apple", commitSha: "ghi789", runNumber: 3 },
     ]);
 
-    const data = buildBarChartData("test-id", "Test", timeSeries);
+    const data = buildBarChartData("test-id", "Test", dataPoints, null);
 
     expect(data.labels).toEqual(["apple", "zebra"]);
     expect(data.counts).toEqual([1, 2]);
   });
 
   test("ignores null labels", () => {
-    const timeSeries = createLabelTimeSeries([
+    const dataPoints = createLabelDataPoints([
       {
         timestamp: "2025-10-01T12:00:00Z",
         valueLabel: "success",
@@ -182,29 +177,21 @@ describe("buildBarChartData", () => {
       },
     ]);
 
-    const data = buildBarChartData("test-id", "Test", timeSeries);
+    const data = buildBarChartData("test-id", "Test", dataPoints, null);
 
     expect(data.labels).toEqual(["success"]);
     expect(data.counts).toEqual([2]);
   });
 
   test("handles empty data points", () => {
-    const timeSeries: TimeSeriesData = {
-      metricName: "build-status",
-      metricType: "label",
-      unit: null,
-      description: "Build status",
-      dataPoints: [],
-    };
-
-    const data = buildBarChartData("test-id", "Test", timeSeries);
+    const data = buildBarChartData("test-id", "Test", [], null);
 
     expect(data.labels).toEqual([]);
     expect(data.counts).toEqual([]);
   });
 
   test("handles single label", () => {
-    const timeSeries = createLabelTimeSeries([
+    const dataPoints = createLabelDataPoints([
       {
         timestamp: "2025-10-01T12:00:00Z",
         valueLabel: "only-one",
@@ -213,7 +200,7 @@ describe("buildBarChartData", () => {
       },
     ]);
 
-    const data = buildBarChartData("test-id", "Test", timeSeries);
+    const data = buildBarChartData("test-id", "Test", dataPoints, null);
 
     expect(data.labels).toEqual(["only-one"]);
     expect(data.counts).toEqual([1]);

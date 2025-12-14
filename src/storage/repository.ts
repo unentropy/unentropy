@@ -5,7 +5,6 @@ import type {
   BuildContext,
   InsertBuildContext,
   InsertMetricDefinition,
-  MetricDefinition,
   MetricValue,
 } from "./types";
 
@@ -75,21 +74,6 @@ export class MetricsRepository {
     return buildId;
   }
 
-  getAllMetricDefinitions(): MetricDefinition[] {
-    const results = this.db
-      .select()
-      .from(schema.metricDefinitions)
-      .orderBy(asc(schema.metricDefinitions.id))
-      .all();
-
-    return results.map((r) => ({
-      id: r.id,
-      type: r.type as "numeric" | "label",
-      unit: r.unit as MetricDefinition["unit"],
-      description: r.description,
-    }));
-  }
-
   getAllBuildContexts(options?: { onlyWithMetrics?: boolean }): BuildContext[] {
     if (options?.onlyWithMetrics) {
       const results = this.db
@@ -137,68 +121,7 @@ export class MetricsRepository {
     return results;
   }
 
-  getAllMetricValues(): (MetricValue & { metric_name: string })[] {
-    const results = this.db
-      .select({
-        id: schema.metricValues.id,
-        metric_id: schema.metricValues.metricId,
-        build_id: schema.metricValues.buildId,
-        value_numeric: schema.metricValues.valueNumeric,
-        value_label: schema.metricValues.valueLabel,
-        metric_name: schema.metricDefinitions.id,
-      })
-      .from(schema.metricValues)
-      .innerJoin(
-        schema.metricDefinitions,
-        eq(schema.metricValues.metricId, schema.metricDefinitions.id)
-      )
-      .orderBy(asc(schema.metricValues.buildId), asc(schema.metricDefinitions.id))
-      .all();
-
-    return results;
-  }
-
-  getMetricDefinition(name: string): MetricDefinition | undefined {
-    const result = this.db
-      .select()
-      .from(schema.metricDefinitions)
-      .where(eq(schema.metricDefinitions.id, name))
-      .get();
-
-    if (!result) return undefined;
-
-    return {
-      id: result.id,
-      type: result.type as "numeric" | "label",
-      unit: result.unit as MetricDefinition["unit"],
-      description: result.description,
-    };
-  }
-
-  getMetricValuesByBuildId(buildId: number): (MetricValue & { metric_name: string })[] {
-    const results = this.db
-      .select({
-        id: schema.metricValues.id,
-        metric_id: schema.metricValues.metricId,
-        build_id: schema.metricValues.buildId,
-        value_numeric: schema.metricValues.valueNumeric,
-        value_label: schema.metricValues.valueLabel,
-        metric_name: schema.metricDefinitions.id,
-      })
-      .from(schema.metricValues)
-      .innerJoin(
-        schema.metricDefinitions,
-        eq(schema.metricValues.metricId, schema.metricDefinitions.id)
-      )
-      .where(eq(schema.metricValues.buildId, buildId))
-      .orderBy(asc(schema.metricDefinitions.id))
-      .all();
-
-    return results;
-  }
-
   getMetricTimeSeries(metricName: string): (MetricValue & {
-    metric_name: string;
     commit_sha: string;
     branch: string;
     run_number: number;
@@ -211,20 +134,18 @@ export class MetricsRepository {
         build_id: schema.metricValues.buildId,
         value_numeric: schema.metricValues.valueNumeric,
         value_label: schema.metricValues.valueLabel,
-        metric_name: schema.metricDefinitions.id,
         commit_sha: schema.buildContexts.commitSha,
         branch: schema.buildContexts.branch,
         run_number: schema.buildContexts.runNumber,
         build_timestamp: schema.buildContexts.timestamp,
       })
       .from(schema.metricValues)
-      .innerJoin(
-        schema.metricDefinitions,
-        eq(schema.metricValues.metricId, schema.metricDefinitions.id)
-      )
       .innerJoin(schema.buildContexts, eq(schema.metricValues.buildId, schema.buildContexts.id))
       .where(
-        and(eq(schema.metricDefinitions.id, metricName), eq(schema.buildContexts.eventName, "push"))
+        and(
+          eq(schema.metricValues.metricId, metricName),
+          eq(schema.buildContexts.eventName, "push")
+        )
       )
       .orderBy(asc(schema.buildContexts.timestamp))
       .all();
@@ -233,21 +154,17 @@ export class MetricsRepository {
   }
 
   getBaselineMetricValue(
-    metricName: string,
+    metricId: string,
     referenceBranch: string,
     maxAgeDays = 90
   ): number | undefined {
     const result = this.db
       .select({ value_numeric: schema.metricValues.valueNumeric })
       .from(schema.metricValues)
-      .innerJoin(
-        schema.metricDefinitions,
-        eq(schema.metricValues.metricId, schema.metricDefinitions.id)
-      )
       .innerJoin(schema.buildContexts, eq(schema.metricValues.buildId, schema.buildContexts.id))
       .where(
         and(
-          eq(schema.metricDefinitions.id, metricName),
+          eq(schema.metricValues.metricId, metricId),
           eq(schema.buildContexts.branch, referenceBranch),
           eq(schema.buildContexts.eventName, "push"),
           gte(

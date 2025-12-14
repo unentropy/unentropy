@@ -1,9 +1,42 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Storage } from "../../src/storage/storage";
 import { generateReport } from "../../src/reporter/generator";
+import type { ResolvedUnentropyConfig } from "../../src/config/loader";
 import fs from "fs";
 
 const TEST_DB_PATH = "/tmp/test-integration-reporting.db";
+
+// Test configuration matching the test data
+const testConfig: ResolvedUnentropyConfig = {
+  metrics: {
+    "test-coverage": {
+      id: "test-coverage",
+      name: "test-coverage",
+      type: "numeric",
+      unit: "percent",
+      description: "Code coverage percentage",
+      command: "echo 85",
+    },
+    size: {
+      id: "size",
+      name: "size",
+      type: "numeric",
+      unit: "bytes",
+      description: "Total bundle size",
+      command: "echo 500",
+    },
+    "build-status": {
+      id: "build-status",
+      name: "build-status",
+      type: "label",
+      description: "Build status result",
+      command: "echo success",
+    },
+  },
+  storage: {
+    type: "sqlite-local",
+  },
+};
 
 describe("Full reporting workflow integration (Bun runtime)", () => {
   let db: Storage;
@@ -67,9 +100,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
   });
 
   test("generates complete HTML report with multiple metrics", () => {
-    const html = generateReport(db, {
-      repository: "test-org/test-repo",
-    });
+    const html = generateReport("test-org/test-repo", db, testConfig);
 
     expect(html).toContain("<!DOCTYPE html>");
     expect(html).toContain("test-org/test-repo");
@@ -80,9 +111,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
   });
 
   test("includes semantic chart data for line charts", () => {
-    const html = generateReport(db, {
-      repository: "test-org/test-repo",
-    });
+    const html = generateReport("test-org/test-repo", db, testConfig);
 
     expect(html).toContain("__chartData");
     expect(html).toContain("timeline:");
@@ -93,48 +122,29 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
   });
 
   test("includes semantic chart data for bar charts", () => {
-    const html = generateReport(db, {
-      repository: "test-org/test-repo",
-    });
+    const html = generateReport("test-org/test-repo", db, testConfig);
 
     expect(html).toContain("barCharts:");
     expect(html).toMatch(/"id":"build-status"/);
     expect(html).toContain("buildBarChart");
   });
 
-  test("filters metrics by name when specified", () => {
-    const html = generateReport(db, {
-      repository: "test-org/test-repo",
-      metricNames: ["test-coverage"],
-    });
-
-    expect(html).toContain("test-coverage");
-    expect(html).not.toMatch(/"id":"size"/);
-    expect(html).not.toMatch(/"id":"build-status"/);
-  });
-
   test("includes metadata with correct build count and date range", () => {
-    const html = generateReport(db, {
-      repository: "test-org/test-repo",
-    });
+    const html = generateReport("test-org/test-repo", db, testConfig);
 
     expect(html).toContain("Builds: 15");
     expect(html).toMatch(/Oct.*2025/);
   });
 
   test("handles XSS in repository name", () => {
-    const html = generateReport(db, {
-      repository: "test<script>alert('xss')</script>/repo",
-    });
+    const html = generateReport("test<script>alert('xss')</script>/repo", db, testConfig);
 
     expect(html).not.toContain("<script>alert");
     expect(html).toContain("&lt;");
   });
 
   test("generates self-contained HTML with CDN links", () => {
-    const html = generateReport(db, {
-      repository: "test-org/test-repo",
-    });
+    const html = generateReport("test-org/test-repo", db, testConfig);
 
     expect(html).toContain("https://cdn.tailwindcss.com");
     expect(html).toContain("https://cdn.jsdelivr.net/npm/chart.js");
@@ -142,9 +152,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
   });
 
   test("includes responsive and dark mode classes", () => {
-    const html = generateReport(db, {
-      repository: "test-org/test-repo",
-    });
+    const html = generateReport("test-org/test-repo", db, testConfig);
 
     expect(html).toContain("dark:bg-gray");
     expect(html).toContain("sm:grid-cols");
@@ -152,9 +160,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
   });
 
   test("includes print styles", () => {
-    const html = generateReport(db, {
-      repository: "test-org/test-repo",
-    });
+    const html = generateReport("test-org/test-repo", db, testConfig);
 
     expect(html).toContain("@media print");
     expect(html).toContain("page-break-inside: avoid");
@@ -169,11 +175,10 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     const emptyDb = new Storage({ type: "sqlite-local", path: emptyDbPath });
     await emptyDb.initialize();
 
-    const html = generateReport(emptyDb, {
-      repository: "empty/repo",
-    });
+    const html = generateReport("empty/repo", emptyDb, testConfig);
 
-    expect(html).toContain("No metrics data");
+    // With config, we get preview data instead of "No metrics data"
+    expect(html).toContain("Show preview data");
     expect(html).toContain("Builds: 0");
 
     emptyDb.close();
@@ -181,9 +186,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
   });
 
   test("includes accessibility features", () => {
-    const html = generateReport(db, {
-      repository: "test-org/test-repo",
-    });
+    const html = generateReport("test-org/test-repo", db, testConfig);
 
     expect(html).toContain("aria-label");
     expect(html).toContain('lang="en"');

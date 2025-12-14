@@ -42,6 +42,9 @@
 * [ ] Non-trackable metrics (affecting quality gate only)
 * [ ] Configurable "Main branch"
 * [ ] Allow replacing existing build context
+* [ ] Cleanup database structure
+  * Simplify objects used for data retrieval 
+  * Q: do we need the "metric_definitions" table at all?
  
 ## Beta
 * [ ] Collectors and metrics gallery / showcase / examples

@@ -18,6 +18,7 @@
 import { Storage } from "../src/storage/storage";
 import { generateReport } from "../src/reporter/generator";
 import type { UnitType } from "../src/metrics/types";
+import type { ResolvedUnentropyConfig } from "../src/config/loader";
 
 // Import template components to trigger watch on changes
 // These imports ensure bun --watch detects changes to templates
@@ -28,6 +29,7 @@ const PORT = 3000;
 const DB_PATH = "tests/fixtures/visual-review/full-featured/full-featured.db";
 
 interface MetricGenerator {
+  id: string;
   name: string;
   type: "numeric" | "label";
   description: string;
@@ -37,34 +39,39 @@ interface MetricGenerator {
 
 const METRIC_GENERATORS: MetricGenerator[] = [
   {
-    name: "test-coverage",
+    id: "test-coverage",
+    name: "Test Coverage",
     type: "numeric",
     description: "Percentage of code covered by tests",
     unit: "percent",
     valueGenerator: (i) => 75 + Math.sin(i * 0.3) * 10 + i * 0.4,
   },
   {
-    name: "bundle-size",
+    id: "bundle-size",
+    name: "Bundle Size",
     type: "numeric",
     description: "JavaScript bundle size in KB",
     unit: "bytes",
     valueGenerator: (i) => (250 - Math.cos(i * 0.2) * 20 - i * 0.5) * 1024,
   },
   {
-    name: "build-status",
+    id: "build-status",
+    name: "Build Status",
     type: "label",
     description: "CI build result",
     valueGenerator: (i) => (i % 7 === 0 ? "failure" : i % 10 === 0 ? "warning" : "success"),
   },
   {
-    name: "primary-language",
+    id: "primary-language",
+    name: "Primary Language",
     type: "label",
     description: "Most used programming language",
     valueGenerator: (i) =>
       ["TypeScript", "JavaScript", "TypeScript", "TypeScript", "Python"][i % 5] || "TypeScript",
   },
   {
-    name: "api-response-time",
+    id: "api-response-time",
+    name: "API Response Time",
     type: "numeric",
     description: "Average API response time (sparse data)",
     unit: "duration",
@@ -115,7 +122,7 @@ async function generateFixtureData(): Promise<Storage> {
 
       metrics.push({
         definition: {
-          id: metricGen.name,
+          id: metricGen.id,
           type: metricGen.type,
           description: metricGen.description,
           unit: metricGen.unit || undefined,
@@ -146,9 +153,27 @@ async function main(): Promise<void> {
   console.log("Generating fixture data...");
 
   const db = await generateFixtureData();
-  const html = generateReport(db, {
-    repository: "unentropy/dev-preview",
-  });
+
+  const config: ResolvedUnentropyConfig = {
+    metrics: Object.fromEntries(
+      METRIC_GENERATORS.map((mg) => [
+        mg.id,
+        {
+          id: mg.id,
+          name: mg.name || mg.id,
+          type: mg.type,
+          description: mg.description,
+          unit: mg.unit,
+          command: "echo 0", // Dummy command, not used in dev
+        },
+      ])
+    ),
+    storage: {
+      type: "sqlite-local",
+    },
+  };
+
+  const html = generateReport("unentropy/dev-preview", db, config);
   await db.close();
 
   console.log(`Generated report (${html.length} bytes)`);

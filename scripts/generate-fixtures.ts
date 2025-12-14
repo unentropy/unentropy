@@ -5,6 +5,7 @@ import { generateReport } from "../src/reporter/generator";
 import { writeFileSync, mkdirSync } from "fs";
 import { dirname } from "path";
 import type { UnitType } from "../src/metrics/types";
+import type { ResolvedUnentropyConfig } from "../src/config/loader";
 
 interface MetricInput {
   definition: {
@@ -24,7 +25,8 @@ interface FixtureConfig {
   buildCount: number;
   timestampGenerator?: (buildIndex: number, baseTimestamp: number) => Date;
   metricGenerators: {
-    name: string;
+    id: string;
+    name?: string;
     type: "numeric" | "label";
     description: string;
     unit?: UnitType;
@@ -40,7 +42,8 @@ const FIXTURES: Record<string, FixtureConfig> = {
     buildCount: 5,
     metricGenerators: [
       {
-        name: "test-coverage",
+        id: "test-coverage",
+        name: "Test Coverage",
         type: "numeric",
         description: "Code coverage percentage",
         unit: "percent",
@@ -56,34 +59,39 @@ const FIXTURES: Record<string, FixtureConfig> = {
     buildCount: 25,
     metricGenerators: [
       {
-        name: "test-coverage",
+        id: "test-coverage",
+        name: "Test Coverage",
         type: "numeric",
         description: "Percentage of code covered by tests",
         unit: "percent",
         valueGenerator: (i) => 75 + Math.sin(i * 0.3) * 10 + i * 0.4,
       },
       {
-        name: "bundle-size",
+        id: "bundle-size",
+        name: "Bundle Size",
         type: "numeric",
         description: "JavaScript bundle size in KB",
         unit: "bytes",
         valueGenerator: (i) => (250 - Math.cos(i * 0.2) * 20 - i * 0.5) * 1024,
       },
       {
-        name: "build-status",
+        id: "build-status",
+        name: "Build Status",
         type: "label",
         description: "CI build result",
         valueGenerator: (i) => (i % 7 === 0 ? "failure" : i % 10 === 0 ? "warning" : "success"),
       },
       {
-        name: "primary-language",
+        id: "primary-language",
+        name: "Primary Language",
         type: "label",
         description: "Most used programming language",
         valueGenerator: (i) =>
           ["TypeScript", "JavaScript", "TypeScript", "TypeScript", "Python"][i % 5] || "TypeScript",
       },
       {
-        name: "api-response-time",
+        id: "api-response-time",
+        name: "API Response Time",
         type: "numeric",
         description: "Average API response time (sparse data - only collected on some builds)",
         unit: "duration",
@@ -113,14 +121,16 @@ const FIXTURES: Record<string, FixtureConfig> = {
     buildCount: 3,
     metricGenerators: [
       {
-        name: "test-coverage",
+        id: "test-coverage",
+        name: "Test Coverage",
         type: "numeric",
         description: "Code coverage percentage",
         unit: "percent",
         valueGenerator: (i) => [78.5, 82.1, 85.3][i] || 80,
       },
       {
-        name: "build-status",
+        id: "build-status",
+        name: "Build Status",
         type: "label",
         description: "CI build result",
         valueGenerator: (i) => ["success", "failure", "success"][i] || "success",
@@ -135,7 +145,8 @@ const FIXTURES: Record<string, FixtureConfig> = {
     buildCount: 10,
     metricGenerators: [
       {
-        name: "test-coverage",
+        id: "test-coverage",
+        name: "Test Coverage",
         type: "numeric",
         description:
           "This is a very long description that tests how the template handles descriptions with many characters and ensures that the layout doesn't break when displaying lengthy explanatory text about what a particular metric represents",
@@ -143,28 +154,32 @@ const FIXTURES: Record<string, FixtureConfig> = {
         valueGenerator: () => 0,
       },
       {
-        name: "bundle-size-kb",
+        id: "bundle-size-kb",
+        name: "Bundle Size KB",
         type: "numeric",
         description: "Bundle size with special chars: @/\\*",
         unit: "bytes",
         valueGenerator: () => 9999999.99 * 1024,
       },
       {
-        name: "flatline-metric",
+        id: "flatline-metric",
+        name: "Flatline Metric",
         type: "numeric",
         description: "A metric that never changes",
         unit: "integer",
         valueGenerator: () => 100,
       },
       {
-        name: "negative-metric",
+        id: "negative-metric",
+        name: "Negative Metric",
         type: "numeric",
         description: "Metric with negative values",
         unit: "decimal",
         valueGenerator: (i) => -50 + i * 1.5,
       },
       {
-        name: "special-chars-label",
+        id: "special-chars-label",
+        name: "Special Chars Label",
         type: "label",
         description: "Label with special characters: <script>alert('xss')</script>",
         valueGenerator: (i) =>
@@ -203,7 +218,8 @@ const FIXTURES: Record<string, FixtureConfig> = {
     },
     metricGenerators: [
       {
-        name: "test-coverage",
+        id: "test-coverage",
+        name: "Test Coverage",
         type: "numeric",
         description: "Code coverage percentage",
         unit: "percent",
@@ -213,7 +229,8 @@ const FIXTURES: Record<string, FixtureConfig> = {
         },
       },
       {
-        name: "bundle-size",
+        id: "bundle-size",
+        name: "Bundle Size",
         type: "numeric",
         description: "Production JavaScript bundle size",
         unit: "bytes",
@@ -231,7 +248,8 @@ const FIXTURES: Record<string, FixtureConfig> = {
         },
       },
       {
-        name: "build-duration",
+        id: "build-duration",
+        name: "Build Duration",
         type: "numeric",
         description: "CI pipeline execution time",
         unit: "duration",
@@ -245,7 +263,8 @@ const FIXTURES: Record<string, FixtureConfig> = {
         },
       },
       {
-        name: "active-contributors",
+        id: "active-contributors",
+        name: "Active Contributors",
         type: "numeric",
         description: "Number of unique contributors in past 30 days",
         unit: "integer",
@@ -257,7 +276,8 @@ const FIXTURES: Record<string, FixtureConfig> = {
         },
       },
       {
-        name: "dependency-count",
+        id: "dependency-count",
+        name: "Dependency Count",
         type: "numeric",
         description: "Total number of npm dependencies",
         unit: "integer",
@@ -268,7 +288,8 @@ const FIXTURES: Record<string, FixtureConfig> = {
         },
       },
       {
-        name: "deployment-target",
+        id: "deployment-target",
+        name: "Deployment Target",
         type: "label",
         description: "Deployment environment for this build",
         valueGenerator: (i) => {
@@ -345,7 +366,7 @@ async function generateFixture(config: FixtureConfig): Promise<void> {
 
       metrics.push({
         definition: {
-          id: metricGen.name,
+          id: metricGen.id,
           type: metricGen.type,
           description: metricGen.description,
           unit: metricGen.unit || undefined,
@@ -372,9 +393,26 @@ async function generateFixture(config: FixtureConfig): Promise<void> {
     `  ✅ Generated ${config.buildCount} builds with ${config.metricGenerators.length} metrics each`
   );
 
-  const html = generateReport(db, {
-    repository: `unentropy/fixture-${config.name}`,
-  });
+  const reportConfig: ResolvedUnentropyConfig = {
+    metrics: Object.fromEntries(
+      config.metricGenerators.map((mg) => [
+        mg.id,
+        {
+          id: mg.id,
+          name: mg.name || mg.id,
+          type: mg.type,
+          description: mg.description,
+          unit: mg.unit,
+          command: "echo 0", // Dummy command, not used in fixtures
+        },
+      ])
+    ),
+    storage: {
+      type: "sqlite-local",
+    },
+  };
+
+  const html = generateReport(`unentropy/fixture-${config.name}`, db, reportConfig);
 
   mkdirSync(dirname(config.outputPath), { recursive: true });
   writeFileSync(config.outputPath, html, "utf-8");
