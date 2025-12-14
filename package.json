@@ -49,6 +49,7 @@
     "dev:report": "bun --watch scripts/dev-report.ts",
     "generate-fixtures": "bun run scripts/generate-fixtures.ts",
     "visual-review": "bun run scripts/generate-fixtures.ts && bun run scripts/open-reports.ts",
+    "dev-report": "bun run scripts/dev-report.ts",
     "version:patch": "bun pm version patch && git push --follow-tags",
     "version:minor": "bun pm version minor && git push --follow-tags",
     "version:major": "bun pm version major && git push --follow-tags"

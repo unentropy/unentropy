@@ -32,20 +32,22 @@
 * [ ] Support for selecting time range in metrics report
 * [x] Support for zoom-in and reset in metrics report
 * [x] Support for parsing Cobertura coverage format
-* [ ] Polish quality gate comment, make it less dry
+* [ ] Polish quality gate comment
 * [ ] Use Drizzle ORM and proper migration system
 * [x] node/npx compatibility
 
 ## MVP++
-* [ ] Public docs
+* [x] Public docs
 * [ ] Public config schema
-* [ ] Collectors and metrics gallery
-* [ ] "Main branch"
+* [ ] Non-trackable metrics (affecting quality gate only)
+* [ ] Configurable "Main branch"
 * [ ] Allow replacing existing build context
  
+## Beta
+* [ ] Collectors and metrics gallery / showcase / examples
+
 ## TBD
 * Support for more robust, cloud databases (Postgres, MySQL, ...)
-* Non-trackable metrics (affecting quality gate only)
 * Templated PR comments
 * Garbage collection from metrics database
 * What to do when the number of metrics grows too large?
@@ -66,7 +68,6 @@
 * [ ] Create a contract spec for GH quality gate comment - how it should look like, what it should contain, etc.
 
 ## Long term ideas
-* A website
 * Badges
 * Browsing coverage reports (can we still do it with small sqlite storage?)
 * Customizable templates
