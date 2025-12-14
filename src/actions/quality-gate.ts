@@ -133,6 +133,12 @@ async function createQualityGateComment(
 
   let commentBody = `${marker}\n\n`;
 
+  const formatDeltaWithZero = (delta: number | undefined, unit: UnitType | undefined): string => {
+    if (delta === undefined) return "N/A";
+    if (delta === 0) return "-";
+    return formatDelta(delta, unit as UnitType);
+  };
+
   const hasBaseline = gateResult.metrics.some((m) => m.baseline !== undefined);
   if (gateResult.summary.totalMetrics === 0 || !hasBaseline) {
     commentBody += `## 🛡️ Quality Gate: **UNKNOWN** ⚠️\n\n`;
@@ -162,26 +168,17 @@ async function createQualityGateComment(
           : "**UNKNOWN** ⚠️";
 
     commentBody += `## 🛡️ Quality Gate: ${statusBadge}\n\n`;
-    commentBody += `**Mode**: ${gateResult.mode} • **Reference**: ${gateResult.baselineInfo.referenceBranch}\n\n`;
-
-    if (gateResult.failingMetrics.length > 0) {
-      commentBody += `### 🔴 Blocking Violations\n\n`;
-      for (const metric of gateResult.failingMetrics) {
-        commentBody += `- **${metric.metric}**: ${metric.message}\n`;
-      }
-      commentBody += `\n`;
-    }
 
     const evaluatedMetrics = gateResult.metrics.filter((m) => m.threshold !== undefined);
     const trackedMetrics = gateResult.metrics.filter((m) => m.threshold === undefined);
 
     if (evaluatedMetrics.length > 0) {
-      commentBody += `### Evaluated Metrics\n\n`;
-      commentBody += `| Metric | Baseline | PR Value | Δ | Status | Threshold |\n`;
-      commentBody += "|--------|----------|----------|---|--------|-----------|" + "\n";
+      commentBody += `| Metric | Base | PR | Δ |\n`;
+      commentBody += "|--------|------|-----|---|\n";
 
       const metricsToShow = evaluatedMetrics.slice(0, maxMetrics);
       for (const metric of metricsToShow) {
+        const statusIcon = metric.status === "pass" ? "✅" : metric.status === "fail" ? "❌" : "⚠️";
         const baselineStr =
           metric.baseline !== undefined
             ? formatValue(metric.baseline, metric.unit as UnitType)
@@ -190,16 +187,9 @@ async function createQualityGateComment(
           metric.pullRequestValue !== undefined
             ? formatValue(metric.pullRequestValue, metric.unit as UnitType)
             : "N/A";
-        const deltaStr =
-          metric.absoluteDelta !== undefined
-            ? formatDelta(metric.absoluteDelta, metric.unit as UnitType)
-            : "N/A";
-        const statusIcon = metric.status === "pass" ? "✅" : metric.status === "fail" ? "❌" : "⚠️";
-        const thresholdDesc = metric.threshold
-          ? `${metric.threshold.mode}${metric.threshold.target !== undefined ? `: ${metric.threshold.target}` : ""}`
-          : "none";
+        const deltaStr = formatDeltaWithZero(metric.absoluteDelta, metric.unit as UnitType);
 
-        commentBody += `| ${metric.metric} | ${baselineStr} | ${prStr} | ${deltaStr} | ${statusIcon} ${metric.status.toUpperCase()} | ${thresholdDesc} |\n`;
+        commentBody += `| ${statusIcon} ${metric.metric} | ${baselineStr} | ${prStr} | ${deltaStr} |\n`;
       }
 
       if (evaluatedMetrics.length > maxMetrics) {
@@ -215,8 +205,8 @@ async function createQualityGateComment(
     if (trackedMetrics.length > 0) {
       commentBody += "<details>\n";
       commentBody += "<summary>Other tracked metrics (no thresholds configured)</summary>\n\n";
-      commentBody += "| Metric | Baseline | PR Value | Δ |\n";
-      commentBody += "|--------|----------|----------|---|\n";
+      commentBody += "| Metric | Base | PR | Δ |\n";
+      commentBody += "|--------|------|-----|---|\n";
 
       for (const metric of trackedMetrics) {
         const baselineStr =
@@ -227,10 +217,7 @@ async function createQualityGateComment(
           metric.pullRequestValue !== undefined
             ? formatValue(metric.pullRequestValue, metric.unit as UnitType)
             : "N/A";
-        const deltaStr =
-          metric.absoluteDelta !== undefined
-            ? formatDelta(metric.absoluteDelta, metric.unit as UnitType)
-            : "N/A";
+        const deltaStr = formatDeltaWithZero(metric.absoluteDelta, metric.unit as UnitType);
 
         commentBody += `| ${metric.metric} | ${baselineStr} | ${prStr} | ${deltaStr} |\n`;
       }
@@ -239,16 +226,10 @@ async function createQualityGateComment(
     }
   }
 
-  commentBody += `\n---\n`;
-  commentBody += `<details>\n<summary>What is this?</summary>\n\n`;
-  commentBody += `This is an automated quality gate check powered by [Unentropy](https://github.com/unentropy/unentropy).\n`;
-  commentBody += `The gate compares your PR metrics against the baseline from the \`${gateResult.baselineInfo.referenceBranch}\` branch.\n\n`;
-  commentBody += `**Current mode: ${gateResult.mode}**`;
-  if (gateResult.mode === "soft") {
-    commentBody += ` - This check is informational only and won't block your PR.\n`;
-  } else if (gateResult.mode === "hard") {
-    commentBody += ` - This check may block your PR if blocking thresholds are violated.\n`;
-  }
+  commentBody += `---\n`;
+  commentBody += `<details>\n<summary>About this check</summary>\n\n`;
+  commentBody += `**Mode**: ${gateResult.mode} • **Reference**: ${gateResult.baselineInfo.referenceBranch}\n\n`;
+  commentBody += `Powered by [Unentropy](https://unentropy.dev)\n`;
   commentBody += `</details>\n`;
 
   try {

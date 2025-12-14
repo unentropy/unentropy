@@ -48,7 +48,7 @@ jobs:
         run: bun test --coverage --coverage-reporter=lcov
       - name: Quality Gate
         id: quality-gate
-        uses: unentropy/quality-gate@v0
+        uses: ./.github/actions/quality-gate
         with:
           storage-type: sqlite-s3
           quality-gate-mode: soft
