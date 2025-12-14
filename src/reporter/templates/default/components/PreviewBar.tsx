@@ -27,7 +27,7 @@ export function PreviewBar({ visible }: PreviewBarProps): JSX.Element | null {
             </svg>
             <div class="text-sm text-blue-800 dark:text-blue-200">
               <span class="font-medium">Limited data available.</span> Preview data is displayed to
-              help visualize trends. Toggle to view actual sparse data.
+              help visualize trends. Toggle to view your actual data.
             </div>
           </div>
 

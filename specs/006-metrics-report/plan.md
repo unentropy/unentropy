@@ -5,19 +5,20 @@
 
 ## Summary
 
-Enhance the HTML report template with interactive visualization features: synchronized tooltips across charts, drag-to-zoom with native crosshair plugin integration, date range filtering (7/30/90 days/All), dummy data toggle for sparse data preview, and PNG export for individual charts. All features are client-side rendered using embedded JSON data.
+Enhance the HTML report template with interactive visualization features: synchronized tooltips across charts, drag-to-zoom with native crosshair plugin integration, date range filtering (preset filters: 7/30/90 days/All, plus custom date range picker with calendar), dummy data toggle for sparse data preview, and PNG export for individual charts. All features are client-side rendered using embedded JSON data.
 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.x (Bun runtime)  
 **Primary Dependencies**: Preact (SSR to static HTML), Chart.js 4.4.0, chartjs-adapter-date-fns, Tailwind CSS (CDN)  
 **Note**: Zoom functionality is implemented natively in the crosshair plugin (no chartjs-plugin-zoom dependency)  
+**Custom Date Picker**: Lightweight calendar library (to be researched - see research.md Section 12)  
 **Storage**: SQLite (read-only during report generation)  
 **Testing**: Bun test (unit, integration), visual review fixtures  
 **Target Platform**: Static HTML file, any modern browser  
 **Project Type**: Single project (src/, tests/)  
 **Performance Goals**: Charts render <2s, tooltip sync <50ms, zoom/filter response <300ms  
-**Constraints**: Self-contained HTML, CDN dependencies, no framework runtime  
+**Constraints**: Self-contained HTML, bundled dependencies (no external CDN for date picker), no framework runtime  
 **Scale/Scope**: Reports with 1-100+ builds, 1-20 metrics
 
 ## Constitution Check
@@ -63,12 +64,13 @@ src/
 │   ├── templates/
 │   │   └── default/
 │   │       ├── components/
-│   │       │   ├── Header.tsx           # + date filter buttons, toggle
+│   │       │   ├── Header.tsx           # + date filter buttons, custom picker popover
+│   │       │   ├── Footer.tsx           # + build count and date range display
 │   │       │   ├── MetricCard.tsx       # + export button, zoom reset
 │   │       │   ├── ChartCanvas.tsx      # Existing
 │   │       │   ├── PreviewToggle.tsx    # NEW: dummy data toggle
-│   │       │   ├── DateRangeFilter.tsx  # NEW: filter buttons
-│   │       │   └── ChartScripts.tsx     # + sync, zoom, filter, export logic
+│   │       │   ├── DateRangeFilter.tsx  # NEW: preset + custom filter buttons
+│   │       │   └── ChartScripts.tsx     # + sync, zoom, filter, export, custom picker logic
 │   │       └── HtmlDocument.tsx
 │   ├── synthetic.ts      # NEW: dummy data generation
 │   ├── charts.ts         # Chart.js configuration
