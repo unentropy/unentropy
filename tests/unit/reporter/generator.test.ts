@@ -1,187 +1,38 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { Storage } from "../../../src/storage/storage";
-import {
-  getMetricTimeSeries,
-  calculateSummaryStats,
-  normalizeMetricToBuilds,
-} from "../../../src/reporter/generator";
+import { describe, test, expect } from "bun:test";
+import { calculateSummaryStats, normalizeMetricToBuilds } from "../../../src/reporter/generator";
 import type { BuildContext } from "../../../src/storage/types";
-import type { TimeSeriesData } from "../../../src/reporter/types";
-import fs from "fs";
-
-const TEST_DB_PATH = "/tmp/test-generator.db";
-
-describe("getMetricTimeSeries", () => {
-  let db: Storage;
-
-  beforeAll(async () => {
-    if (fs.existsSync(TEST_DB_PATH)) {
-      fs.unlinkSync(TEST_DB_PATH);
-    }
-
-    db = new Storage({ type: "sqlite-local", path: TEST_DB_PATH });
-    await db.initialize();
-    const repo = db.getRepository();
-
-    await repo.recordBuild(
-      {
-        commit_sha: "abc123",
-        branch: "main",
-        run_id: "1",
-        run_number: 1,
-        event_name: "push",
-        timestamp: "2025-10-01T12:00:00Z",
-      },
-      [
-        {
-          definition: {
-            id: "test-coverage",
-            type: "numeric",
-            unit: "percent",
-            description: "Test coverage percentage",
-          },
-          value_numeric: 85.2,
-        },
-        {
-          definition: {
-            id: "build-status",
-            type: "label",
-            description: "Build status",
-          },
-          value_label: "success",
-        },
-      ]
-    );
-
-    await repo.recordBuild(
-      {
-        commit_sha: "def456",
-        branch: "main",
-        run_id: "2",
-        run_number: 2,
-        event_name: "push",
-        timestamp: "2025-10-02T12:00:00Z",
-      },
-      [
-        {
-          definition: { id: "test-coverage", type: "numeric", unit: "percent" },
-          value_numeric: 86.1,
-        },
-        {
-          definition: { id: "build-status", type: "label" },
-          value_label: "success",
-        },
-      ]
-    );
-
-    await repo.recordBuild(
-      {
-        commit_sha: "ghi789",
-        branch: "main",
-        run_id: "3",
-        run_number: 3,
-        event_name: "push",
-        timestamp: "2025-10-03T12:00:00Z",
-      },
-      [
-        {
-          definition: { id: "test-coverage", type: "numeric", unit: "percent" },
-          value_numeric: 87.5,
-        },
-        {
-          definition: { id: "build-status", type: "label" },
-          value_label: "failure",
-        },
-      ]
-    );
-  });
-
-  afterAll(async () => {
-    await db.close();
-    if (fs.existsSync(TEST_DB_PATH)) {
-      fs.unlinkSync(TEST_DB_PATH);
-    }
-  });
-
-  test("retrieves time-series data for numeric metric", () => {
-    const data = getMetricTimeSeries(db, "test-coverage");
-
-    expect(data).toBeDefined();
-    expect(data.metricName).toBe("test-coverage");
-    expect(data.metricType).toBe("numeric");
-    expect(data.unit).toBe("percent");
-    expect(data.description).toBe("Test coverage percentage");
-    expect(data.dataPoints).toHaveLength(3);
-    expect(data.dataPoints[0]?.valueNumeric).toBe(85.2);
-    expect(data.dataPoints[1]?.valueNumeric).toBe(86.1);
-    expect(data.dataPoints[2]?.valueNumeric).toBe(87.5);
-    expect(data.dataPoints[0]?.commitSha).toBe("abc123");
-    expect(data.dataPoints[0]?.timestamp).toBe("2025-10-01T12:00:00Z");
-  });
-
-  test("retrieves time-series data for label metric", () => {
-    const data = getMetricTimeSeries(db, "build-status");
-
-    expect(data).toBeDefined();
-    expect(data.metricName).toBe("build-status");
-    expect(data.metricType).toBe("label");
-    expect(data.dataPoints).toHaveLength(3);
-    expect(data.dataPoints[0]?.valueLabel).toBe("success");
-    expect(data.dataPoints[1]?.valueLabel).toBe("success");
-    expect(data.dataPoints[2]?.valueLabel).toBe("failure");
-  });
-
-  test("returns data sorted by timestamp ascending", () => {
-    const data = getMetricTimeSeries(db, "test-coverage");
-
-    expect(data.dataPoints[0]?.timestamp).toBe("2025-10-01T12:00:00Z");
-    expect(data.dataPoints[1]?.timestamp).toBe("2025-10-02T12:00:00Z");
-    expect(data.dataPoints[2]?.timestamp).toBe("2025-10-03T12:00:00Z");
-  });
-
-  test("throws error for non-existent metric", () => {
-    expect(() => getMetricTimeSeries(db, "non-existent")).toThrow(
-      "Metric 'non-existent' not found"
-    );
-  });
-});
+import type { TimeSeriesData, TimeSeriesDataPoint } from "../../../src/reporter/types";
 
 describe("calculateSummaryStats", () => {
   test("calculates summary statistics for numeric metric", () => {
-    const data: TimeSeriesData = {
-      metricName: "test-coverage",
-      metricType: "numeric" as const,
-      unit: "percent",
-      description: "Test coverage",
-      dataPoints: [
-        {
-          timestamp: "2025-10-01T12:00:00Z",
-          valueNumeric: 85.0,
-          valueLabel: null,
-          commitSha: "abc123",
-          branch: "main",
-          runNumber: 1,
-        },
-        {
-          timestamp: "2025-10-02T12:00:00Z",
-          valueNumeric: 90.0,
-          valueLabel: null,
-          commitSha: "def456",
-          branch: "main",
-          runNumber: 2,
-        },
-        {
-          timestamp: "2025-10-03T12:00:00Z",
-          valueNumeric: 88.0,
-          valueLabel: null,
-          commitSha: "ghi789",
-          branch: "main",
-          runNumber: 3,
-        },
-      ],
-    };
+    const dataPoints: TimeSeriesDataPoint[] = [
+      {
+        timestamp: "2025-10-01T12:00:00Z",
+        valueNumeric: 85.0,
+        valueLabel: null,
+        commitSha: "abc123",
+        branch: "main",
+        runNumber: 1,
+      },
+      {
+        timestamp: "2025-10-02T12:00:00Z",
+        valueNumeric: 90.0,
+        valueLabel: null,
+        commitSha: "def456",
+        branch: "main",
+        runNumber: 2,
+      },
+      {
+        timestamp: "2025-10-03T12:00:00Z",
+        valueNumeric: 88.0,
+        valueLabel: null,
+        commitSha: "ghi789",
+        branch: "main",
+        runNumber: 3,
+      },
+    ];
 
-    const stats = calculateSummaryStats(data);
+    const stats = calculateSummaryStats("numeric", dataPoints);
 
     expect(stats.latest).toBe(88.0);
     expect(stats.min).toBe(85.0);
@@ -192,24 +43,18 @@ describe("calculateSummaryStats", () => {
   });
 
   test("returns null values for label metric", () => {
-    const data = {
-      metricName: "build-status",
-      metricType: "label" as const,
-      unit: null,
-      description: "Build status",
-      dataPoints: [
-        {
-          timestamp: "2025-10-01T12:00:00Z",
-          valueNumeric: null,
-          valueLabel: "success",
-          commitSha: "abc123",
-          branch: "main",
-          runNumber: 1,
-        },
-      ],
-    };
+    const dataPoints: TimeSeriesDataPoint[] = [
+      {
+        timestamp: "2025-10-01T12:00:00Z",
+        valueNumeric: null,
+        valueLabel: "success",
+        commitSha: "abc123",
+        branch: "main",
+        runNumber: 1,
+      },
+    ];
 
-    const stats = calculateSummaryStats(data);
+    const stats = calculateSummaryStats("label", dataPoints);
 
     expect(stats.latest).toBeNull();
     expect(stats.min).toBeNull();
@@ -220,15 +65,7 @@ describe("calculateSummaryStats", () => {
   });
 
   test("returns null values for empty data points", () => {
-    const data: TimeSeriesData = {
-      metricName: "test-coverage",
-      metricType: "numeric" as const,
-      unit: "percent",
-      description: "Test coverage",
-      dataPoints: [],
-    };
-
-    const stats = calculateSummaryStats(data);
+    const stats = calculateSummaryStats("numeric", []);
 
     expect(stats.latest).toBeNull();
     expect(stats.min).toBeNull();
@@ -239,88 +76,70 @@ describe("calculateSummaryStats", () => {
   });
 
   test("detects downward trend", () => {
-    const data: TimeSeriesData = {
-      metricName: "size",
-      metricType: "numeric" as const,
-      unit: "bytes",
-      description: "Bundle size",
-      dataPoints: [
-        {
-          timestamp: "2025-10-01T12:00:00Z",
-          valueNumeric: 100.0,
-          valueLabel: null,
-          commitSha: "abc123",
-          branch: "main",
-          runNumber: 1,
-        },
-        {
-          timestamp: "2025-10-02T12:00:00Z",
-          valueNumeric: 95.0,
-          valueLabel: null,
-          commitSha: "def456",
-          branch: "main",
-          runNumber: 2,
-        },
-      ],
-    };
+    const dataPoints: TimeSeriesDataPoint[] = [
+      {
+        timestamp: "2025-10-01T12:00:00Z",
+        valueNumeric: 100.0,
+        valueLabel: null,
+        commitSha: "abc123",
+        branch: "main",
+        runNumber: 1,
+      },
+      {
+        timestamp: "2025-10-02T12:00:00Z",
+        valueNumeric: 95.0,
+        valueLabel: null,
+        commitSha: "def456",
+        branch: "main",
+        runNumber: 2,
+      },
+    ];
 
-    const stats = calculateSummaryStats(data);
+    const stats = calculateSummaryStats("numeric", dataPoints);
 
     expect(stats.trendDirection).toBe("down");
     expect(stats.trendPercent).toBeCloseTo(-5.0, 2);
   });
 
   test("detects stable trend", () => {
-    const data = {
-      metricName: "metric",
-      metricType: "numeric" as const,
-      unit: null,
-      description: "Metric",
-      dataPoints: [
-        {
-          timestamp: "2025-10-01T12:00:00Z",
-          valueNumeric: 100.0,
-          valueLabel: null,
-          commitSha: "abc123",
-          branch: "main",
-          runNumber: 1,
-        },
-        {
-          timestamp: "2025-10-02T12:00:00Z",
-          valueNumeric: 100.0,
-          valueLabel: null,
-          commitSha: "def456",
-          branch: "main",
-          runNumber: 2,
-        },
-      ],
-    };
+    const dataPoints: TimeSeriesDataPoint[] = [
+      {
+        timestamp: "2025-10-01T12:00:00Z",
+        valueNumeric: 100.0,
+        valueLabel: null,
+        commitSha: "abc123",
+        branch: "main",
+        runNumber: 1,
+      },
+      {
+        timestamp: "2025-10-02T12:00:00Z",
+        valueNumeric: 100.0,
+        valueLabel: null,
+        commitSha: "def456",
+        branch: "main",
+        runNumber: 2,
+      },
+    ];
 
-    const stats = calculateSummaryStats(data);
+    const stats = calculateSummaryStats("numeric", dataPoints);
 
     expect(stats.trendDirection).toBe("stable");
     expect(stats.trendPercent).toBe(0);
   });
 
   test("handles single data point", () => {
-    const data = {
-      metricName: "metric",
-      metricType: "numeric" as const,
-      unit: null,
-      description: "Metric",
-      dataPoints: [
-        {
-          timestamp: "2025-10-01T12:00:00Z",
-          valueNumeric: 42.0,
-          valueLabel: null,
-          commitSha: "abc123",
-          branch: "main",
-          runNumber: 1,
-        },
-      ],
-    };
+    const dataPoints: TimeSeriesDataPoint[] = [
+      {
+        timestamp: "2025-10-01T12:00:00Z",
+        valueNumeric: 42.0,
+        valueLabel: null,
+        commitSha: "abc123",
+        branch: "main",
+        runNumber: 1,
+      },
+    ];
 
-    const stats = calculateSummaryStats(data);
+    const stats = calculateSummaryStats("numeric", dataPoints);
 
     expect(stats.latest).toBe(42.0);
     expect(stats.min).toBe(42.0);
@@ -331,32 +150,26 @@ describe("calculateSummaryStats", () => {
   });
 
   test("filters out null numeric values", () => {
-    const data = {
-      metricName: "metric",
-      metricType: "numeric" as const,
-      unit: null,
-      description: "Metric",
-      dataPoints: [
-        {
-          timestamp: "2025-10-01T12:00:00Z",
-          valueNumeric: null,
-          valueLabel: null,
-          commitSha: "abc123",
-          branch: "main",
-          runNumber: 1,
-        },
-        {
-          timestamp: "2025-10-02T12:00:00Z",
-          valueNumeric: 50.0,
-          valueLabel: null,
-          commitSha: "def456",
-          branch: "main",
-          runNumber: 2,
-        },
-      ],
-    };
+    const dataPoints: TimeSeriesDataPoint[] = [
+      {
+        timestamp: "2025-10-01T12:00:00Z",
+        valueNumeric: null,
+        valueLabel: null,
+        commitSha: "abc123",
+        branch: "main",
+        runNumber: 1,
+      },
+      {
+        timestamp: "2025-10-02T12:00:00Z",
+        valueNumeric: 50.0,
+        valueLabel: null,
+        commitSha: "def456",
+        branch: "main",
+        runNumber: 2,
+      },
+    ];
 
-    const stats = calculateSummaryStats(data);
+    const stats = calculateSummaryStats("numeric", dataPoints);
 
     expect(stats.latest).toBe(50.0);
     expect(stats.min).toBe(50.0);

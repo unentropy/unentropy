@@ -186,10 +186,11 @@ export async function runTrackMetricsAction(): Promise<void> {
   core.info("Generating HTML report...");
   try {
     const { generateReport } = await import("../reporter/generator");
-    const reportHtml = generateReport(storage, {
-      config,
-      repository: process.env.GITHUB_REPOSITORY || "unknown/repository",
-    });
+    const reportHtml = generateReport(
+      process.env.GITHUB_REPOSITORY || "unknown/repository",
+      storage,
+      config
+    );
 
     // Create report directory and write index.html
     await Bun.write(`${inputs.reportDir}/index.html`, reportHtml);

@@ -1,55 +1,31 @@
 import type { Storage } from "../storage/storage";
-import { buildLineChartData, buildBarChartData } from "./charts";
+import { buildBarChartData, buildLineChartData } from "./charts";
 import render from "preact-render-to-string";
 import { h } from "preact";
 import { HtmlDocument } from "./templates/default/components";
 import type {
-  TimeSeriesData,
-  TimeSeriesDataPoint,
-  NormalizedDataPoint,
-  SummaryStats,
-  ReportMetadata,
-  MetricReportData,
-  ReportData,
-  GenerateReportOptions,
+  BarChartData,
   ChartsData,
   LineChartData,
-  BarChartData,
   MetadataPoint,
+  MetricReportData,
+  NormalizedDataPoint,
   PreviewDataSet,
+  ReportData,
+  ReportMetadata,
+  SummaryStats,
+  TimeSeriesData,
+  TimeSeriesDataPoint,
 } from "./types";
 import type { BuildContext } from "../storage/types";
-import { generateSyntheticData, calculateSyntheticStats } from "./synthetic";
+import { calculateSyntheticStats, generateSyntheticData } from "./synthetic";
+import { ResolvedUnentropyConfig } from "../config/loader";
 
-export function getMetricTimeSeries(db: Storage, metricName: string): TimeSeriesData {
-  const repository = db.getRepository();
-  const metricDef = repository.getMetricDefinition(metricName);
-  if (!metricDef) {
-    throw new Error(`Metric '${metricName}' not found`);
-  }
-
-  const rows = repository.getMetricTimeSeries(metricName);
-
-  const dataPoints: TimeSeriesDataPoint[] = rows.map((row) => ({
-    timestamp: row.build_timestamp,
-    valueNumeric: row.value_numeric,
-    valueLabel: row.value_label,
-    commitSha: row.commit_sha,
-    branch: row.branch,
-    runNumber: row.run_number,
-  }));
-
-  return {
-    metricName: metricDef.id,
-    metricType: metricDef.type,
-    unit: metricDef.unit,
-    description: metricDef.description,
-    dataPoints,
-  };
-}
-
-export function calculateSummaryStats(data: TimeSeriesData): SummaryStats {
-  if (data.metricType !== "numeric" || data.dataPoints.length === 0) {
+export function calculateSummaryStats(
+  metricType: "numeric" | "label",
+  dataPoints: TimeSeriesDataPoint[]
+): SummaryStats {
+  if (metricType !== "numeric" || dataPoints.length === 0) {
     return {
       latest: null,
       min: null,
@@ -60,7 +36,7 @@ export function calculateSummaryStats(data: TimeSeriesData): SummaryStats {
     };
   }
 
-  const numericValues = data.dataPoints
+  const numericValues = dataPoints
     .map((dp) => dp.valueNumeric)
     .filter((v): v is number => v !== null);
 
@@ -192,27 +168,14 @@ function getReportMetadata(db: Storage, repository: string): ReportMetadata {
   };
 }
 
-export function generateReport(db: Storage, options: GenerateReportOptions = {}): string {
-  const repository = options.repository || "unknown/repository";
-
-  const allMetrics = db.getRepository().getAllMetricDefinitions();
+export function generateReport(
+  repository: string,
+  db: Storage,
+  config: ResolvedUnentropyConfig
+): string {
   const allBuilds = db.getRepository().getAllBuildContexts({ onlyWithMetrics: true });
 
-  // If config is provided, only show metrics that are configured
-  let metricNames: string[];
-  if (options.config) {
-    const configuredMetricNames = Object.keys(options.config.metrics);
-    if (options.metricNames) {
-      // Filter both by config and explicit metricNames
-      metricNames = options.metricNames.filter((name) => configuredMetricNames.includes(name));
-    } else {
-      // Use only configured metrics
-      metricNames = configuredMetricNames;
-    }
-  } else {
-    // No config provided, use all metrics (backward compatibility)
-    metricNames = options.metricNames || allMetrics.map((m) => m.id);
-  }
+  const metricNames: string[] = Object.keys(config.metrics);
 
   const metrics: MetricReportData[] = [];
   const lineCharts: LineChartData[] = [];
@@ -225,70 +188,63 @@ export function generateReport(db: Storage, options: GenerateReportOptions = {})
     run: b.run_number,
   }));
 
-  if (allBuilds.length === 0 && options.config) {
-    for (const metricName of metricNames) {
-      const metricConfig = options.config.metrics[metricName];
-      if (!metricConfig) continue;
+  for (const metricName of metricNames) {
+    try {
+      const metricConfig = config.metrics[metricName];
+      if (!metricConfig) {
+        console.warn(`Metric '${metricName}' configured but no config found`);
+        continue;
+      }
+
+      const repository = db.getRepository();
+      const rows = repository.getMetricTimeSeries(metricName);
+
+      const dataPoints: TimeSeriesDataPoint[] = rows.map((row) => ({
+        timestamp: row.build_timestamp,
+        valueNumeric: row.value_numeric,
+        valueLabel: row.value_label,
+        commitSha: row.commit_sha,
+        branch: row.branch,
+        runNumber: row.run_number,
+      }));
 
       const metricId = metricName.replace(/[^a-zA-Z0-9-]/g, "-");
-      const displayName = metricConfig.name ?? metricConfig.id;
-      const emptyStats: SummaryStats = {
-        latest: null,
-        min: null,
-        max: null,
-        average: null,
-        trendDirection: null,
-        trendPercent: null,
+      const displayName = metricConfig.name || metricName;
+      const isNumeric = metricConfig.type === "numeric";
+
+      const stats = calculateSummaryStats(metricConfig.type, dataPoints);
+
+      const timeSeries: TimeSeriesData = {
+        metricName,
+        metricType: metricConfig.type,
+        unit: metricConfig.unit || null,
+        description: metricConfig.description || null,
+        dataPoints,
       };
 
-      if (metricConfig.type === "numeric") {
-        lineCharts.push({
-          id: metricId,
-          name: displayName,
-          unit: metricConfig.unit ?? null,
-          values: [],
-        });
+      // Build semantic chart data
+      if (isNumeric) {
+        const normalizedData = normalizeMetricToBuilds(allBuilds, timeSeries);
+        lineCharts.push(
+          buildLineChartData(metricId, displayName, metricConfig.unit || null, normalizedData)
+        );
+      } else {
+        barCharts.push(
+          buildBarChartData(metricId, displayName, dataPoints, metricConfig.unit || null)
+        );
       }
 
       metrics.push({
         id: metricId,
         name: displayName,
-        description: metricConfig.description ?? null,
-        unit: metricConfig.unit ?? null,
-        stats: emptyStats,
-        chartType: metricConfig.type === "numeric" ? "line" : "bar",
-        dataPointCount: 0,
+        description: metricConfig.description || null,
+        unit: metricConfig.unit || null,
+        stats,
+        chartType: isNumeric ? "line" : "bar",
+        dataPointCount: dataPoints.length,
       });
-    }
-  } else {
-    for (const metricName of metricNames) {
-      try {
-        const timeSeries = getMetricTimeSeries(db, metricName);
-        const stats = calculateSummaryStats(timeSeries);
-        const metricId = metricName.replace(/[^a-zA-Z0-9-]/g, "-");
-
-        // Build semantic chart data
-        if (timeSeries.metricType === "numeric") {
-          const normalizedData = normalizeMetricToBuilds(allBuilds, timeSeries);
-          lineCharts.push(
-            buildLineChartData(metricId, timeSeries.metricName, timeSeries.unit, normalizedData)
-          );
-        } else {
-          barCharts.push(buildBarChartData(metricId, timeSeries.metricName, timeSeries));
-        }
-
-        metrics.push({
-          id: metricId,
-          name: timeSeries.metricName,
-          description: timeSeries.description,
-          unit: timeSeries.unit,
-          stats,
-          chartType: timeSeries.metricType === "numeric" ? "line" : "bar",
-          dataPointCount: timeSeries.dataPoints.length,
-        });
-      } catch (error) {
-        console.warn(`Failed to generate report for metric '${metricName}':`, error);
-      }
+    } catch (error) {
+      console.warn(`Failed to generate report for metric '${metricName}':`, error);
     }
   }
 
@@ -297,41 +253,7 @@ export function generateReport(db: Storage, options: GenerateReportOptions = {})
   const showToggle = buildCount < 10;
 
   let previewData: PreviewDataSet[] = [];
-  if (showToggle && buildCount === 0 && options.config) {
-    const now = new Date();
-    const previewTimestamps: string[] = [];
-    for (let i = 19; i >= 0; i--) {
-      const date = new Date(now.getTime() - i * 3 * 24 * 60 * 60 * 1000);
-      previewTimestamps.push(date.toISOString());
-    }
-
-    previewData = metricNames.map((metricName) => {
-      const metricConfig = options.config?.metrics[metricName];
-      const metricId = metricName.replace(/[^a-zA-Z0-9-]/g, "-");
-      const defaultStats: SummaryStats = {
-        latest: null,
-        min: null,
-        max: null,
-        average: 50,
-        trendDirection: null,
-        trendPercent: null,
-      };
-
-      const syntheticValues = generateSyntheticData(
-        metricName,
-        defaultStats,
-        metricConfig?.unit ?? null
-      );
-      const syntheticStats = calculateSyntheticStats(syntheticValues);
-
-      return {
-        metricId,
-        timestamps: previewTimestamps,
-        values: syntheticValues,
-        stats: syntheticStats,
-      };
-    });
-  } else if (showToggle) {
+  if (showToggle) {
     const now = new Date();
     const previewTimestamps: string[] = [];
     for (let i = 19; i >= 0; i--) {

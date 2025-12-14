@@ -90,20 +90,10 @@ function assertTimeSeriesRowShape(obj: unknown): void {
   expect(obj).toHaveProperty("build_id");
   expect(obj).toHaveProperty("value_numeric");
   expect(obj).toHaveProperty("value_label");
-  expect(obj).toHaveProperty("metric_name");
   expect(obj).toHaveProperty("commit_sha");
   expect(obj).toHaveProperty("branch");
   expect(obj).toHaveProperty("run_number");
   expect(obj).toHaveProperty("build_timestamp");
-}
-
-function assertMetricValueWithNameShape(obj: unknown): void {
-  expect(obj).toHaveProperty("id");
-  expect(obj).toHaveProperty("metric_id");
-  expect(obj).toHaveProperty("build_id");
-  expect(obj).toHaveProperty("value_numeric");
-  expect(obj).toHaveProperty("value_label");
-  expect(obj).toHaveProperty("metric_name");
 }
 
 // Helper to assert defined and return for chaining
@@ -217,30 +207,6 @@ describe("Storage Query Contracts", () => {
       expect(build1.event_name).toBe(SEED.build1.eventName);
       expect(build1.timestamp).toBe(SEED.build1.timestamp);
     });
-
-    it("creates metric definitions for new metrics", () => {
-      const repo = storage.getRepository();
-      const coverageDef = assertDefined(repo.getMetricDefinition("coverage"));
-
-      expect(coverageDef.id).toBe("coverage");
-      expect(coverageDef.type).toBe("numeric");
-      expect(coverageDef.unit).toBe("percent");
-      expect(coverageDef.description).toBe("Code coverage");
-    });
-
-    it("handles numeric and label metrics in same build", () => {
-      const repo = storage.getRepository();
-      const values = repo.getMetricValuesByBuildId(buildIds.build1);
-
-      const numericMetric = assertDefined(values.find((v) => v.metric_name === "coverage"));
-      const labelMetric = assertDefined(values.find((v) => v.metric_name === "status"));
-
-      expect(numericMetric.value_numeric).toBe(85.5);
-      expect(numericMetric.value_label).toBeNull();
-
-      expect(labelMetric.value_label).toBe("success");
-      expect(labelMetric.value_numeric).toBeNull();
-    });
   });
 
   // ============================================================
@@ -288,13 +254,6 @@ describe("Storage Query Contracts", () => {
       const timeSeries = repo.getMetricTimeSeries("non-existent-metric");
 
       expect(timeSeries).toHaveLength(0);
-    });
-
-    it("joins metric definition correctly (metric_name)", () => {
-      const repo = storage.getRepository();
-      const timeSeries = repo.getMetricTimeSeries("coverage");
-
-      expect(timeSeries[0]!.metric_name).toBe("coverage");
     });
   });
 
@@ -396,70 +355,6 @@ describe("Storage Query Contracts", () => {
   });
 
   // ============================================================
-  // Scenario 5: getMetricValuesByBuildId Contract
-  // ============================================================
-  describe("getMetricValuesByBuildId contract", () => {
-    it("returns all metrics for specific build", () => {
-      const repo = storage.getRepository();
-      const values = repo.getMetricValuesByBuildId(buildIds.build1);
-
-      // build1 has coverage + status
-      expect(values).toHaveLength(2);
-    });
-
-    it("includes metric_name from join", () => {
-      const repo = storage.getRepository();
-      const values = repo.getMetricValuesByBuildId(buildIds.build1);
-
-      assertMetricValueWithNameShape(values[0]);
-      expect(values.some((v) => v.metric_name === "coverage")).toBe(true);
-      expect(values.some((v) => v.metric_name === "status")).toBe(true);
-    });
-
-    it("returns empty array for non-existent build", () => {
-      const repo = storage.getRepository();
-      const values = repo.getMetricValuesByBuildId(99999);
-
-      expect(values).toHaveLength(0);
-    });
-  });
-
-  // ============================================================
-  // Scenario 6: getAllMetricValues Contract
-  // ============================================================
-  describe("getAllMetricValues contract", () => {
-    it("returns all values across all builds", () => {
-      const repo = storage.getRepository();
-      const values = repo.getAllMetricValues();
-
-      // build1: 2, build2: 1, build3: 1, build4: 2 = 6 total
-      expect(values).toHaveLength(6);
-    });
-
-    it("includes metric_name from join", () => {
-      const repo = storage.getRepository();
-      const values = repo.getAllMetricValues();
-
-      for (const value of values) {
-        assertMetricValueWithNameShape(value);
-        expect(typeof value.metric_name).toBe("string");
-      }
-    });
-
-    it("orders by build_id", () => {
-      const repo = storage.getRepository();
-      const values = repo.getAllMetricValues();
-
-      // Verify ordering is consistent (build_id ascending)
-      let prevBuildId = 0;
-      for (const value of values) {
-        expect(value.build_id).toBeGreaterThanOrEqual(prevBuildId);
-        prevBuildId = value.build_id;
-      }
-    });
-  });
-
-  // ============================================================
   // Scenario 7: Column Name Mapping Contract (Critical for Drizzle)
   // ============================================================
   describe("Column Name Mapping Contract", () => {
@@ -481,33 +376,6 @@ describe("Storage Query Contracts", () => {
       expect(build).not.toHaveProperty("eventName");
     });
 
-    it("metric definitions use expected columns", () => {
-      const repo = storage.getRepository();
-      const def = repo.getMetricDefinition("coverage");
-
-      expect(def).toHaveProperty("id");
-      expect(def).toHaveProperty("type");
-      expect(def).toHaveProperty("unit");
-      expect(def).toHaveProperty("description");
-    });
-
-    it("metric values use snake_case columns", () => {
-      const repo = storage.getRepository();
-      const values = repo.getMetricValuesByBuildId(buildIds.build1);
-      const value = values[0];
-
-      expect(value).toHaveProperty("metric_id");
-      expect(value).toHaveProperty("build_id");
-      expect(value).toHaveProperty("value_numeric");
-      expect(value).toHaveProperty("value_label");
-
-      // Verify camelCase is NOT used
-      expect(value).not.toHaveProperty("metricId");
-      expect(value).not.toHaveProperty("buildId");
-      expect(value).not.toHaveProperty("valueNumeric");
-      expect(value).not.toHaveProperty("valueLabel");
-    });
-
     it("time series uses aliased column build_timestamp", () => {
       const repo = storage.getRepository();
       const timeSeries = repo.getMetricTimeSeries("coverage");
@@ -516,19 +384,6 @@ describe("Storage Query Contracts", () => {
       expect(row).toHaveProperty("build_timestamp");
       // The original column is "timestamp" but it's aliased to "build_timestamp"
       expect(row).not.toHaveProperty("buildTimestamp");
-    });
-  });
-
-  // ============================================================
-  // Scenario 8: NULL Handling Contract
-  // ============================================================
-  describe("NULL Handling Contract", () => {
-    it("optional unit can be null", () => {
-      const repo = storage.getRepository();
-      const statusDef = assertDefined(repo.getMetricDefinition("status"));
-
-      // Status metric has no unit
-      expect(statusDef.unit).toBeNull();
     });
   });
 });

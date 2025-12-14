@@ -102,9 +102,3 @@ export interface ReportData {
   metrics: MetricReportData[];
   previewMetrics?: MetricReportData[];
 }
-
-export interface GenerateReportOptions {
-  repository?: string;
-  metricNames?: string[];
-  config?: import("../config/loader").ResolvedUnentropyConfig;
-}
