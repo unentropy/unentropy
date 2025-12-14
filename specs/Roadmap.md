@@ -33,7 +33,7 @@
 * [x] Support for zoom-in and reset in metrics report
 * [x] Support for parsing Cobertura coverage format
 * [x] node/npx compatibility
-* [ ] Polish quality gate comment
+* [x] Polish quality gate comment
 * [ ] Use Drizzle ORM and proper migration system
 
 ## MVP++
