@@ -34,7 +34,7 @@
 * [x] Support for parsing Cobertura coverage format
 * [x] node/npx compatibility
 * [x] Polish quality gate comment
-* [ ] Use Drizzle ORM and proper migration system
+* [x] Use Drizzle ORM and proper migration system
 
 ## MVP++
 * [x] Public docs

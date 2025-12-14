@@ -34,11 +34,6 @@ export class Storage {
     return this.provider?.getDb();
   }
 
-  getDrizzle(): BunSQLiteDatabase<typeof schema> {
-    if (!this.drizzleDb) throw new Error("Database not initialized");
-    return this.drizzleDb;
-  }
-
   getRepository(): MetricsRepository {
     if (!this.repository) throw new Error("Database not initialized");
     return this.repository;
@@ -54,9 +49,5 @@ export class Storage {
 
   getProvider(): StorageProvider {
     return this.provider;
-  }
-
-  getConfig(): StorageProviderConfig {
-    return this.config;
   }
 }
