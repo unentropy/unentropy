@@ -95,7 +95,7 @@ jobs:
       - name: Track metrics (S3)
         if: matrix.storage.type == 'sqlite-s3'
         id: track-metrics-s3
-        uses: unentropy/track-metrics@v0
+        uses: ./.github/actions/track-metrics
         with:
           storage-type: sqlite-s3
           s3-endpoint: ${{ secrets.AWS_ENDPOINT_URL }}
@@ -110,7 +110,7 @@ jobs:
       - name: Track metrics (Artifact)
         if: matrix.storage.type == 'sqlite-artifact'
         id: track-metrics-artifact
-        uses: unentropy/track-metrics@v0
+        uses: ./.github/actions/track-metrics
         with:
           storage-type: sqlite-artifact
           artifact-name: ${{ matrix.storage.artifact-name }}
@@ -144,7 +144,6 @@ jobs:
             echo "- **Metrics Collected**: ${{ steps.track-metrics-artifact.outputs.metrics-collected }}" >> $GITHUB_STEP_SUMMARY
             echo "- **Duration**: ${{ steps.track-metrics-artifact.outputs.duration }}" >> $GITHUB_STEP_SUMMARY
             echo "- **Source Run ID**: ${{ steps.track-metrics-artifact.outputs.source-run-id }}" >> $GITHUB_STEP_SUMMARY
-            echo "- **Artifact ID**: ${{ steps.track-metrics-artifact.outputs.artifact-id }}" >> $GITHUB_STEP_SUMMARY
           fi
 
   publish-metrics-report:

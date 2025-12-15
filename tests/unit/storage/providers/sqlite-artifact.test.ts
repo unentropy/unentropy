@@ -189,18 +189,6 @@ describe("SqliteArtifactStorageProvider", () => {
         return new Response("Not found", { status: 404 });
       });
 
-      // Mock artifact upload
-      const mockUploadArtifact = mock(() =>
-        Promise.resolve({ id: 12345, size: 1024, digest: "test-digest" })
-      );
-      const MockArtifactClient = mock(() => ({
-        uploadArtifact: mockUploadArtifact,
-      }));
-
-      mock.module("@actions/artifact", () => ({
-        DefaultArtifactClient: MockArtifactClient,
-      }));
-
       await provider.initialize();
 
       // Create some test data
@@ -210,13 +198,20 @@ describe("SqliteArtifactStorageProvider", () => {
 
       await provider.persist();
 
-      // Verify provider is still initialized after persist
+      // Verify provider is still initialized after persist (reconnects after close)
+      // Note: Artifact upload is now handled by the composite action step,
+      // not internally by persist(). This is due to ACTIONS_RUNTIME_TOKEN
+      // not being available in shell steps within composite actions.
       expect(provider.isInitialized()).toBe(true);
-      expect(mockUploadArtifact).toHaveBeenCalled();
+
+      // Verify data is still accessible after persist
+      const newDb = provider.getDb();
+      const result = newDb.query("SELECT value FROM test_persist").get() as { value: string };
+      expect(result.value).toBe("test");
     });
 
-    test("should fail when artifact upload fails", async () => {
-      const uniquePath = `/tmp/unentropy-artifact-persist-fail-${Date.now()}.db`;
+    test("should close and reopen database connection on persist", async () => {
+      const uniquePath = `/tmp/unentropy-artifact-persist-reopen-${Date.now()}.db`;
       provider = new SqliteArtifactStorageProvider({
         ...baseConfig,
         databasePath: uniquePath,
@@ -233,23 +228,28 @@ describe("SqliteArtifactStorageProvider", () => {
         return new Response("Not found", { status: 404 });
       });
 
-      // Mock artifact upload to fail
-      const mockUploadArtifact = mock(() => Promise.reject(new Error("Upload failed")));
-      const MockArtifactClient = mock(() => ({
-        uploadArtifact: mockUploadArtifact,
-      }));
-
-      mock.module("@actions/artifact", () => ({
-        DefaultArtifactClient: MockArtifactClient,
-      }));
-
       await provider.initialize();
 
       // Create some test data
       const db = provider.getDb();
-      db.run("CREATE TABLE test_persist (id INTEGER PRIMARY KEY, value TEXT)");
+      db.run("CREATE TABLE test_reopen (id INTEGER PRIMARY KEY, value TEXT)");
+      db.run("INSERT INTO test_reopen (value) VALUES (?)", ["before-persist"]);
 
-      await expect(provider.persist()).rejects.toThrow("Upload failed");
+      await provider.persist();
+
+      // Database should be reconnected after persist
+      expect(provider.isInitialized()).toBe(true);
+
+      // Should be able to write new data after persist
+      const newDb = provider.getDb();
+      newDb.run("INSERT INTO test_reopen (value) VALUES (?)", ["after-persist"]);
+
+      const results = newDb.query("SELECT value FROM test_reopen ORDER BY id").all() as {
+        value: string;
+      }[];
+      expect(results).toHaveLength(2);
+      expect(results[0]?.value).toBe("before-persist");
+      expect(results[1]?.value).toBe("after-persist");
     });
   });
 

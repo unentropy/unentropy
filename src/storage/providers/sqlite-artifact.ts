@@ -2,7 +2,6 @@ import { Database } from "bun:sqlite";
 import { promises as fs } from "fs";
 import { dirname } from "path";
 import { spawnSync } from "child_process";
-import { DefaultArtifactClient } from "@actions/artifact";
 import type { StorageProvider, SqliteArtifactConfig } from "./interface";
 
 interface Artifact {
@@ -81,7 +80,10 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
     this.db.close();
     this.db = null;
 
-    await this.uploadArtifact();
+    // NOTE: Artifact upload is handled by the composite action's upload-artifact step
+    // to work around ACTIONS_RUNTIME_TOKEN not being available in shell steps.
+    // The composite action uses actions/upload-artifact@v4 which runs as a proper
+    // JS action and has access to the required runtime token.
 
     this.configureConnection();
   }
@@ -246,35 +248,6 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
       console.warn(`Error downloading artifact: ${error}`);
       return false;
     }
-  }
-
-  private async uploadArtifact(): Promise<{ id: number; size: number }> {
-    const dbFile = Bun.file(this.databasePath);
-    if (!(await dbFile.exists())) {
-      throw new Error(`Database file not found: ${this.databasePath}`);
-    }
-
-    const artifact = new DefaultArtifactClient();
-    const rootDirectory = dirname(this.databasePath);
-
-    console.log(`Uploading artifact: ${this.artifactName}`);
-    const response = await artifact.uploadArtifact(
-      this.artifactName,
-      [this.databasePath],
-      rootDirectory,
-      {
-        retentionDays: 90,
-      }
-    );
-
-    if (!response.id || !response.size) {
-      throw new Error("Upload response missing artifact ID or size");
-    }
-
-    console.log(
-      `Uploaded artifact: ${this.artifactName} (ID: ${response.id}, size: ${response.size} bytes)`
-    );
-    return { id: response.id, size: response.size };
   }
 
   private async createNewDatabase(): Promise<void> {

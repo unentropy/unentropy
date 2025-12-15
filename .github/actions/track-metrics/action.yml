@@ -85,6 +85,15 @@ outputs:
   source-run-id:
     description: "Workflow run ID where the previous database artifact was found (artifact storage only)"
     value: ${{ steps.track-metrics.outputs.source-run-id }}
+  artifact-upload-required:
+    description: "Whether artifact upload is needed (sqlite-artifact storage only)"
+    value: ${{ steps.track-metrics.outputs.artifact-upload-required }}
+  artifact-name:
+    description: "Artifact name for upload (sqlite-artifact storage only)"
+    value: ${{ steps.track-metrics.outputs.artifact-name }}
+  artifact-path:
+    description: "Path to database file for upload (sqlite-artifact storage only)"
+    value: ${{ steps.track-metrics.outputs.artifact-path }}
   # Error outputs
   error-code:
     description: "Error code (if failed)"
@@ -128,3 +137,14 @@ runs:
         INPUT_TIMEOUT: ${{ inputs.timeout }}
         INPUT_VERBOSE: ${{ inputs.verbose }}
         GITHUB_TOKEN: ${{ github.token }}
+
+    # Upload database artifact for sqlite-artifact storage type
+    # This step runs as a proper JS action and has access to ACTIONS_RUNTIME_TOKEN
+    # which is required by the artifact upload API but not available in shell steps
+    - name: Upload database artifact
+      if: steps.track-metrics.outputs.artifact-upload-required == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.track-metrics.outputs.artifact-name }}
+        path: ${{ steps.track-metrics.outputs.artifact-path }}
+        overwrite: true

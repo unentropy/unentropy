@@ -35,6 +35,10 @@ interface ActionOutputs {
   metricsCollected?: number;
   totalBuilds?: number;
   duration: number;
+  // Artifact upload metadata (sqlite-artifact only)
+  artifactUploadRequired?: boolean;
+  artifactName?: string;
+  artifactPath?: string;
   // Error outputs
   errorCode?: string;
   errorMessage?: string;
@@ -247,6 +251,15 @@ export async function runTrackMetricsAction(): Promise<void> {
     core.setOutput("total-builds", outputs.totalBuilds.toString());
   }
   core.setOutput("duration", outputs.duration.toString());
+
+  // Set artifact upload metadata for composite action step (sqlite-artifact only)
+  if (inputs.storageType === "sqlite-artifact") {
+    core.setOutput("artifact-upload-required", "true");
+    core.setOutput("artifact-name", inputs.artifactName);
+    core.setOutput("artifact-path", inputs.databaseKey);
+  } else {
+    core.setOutput("artifact-upload-required", "false");
+  }
 
   core.info("Track-metrics action completed successfully");
 
