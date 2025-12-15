@@ -129,11 +129,6 @@ jobs:
           body: |
             Release ${{ steps.version.outputs.tag }}
 
-            **Installation:**
-            ```bash
-            bunx unentropy@${{ steps.version.outputs.version }}
-            ```
-
             **npm Package:** https://www.npmjs.com/package/unentropy/v/${{ steps.version.outputs.version }}
           draft: false
           prerelease: ${{ startsWith(steps.version.outputs.version, '0.') }}
