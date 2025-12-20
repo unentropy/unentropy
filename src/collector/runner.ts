@@ -1,4 +1,5 @@
 import { exec } from "@actions/exec";
+import { executeCollect } from "./collect-runner";
 
 export interface CommandResult {
   success: boolean;
@@ -16,24 +17,31 @@ export async function runCommand(
   silent = false
 ): Promise<CommandResult> {
   const startTime = Date.now();
+
+  if (command.trim().startsWith("@collect ")) {
+    const collectArgs = command.trim().slice("@collect ".length);
+    const result = await executeCollect(collectArgs);
+    const durationMs = Date.now() - startTime;
+
+    return {
+      success: result.success,
+      stdout: result.value,
+      stderr: result.error || "",
+      exitCode: result.success ? 0 : 1,
+      timedOut: false,
+      durationMs,
+    };
+  }
+
   let stdout = "";
   let stderr = "";
 
-  // Transform @collect commands to CLI invocations
-  let commandToRun = command;
-  if (command.trim().startsWith("@collect ")) {
-    const collectArgs = command.trim().slice("@collect ".length);
-    commandToRun = `bun src/index.ts collect ${collectArgs}`;
-  }
-
   try {
-    // Create a timeout promise
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error("Command timed out")), timeoutMs);
     });
 
-    // Create the execution promise
-    const execPromise = exec("sh", ["-c", commandToRun], {
+    const execPromise = exec("sh", ["-c", command], {
       env: { ...(process.env as Record<string, string>), ...env },
       ignoreReturnCode: true,
       silent,
@@ -47,7 +55,6 @@ export async function runCommand(
       },
     });
 
-    // Race between execution and timeout
     const exitCode = await Promise.race([execPromise, timeoutPromise]);
 
     const durationMs = Date.now() - startTime;

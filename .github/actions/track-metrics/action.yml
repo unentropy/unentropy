@@ -8,7 +8,7 @@ inputs:
   storage-type:
     description: "Storage backend type (sqlite-local, sqlite-artifact, or sqlite-s3)"
     required: false
-    default: "sqlite-local"
+    default: "sqlite-artifact"
   # S3 Configuration (for sqlite-s3 storage type)
   s3-endpoint:
     description: "S3-compatible endpoint URL (overrides config file)"
