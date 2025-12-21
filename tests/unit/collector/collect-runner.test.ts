@@ -89,6 +89,24 @@ describe("executeCollect", () => {
       expect(parseInt(result.value)).toBeGreaterThan(0);
     });
 
+    test("collects size with glob pattern", async () => {
+      const result = await executeCollect("size *.json");
+      expect(result.success).toBe(true);
+      expect(parseInt(result.value)).toBeGreaterThan(0);
+    });
+
+    test("collects size with nested glob pattern", async () => {
+      const result = await executeCollect("size src/**/*.ts");
+      expect(result.success).toBe(true);
+      expect(parseInt(result.value)).toBeGreaterThan(0);
+    });
+
+    test("fails with glob pattern that matches no files", async () => {
+      const result = await executeCollect("size nonexistent-*.xyz");
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("No files matched glob pattern");
+    });
+
     test("fails with missing path", async () => {
       const result = await executeCollect("size");
       expect(result.success).toBe(false);
