@@ -17,7 +17,7 @@ Unentropy helps you track code metrics directly in your CI pipeline—without ex
 
 This guide shows you how to:
 
-- Generate a configuration file automatically
+- Generate a configuration file
 - Verify metrics collection locally
 - Add GitHub Actions workflows
 - View your first metrics report
@@ -108,13 +108,19 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read # Required to checkout the code
+  actions: read # Required to download artifacts
+  pages: write # Required to publish reports
+  id-token: write # Required to publish reports
+
 jobs:
   track-metrics:
     runs-on: ubuntu-latest
     steps:
       # Checkout code, install dependencies, and run tests to generate coverage metrics
       # Adjust commands based on your project type
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: bun install
       - name: Run tests with coverage
@@ -124,20 +130,17 @@ jobs:
       - name: Track metrics
         uses: unentropy/track-metrics@v0
 
-  publish-metrics-report:
-    name: Publish Metrics Report
-    runs-on: ubuntu-latest
-    needs: track-metrics
-    permissions:
-      pages: write
-      id-token: write
+      # Optional: Publish metrics report to GitHub Pages
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: unentropy-report
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+        id: report_deployment
+
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      url: ${{ steps.report_deployment.outputs.page_url }}
 ```
 
 Enable GitHub Pages in your repository settings to view reports at `https://<username>.github.io/<repo>/`.
@@ -151,22 +154,26 @@ name: Quality Gate
 on:
   pull_request:
 
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
 jobs:
   quality-gate:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v4
 
+    steps:
+      # Adjust commands based on your project type
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        run: bun install
       - name: Run tests with coverage
-        run: bun test --coverage
+        run: bun test --coverage --coverage-reporter=lcov
 
       - name: Quality Gate Check
         uses: unentropy/quality-gate@v0
 ```
-
-> **Note**: Adjust test commands based on your project type. The `init` command generates the correct commands automatically.
 
 Commit and push these files to start tracking metrics.
 
