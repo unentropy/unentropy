@@ -193,7 +193,7 @@ async function createStorageProvider(
 The provider handles SQLite-specific PRAGMA configuration:
 ```typescript
 private configureConnection(db: Database): void {
-  db.run("PRAGMA journal_mode = WAL");      // Write-Ahead Logging for concurrency
+  db.run("PRAGMA journal_mode = DELETE");   // Single-file storage (no WAL files to manage)
   db.run("PRAGMA synchronous = NORMAL");    // Balance safety and performance
   db.run("PRAGMA foreign_keys = ON");       // Enforce foreign key constraints
   db.run("PRAGMA busy_timeout = 5000");     // 5 second timeout for locks
@@ -214,7 +214,7 @@ const db = new Database(path, {
 });
 
 // Execute SQL
-db.run("PRAGMA journal_mode = WAL");  // Returns void for DDL
+db.run("PRAGMA journal_mode = DELETE");  // Returns void for DDL
 db.exec("CREATE TABLE..."); // Execute multiple statements
 
 // Prepare statement

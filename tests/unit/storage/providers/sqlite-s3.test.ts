@@ -75,7 +75,7 @@ describe("SqliteS3StorageProvider", () => {
 
     // Verify SQLite configuration
     const journalMode = db.query("PRAGMA journal_mode").get() as { journal_mode: string };
-    expect(journalMode.journal_mode).toBe("wal");
+    expect(journalMode.journal_mode).toBe("delete");
 
     const foreignKeys = db.query("PRAGMA foreign_keys").get() as { foreign_keys: number };
     expect(foreignKeys.foreign_keys).toBe(1);

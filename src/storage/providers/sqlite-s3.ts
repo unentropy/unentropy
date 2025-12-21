@@ -131,8 +131,8 @@ export class SqliteS3StorageProvider implements StorageProvider {
 
   private configureConnection(): Database {
     this.db = new Database(this.tempDbPath, { create: true });
-    // Configure SQLite for optimal performance
-    this.db.run("PRAGMA journal_mode = WAL");
+    // Configure SQLite for single-file storage (no WAL files to manage)
+    this.db.run("PRAGMA journal_mode = DELETE");
     this.db.run("PRAGMA synchronous = NORMAL");
     this.db.run("PRAGMA foreign_keys = ON");
     this.db.run("PRAGMA busy_timeout = 5000");

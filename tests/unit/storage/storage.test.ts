@@ -26,12 +26,12 @@ describe("Storage", () => {
     expect(db).toBeDefined();
   });
 
-  it("configures WAL mode via provider", () => {
+  it("configures DELETE journal mode via provider", () => {
     const db = storage.getConnection();
     const result = db.query("PRAGMA journal_mode").get() as {
       journal_mode: string;
     };
-    expect(result.journal_mode).toBe("wal");
+    expect(result.journal_mode).toBe("delete");
   });
 
   it("enables foreign keys via provider", () => {

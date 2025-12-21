@@ -477,7 +477,7 @@ await storage.close();
    └─> Create StorageProvider based on config
    └─> Initialize database connection
    └─> Create tables if not exist (migration)
-   └─> Enable WAL mode
+   └─> Enable DELETE journal mode
    
 3. Create Build Context
    └─> Insert BuildContext record
@@ -587,14 +587,14 @@ CREATE INDEX idx_metric_value_build ON metric_values(build_id);
 ## Concurrency Model
 
 ### Write Concurrency
-- **WAL Mode**: Enabled for all database connections
+- **DELETE Mode**: Enabled for single-file storage (required for artifact/S3 uploads - WAL creates separate files)
 - **Transaction Mode**: IMMEDIATE transactions for writes
 - **Busy Timeout**: 5000ms
 - **Retry Strategy**: 3 attempts with exponential backoff (100ms, 200ms, 400ms)
 
 ### Read Concurrency
 - **Isolation Level**: Read Uncommitted (acceptable for metrics)
-- **No Lock Contention**: WAL mode allows concurrent reads during writes
+- **No Lock Contention**: GitHub Actions runs are sequential per branch, so concurrent access is not a concern
 
 ### S3 Storage Concurrency
 When multiple concurrent jobs need to write to the database:

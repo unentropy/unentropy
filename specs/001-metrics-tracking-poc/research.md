@@ -18,7 +18,7 @@ This document captures the research findings and technical decisions for impleme
 - Native Bun runtime integration provides optimal performance
 - Drizzle adds type safety without runtime overhead
 - Synchronous API simplifies error handling in both local development and GitHub Actions
-- Built-in support for WAL mode and concurrent access patterns
+- Built-in support for various journal modes and single-file storage
 - Zero external dependencies for driver (part of Bun runtime)
 - Consistent API across all environments (local dev and CI/CD)
 
@@ -30,7 +30,7 @@ This document captures the research findings and technical decisions for impleme
 - Raw SQL only: Functional but lacks type safety, error-prone refactoring
 
 **Implementation Notes**:
-- Enable WAL (Write-Ahead Logging) mode for better concurrent write support
+- Use DELETE journal mode for single-file storage (required for artifact/S3 upload - WAL creates separate files that would be lost)
 - Use IMMEDIATE transactions to reduce lock contention
 - Implement retry logic with exponential backoff for SQLITE_BUSY errors
 - Drizzle wraps Database instance: `drizzle({ client: db })`
@@ -100,10 +100,11 @@ gh api repos/:owner/:repo/actions/artifacts/$ARTIFACT_ID/zip \
 
 ### 4. Concurrent Write Handling
 
-**Decision**: SQLite WAL mode + optimistic locking with retry strategy
+**Decision**: SQLite DELETE mode + optimistic locking with retry strategy
 
 **Rationale**:
-- WAL mode allows concurrent readers during writes
+- DELETE mode ensures all data is in a single file (required for artifact/S3 storage - WAL creates separate `-wal` and `-shm` files that would be lost on upload)
+- GitHub Actions runs are sequential per branch, so concurrent access is not a concern
 - Optimistic locking (using busy timeout) handles rare write collisions
 - Retry with exponential backoff prevents cascade failures
 - Simpler than distributed locking solutions
@@ -259,7 +260,7 @@ gh api repos/:owner/:repo/actions/artifacts/$ARTIFACT_ID/zip \
 ## Performance Considerations
 
 ### Database Performance
-- WAL mode for concurrent access
+- DELETE mode for single-file storage (simplifies artifact/S3 uploads)
 - Index on (metric_id, timestamp) for time-series queries
 - VACUUM on report generation to maintain performance
 
@@ -345,7 +346,7 @@ gh api repos/:owner/:repo/actions/artifacts/$ARTIFACT_ID/zip \
 
 ## References
 
-- SQLite WAL mode: https://www.sqlite.org/wal.html
+- SQLite journal modes: https://www.sqlite.org/pragma.html#pragma_journal_mode
 - better-sqlite3 docs: https://github.com/WiseLibs/better-sqlite3
 - Zod documentation: https://zod.dev/
 - Chart.js v4: https://www.chartjs.org/docs/latest/

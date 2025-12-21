@@ -112,11 +112,15 @@ jobs:
   track-metrics:
     runs-on: ubuntu-latest
     steps:
+      # Checkout code, install dependencies, and run tests to generate coverage metrics
+      # Adjust commands based on your project type
       - uses: actions/checkout@v4
-
+      - name: Install dependencies
+        run: bun install
       - name: Run tests with coverage
         run: bun test --coverage --coverage-reporter=lcov
 
+      # Collect metrics
       - name: Track metrics
         uses: unentropy/track-metrics@v0
 

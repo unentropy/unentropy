@@ -243,7 +243,7 @@ const db = new Database(dbPath, {
 SQLite-specific PRAGMA configuration is handled by the `SqliteLocalStorageProvider`:
 
 ```sql
-PRAGMA journal_mode = WAL;          -- Write-Ahead Logging for concurrency
+PRAGMA journal_mode = DELETE;       -- Single-file storage (no WAL files to manage)
 PRAGMA synchronous = NORMAL;        -- Balance safety and performance
 PRAGMA foreign_keys = ON;           -- Enforce foreign key constraints
 PRAGMA busy_timeout = 5000;         -- 5 second timeout for locks
@@ -252,7 +252,7 @@ PRAGMA temp_store = MEMORY;         -- Use memory for temp tables
 ```
 
 **Rationale**:
-- **WAL mode**: Enables concurrent reads during writes
+- **DELETE mode**: Ensures all data is in a single `.db` file (WAL mode creates separate `-wal` and `-shm` files that would be lost when uploading artifacts or to S3)
 - **NORMAL synchronous**: Acceptable risk for metrics data (not financial)
 - **Foreign keys ON**: Data integrity
 - **5s busy timeout**: Handles concurrent GitHub Actions writes
@@ -458,7 +458,7 @@ COMMIT;
 
 **Scenario**: Report generation while collection is running
 
-**Result**: No conflict. WAL mode allows concurrent reads during writes. Reader sees consistent snapshot from before write started.
+**Result**: No conflict. GitHub Actions runs are sequential per branch, so concurrent read/write scenarios don't occur in practice. Reader sees consistent snapshot.
 
 ---
 
@@ -604,6 +604,6 @@ PRAGMA index_list(metric_values);
 ### Integration Test Requirements
 
 1. Concurrent writes don't corrupt database
-2. WAL mode enables concurrent reads
+2. DELETE mode maintains single-file integrity for uploads
 3. Transactions rollback on error
 4. Backup/restore preserves data integrity

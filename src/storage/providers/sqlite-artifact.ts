@@ -260,7 +260,7 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
 
   private configureConnection(): void {
     this.db = new Database(this.databasePath, { create: true });
-    this.db.run("PRAGMA journal_mode = WAL");
+    this.db.run("PRAGMA journal_mode = DELETE");
     this.db.run("PRAGMA synchronous = NORMAL");
     this.db.run("PRAGMA foreign_keys = ON");
     this.db.run("PRAGMA busy_timeout = 5000");

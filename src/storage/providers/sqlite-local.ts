@@ -22,8 +22,8 @@ export class SqliteLocalStorageProvider implements StorageProvider {
   private configureConnection(): void {
     if (!this.db) throw new Error("Database not initialized");
 
-    // Configure SQLite using PRAGMA statements
-    this.db.run("PRAGMA journal_mode = WAL");
+    // Configure SQLite for single-file storage (no WAL files to manage)
+    this.db.run("PRAGMA journal_mode = DELETE");
     this.db.run("PRAGMA synchronous = NORMAL");
     this.db.run("PRAGMA foreign_keys = ON");
     this.db.run("PRAGMA busy_timeout = 5000");
