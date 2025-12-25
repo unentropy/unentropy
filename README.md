@@ -10,7 +10,9 @@ Track code metrics in your CI pipeline
 
 ## **What is Unentropy?**
 
-In the age of AI-assisted development where codebases evolve faster than ever, **you can't improve what you don't measure.** Unentropy gives you the visibility to catch quality regressions early, validate refactoring progress, and ensure your codebase remains maintainable as it grows.
+Unentropy is a code metrics tracker that gives you the visibility to catch quality regressions early, validate refactoring progress, and ensure your codebase remains maintainable as it grows.
+
+Unentropy is configured in your project's repository and runs as a GitHub Action. 
 
 ## **Key Features**
 
@@ -22,9 +24,6 @@ In the age of AI-assisted development where codebases evolve faster than ever, *
 - **Trend Visualization:** Generate interactive HTML reports showing how your metrics evolve over time
 
 ## **Getting Started**
-
-> [!TIP]
-> Unentropy supports both npx and bunx
 
 ### 1. Generate Configuration
 
