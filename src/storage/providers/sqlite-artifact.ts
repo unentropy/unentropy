@@ -25,7 +25,7 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
 
   constructor(config: SqliteArtifactConfig) {
     this.artifactName = config.artifactName ?? "unentropy-metrics";
-    this.branchFilter = config.branchFilter ?? process.env.GITHUB_REF_NAME ?? "main";
+    this.branchFilter = config.branchFilter ?? "main";
     this.databasePath = config.databasePath ?? "./unentropy-metrics.db";
   }
 
