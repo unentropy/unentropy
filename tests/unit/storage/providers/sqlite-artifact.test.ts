@@ -17,20 +17,17 @@ describe("SqliteArtifactStorageProvider", () => {
     artifactName: "unentropy-metrics",
     branchFilter: "main",
     databasePath: "/tmp/test-unentropy.db",
+    token: "test-token",
+    repository: "test-owner/test-repo",
   };
 
-  const originalEnv = { ...process.env };
   const originalFetch = global.fetch;
 
   beforeEach(() => {
-    process.env.GITHUB_TOKEN = "test-token";
-    process.env.GITHUB_REPOSITORY = "test-owner/test-repo";
-    process.env.GITHUB_REF_NAME = "main";
-    process.env.GITHUB_RUN_ID = "99999";
+    // No longer setting env vars - config is passed explicitly
   });
 
   afterEach(async () => {
-    process.env = { ...originalEnv };
     global.fetch = originalFetch;
 
     if (provider) {
@@ -46,6 +43,8 @@ describe("SqliteArtifactStorageProvider", () => {
     test("should create provider with default values", () => {
       provider = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
+        token: "test-token",
+        repository: "owner/repo",
       });
 
       expect(provider).toBeDefined();
@@ -56,6 +55,8 @@ describe("SqliteArtifactStorageProvider", () => {
       provider = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
         artifactName: "custom-metrics",
+        token: "test-token",
+        repository: "owner/repo",
       });
 
       expect(provider).toBeDefined();
@@ -66,25 +67,19 @@ describe("SqliteArtifactStorageProvider", () => {
       provider = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
         branchFilter: "develop",
+        token: "test-token",
+        repository: "owner/repo",
       });
 
       expect(provider).toBeDefined();
       expect(provider.getBranchFilter()).toBe("develop");
     });
 
-    test("should use environment variable for branch filter when not specified", () => {
-      process.env.GITHUB_REF_NAME = "feature/test";
+    test("should default branch filter to main when not specified", () => {
       provider = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
-      });
-
-      expect(provider.getBranchFilter()).toBe("feature/test");
-    });
-
-    test("should default branch filter to main when env var not set", () => {
-      delete process.env.GITHUB_REF_NAME;
-      provider = new SqliteArtifactStorageProvider({
-        type: "sqlite-artifact",
+        token: "test-token",
+        repository: "owner/repo",
       });
 
       expect(provider.getBranchFilter()).toBe("main");
@@ -92,29 +87,31 @@ describe("SqliteArtifactStorageProvider", () => {
   });
 
   describe("initialize", () => {
-    test("should throw error when GITHUB_TOKEN is not set", async () => {
-      delete process.env.GITHUB_TOKEN;
-      provider = new SqliteArtifactStorageProvider(baseConfig);
+    test("should throw error when token is empty", async () => {
+      provider = new SqliteArtifactStorageProvider({
+        ...baseConfig,
+        token: "",
+      });
 
-      await expect(provider.initialize()).rejects.toThrow(
-        "GITHUB_TOKEN environment variable is required"
-      );
+      await expect(provider.initialize()).rejects.toThrow("GitHub token is required");
     });
 
-    test("should throw error when GITHUB_REPOSITORY is not set", async () => {
-      delete process.env.GITHUB_REPOSITORY;
-      provider = new SqliteArtifactStorageProvider(baseConfig);
+    test("should throw error when repository is empty", async () => {
+      provider = new SqliteArtifactStorageProvider({
+        ...baseConfig,
+        repository: "",
+      });
 
-      await expect(provider.initialize()).rejects.toThrow(
-        "GITHUB_REPOSITORY environment variable is required"
-      );
+      await expect(provider.initialize()).rejects.toThrow("GitHub repository is required");
     });
 
-    test("should throw error for invalid GITHUB_REPOSITORY format", async () => {
-      process.env.GITHUB_REPOSITORY = "invalid-format";
-      provider = new SqliteArtifactStorageProvider(baseConfig);
+    test("should throw error for invalid repository format", async () => {
+      provider = new SqliteArtifactStorageProvider({
+        ...baseConfig,
+        repository: "invalid-format",
+      });
 
-      await expect(provider.initialize()).rejects.toThrow("Invalid GITHUB_REPOSITORY format");
+      await expect(provider.initialize()).rejects.toThrow("Invalid repository format");
     });
 
     test("should create new database when no previous artifact exists", async () => {
@@ -360,6 +357,8 @@ describe("SqliteArtifactStorageProvider", () => {
       provider = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
         artifactName: "my-metrics-db",
+        token: "test-token",
+        repository: "owner/repo",
       });
 
       expect(provider.getArtifactName()).toBe("my-metrics-db");
@@ -368,6 +367,8 @@ describe("SqliteArtifactStorageProvider", () => {
     test("should return default artifact name when not specified", () => {
       provider = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
+        token: "test-token",
+        repository: "owner/repo",
       });
 
       expect(provider.getArtifactName()).toBe("unentropy-metrics");
@@ -378,6 +379,8 @@ describe("SqliteArtifactStorageProvider", () => {
       provider = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
         databasePath: customPath,
+        token: "test-token",
+        repository: "owner/repo",
       });
 
       expect(provider.getDatabasePath()).toBe(customPath);
@@ -386,6 +389,8 @@ describe("SqliteArtifactStorageProvider", () => {
     test("should return default database path when not specified", () => {
       provider = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
+        token: "test-token",
+        repository: "owner/repo",
       });
 
       expect(provider.getDatabasePath()).toBe("./unentropy-metrics.db");

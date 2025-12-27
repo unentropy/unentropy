@@ -63,6 +63,8 @@ describe("createStorageProvider", () => {
       type: "sqlite-artifact",
       artifactName: "test-artifact",
       databasePath: uniquePath,
+      token: "test-token",
+      repository: "test-owner/test-repo",
     };
 
     provider = createStorageProvider(config);

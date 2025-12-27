@@ -18,15 +18,19 @@ interface Artifact {
 export class SqliteArtifactStorageProvider implements StorageProvider {
   private db: Database | null = null;
   private initialized = false;
-  private artifactName: string;
-  private branchFilter: string;
-  private databasePath: string;
+  private readonly artifactName: string;
+  private readonly branchFilter: string;
+  private readonly databasePath: string;
+  private readonly token: string;
+  private readonly repository: string;
   private firstRun = false;
 
   constructor(config: SqliteArtifactConfig) {
     this.artifactName = config.artifactName ?? "unentropy-metrics";
     this.branchFilter = config.branchFilter ?? "main";
     this.databasePath = config.databasePath ?? "./unentropy-metrics.db";
+    this.token = config.token;
+    this.repository = config.repository;
   }
 
   async initialize(): Promise<Database> {
@@ -34,26 +38,23 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
       return this.db;
     }
 
-    const token = process.env.GITHUB_TOKEN;
-    const repo = process.env.GITHUB_REPOSITORY;
-
-    if (!token) {
-      throw new Error("GITHUB_TOKEN environment variable is required");
+    if (!this.token) {
+      throw new Error("GitHub token is required");
     }
 
-    if (!repo) {
-      throw new Error("GITHUB_REPOSITORY environment variable is required");
+    if (!this.repository) {
+      throw new Error("GitHub repository is required");
     }
 
-    if (!/^[^/]+\/[^/]+$/.test(repo)) {
-      throw new Error(`Invalid GITHUB_REPOSITORY format: expected 'owner/repo', got: ${repo}`);
+    if (!/^[^/]+\/[^/]+$/.test(this.repository)) {
+      throw new Error(`Invalid repository format: expected 'owner/repo', got: ${this.repository}`);
     }
 
     console.log(`Searching for database artifact: ${this.artifactName}`);
     console.log(`Target branch: ${this.branchFilter}`);
     console.log(`Database path: ${this.databasePath}`);
 
-    const downloaded = await this.tryDownloadLatestArtifact(token, repo);
+    const downloaded = await this.tryDownloadLatestArtifact(this.token, this.repository);
 
     if (!downloaded) {
       console.log("No previous artifact found, creating new database...");

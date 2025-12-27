@@ -18,6 +18,8 @@ export interface SqliteArtifactConfig extends BaseStorageProviderConfig {
   artifactName?: string;
   branchFilter?: string;
   databasePath?: string;
+  token: string;
+  repository: string;
 }
 
 export interface SqliteS3Config extends BaseStorageProviderConfig {
