@@ -12,7 +12,7 @@ Track code metrics in your CI pipeline
 
 Unentropy is a code metrics tracker that gives you the visibility to catch quality regressions early, validate refactoring progress, and ensure your codebase remains maintainable as it grows.
 
-Unentropy is configured in your project's repository and runs as a GitHub Action. 
+Unentropy is configured in your project's repository and runs as a GitHub Action.
 
 ## **Key Features**
 

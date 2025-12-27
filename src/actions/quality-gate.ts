@@ -83,7 +83,8 @@ function parseInputs(): QualityGateInputs {
 
 function createStorageConfig(
   inputs: QualityGateInputs,
-  config: StorageConfig
+  config: StorageConfig,
+  referenceBranch: string
 ): StorageProviderConfig {
   if (config.type === "sqlite-s3") {
     return {
@@ -106,6 +107,7 @@ function createStorageConfig(
 
   return {
     type: "sqlite-artifact",
+    branchFilter: referenceBranch,
   };
 }
 
@@ -298,8 +300,11 @@ export async function runQualityGateAction(): Promise<void> {
       return;
     }
 
+    const referenceBranch = determineReferenceBranch(config);
+    const maxAgeDays = config.qualityGate?.baseline?.maxAgeDays ?? 90;
+
     core.info("Downloading baseline database...");
-    const storageConfig = createStorageConfig(inputs, config.storage);
+    const storageConfig = createStorageConfig(inputs, config.storage, referenceBranch);
     const storage = new Storage(storageConfig);
     await storage.ready();
     core.info("Baseline database downloaded successfully");
@@ -311,9 +316,6 @@ export async function runQualityGateAction(): Promise<void> {
     core.info(
       `Metrics collection completed: ${collectionResult.successful}/${collectionResult.total} successful`
     );
-
-    const referenceBranch = determineReferenceBranch(config);
-    const maxAgeDays = config.qualityGate?.baseline?.maxAgeDays ?? 90;
 
     core.info(
       `Building metric samples (reference: ${referenceBranch}, maxAgeDays: ${maxAgeDays})...`
