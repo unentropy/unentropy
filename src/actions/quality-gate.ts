@@ -105,9 +105,21 @@ function createStorageConfig(
     };
   }
 
+  const token = process.env.GITHUB_TOKEN;
+  const repository = process.env.GITHUB_REPOSITORY;
+
+  if (!token) {
+    throw new Error("GITHUB_TOKEN environment variable is required for artifact storage");
+  }
+  if (!repository) {
+    throw new Error("GITHUB_REPOSITORY environment variable is required for artifact storage");
+  }
+
   return {
     type: "sqlite-artifact",
     branchFilter: referenceBranch,
+    token,
+    repository,
   };
 }
 

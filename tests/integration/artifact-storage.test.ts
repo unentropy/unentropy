@@ -15,15 +15,14 @@ const createMockFetch = (
 };
 
 describe("Artifact Storage Integration", () => {
-  const originalEnv = { ...process.env };
   const originalFetch = global.fetch;
 
-  beforeEach(() => {
-    process.env.GITHUB_TOKEN = "test-token";
-    process.env.GITHUB_REPOSITORY = "test-owner/test-repo";
-    process.env.GITHUB_REF_NAME = "main";
-    process.env.GITHUB_RUN_ID = "99999";
+  const baseArtifactConfig = {
+    token: "test-token",
+    repository: "test-owner/test-repo",
+  };
 
+  beforeEach(() => {
     // Mock fetch to return empty artifacts by default (first-run scenario)
     global.fetch = createMockFetch(async (url: string) => {
       if (url.includes("/actions/artifacts")) {
@@ -37,7 +36,6 @@ describe("Artifact Storage Integration", () => {
   });
 
   afterEach(() => {
-    process.env = { ...originalEnv };
     global.fetch = originalFetch;
   });
 
@@ -73,6 +71,7 @@ describe("Artifact Storage Integration", () => {
       const config: SqliteArtifactConfig = {
         type: "sqlite-artifact",
         databasePath: uniquePath,
+        ...baseArtifactConfig,
       };
 
       provider = new SqliteArtifactStorageProvider(config);
@@ -90,6 +89,7 @@ describe("Artifact Storage Integration", () => {
         type: "sqlite-artifact",
         databasePath: uniquePath,
         artifactName: "integration-test",
+        ...baseArtifactConfig,
       };
 
       provider = new SqliteArtifactStorageProvider(config);
@@ -122,6 +122,7 @@ describe("Artifact Storage Integration", () => {
         databasePath: uniquePath,
         artifactName: "my-custom-artifact",
         branchFilter: "develop",
+        ...baseArtifactConfig,
       };
 
       provider = new SqliteArtifactStorageProvider(config);
@@ -136,46 +137,44 @@ describe("Artifact Storage Integration", () => {
     it("should use default values when not specified", async () => {
       const config: SqliteArtifactConfig = {
         type: "sqlite-artifact",
+        ...baseArtifactConfig,
       };
 
       provider = new SqliteArtifactStorageProvider(config);
 
       expect(provider.getArtifactName()).toBe("unentropy-metrics");
-      expect(provider.getBranchFilter()).toBe("main"); // from env var
+      expect(provider.getBranchFilter()).toBe("main");
       expect(provider.getDatabasePath()).toBe("./unentropy-metrics.db");
     });
 
-    it("should throw error when GITHUB_TOKEN is missing", async () => {
-      delete process.env.GITHUB_TOKEN;
-
+    it("should throw error when token is empty", async () => {
       const config: SqliteArtifactConfig = {
         type: "sqlite-artifact",
+        token: "",
+        repository: "owner/repo",
       };
 
       provider = new SqliteArtifactStorageProvider(config);
 
-      await expect(provider.initialize()).rejects.toThrow(
-        "GITHUB_TOKEN environment variable is required"
-      );
+      await expect(provider.initialize()).rejects.toThrow("GitHub token is required");
     });
 
-    it("should throw error when GITHUB_REPOSITORY is missing", async () => {
-      delete process.env.GITHUB_REPOSITORY;
-
+    it("should throw error when repository is empty", async () => {
       const config: SqliteArtifactConfig = {
         type: "sqlite-artifact",
+        token: "test-token",
+        repository: "",
       };
 
       provider = new SqliteArtifactStorageProvider(config);
 
-      await expect(provider.initialize()).rejects.toThrow(
-        "GITHUB_REPOSITORY environment variable is required"
-      );
+      await expect(provider.initialize()).rejects.toThrow("GitHub repository is required");
     });
 
     it("should handle persist error when not initialized", async () => {
       const config: SqliteArtifactConfig = {
         type: "sqlite-artifact",
+        ...baseArtifactConfig,
       };
 
       provider = new SqliteArtifactStorageProvider(config);
@@ -190,6 +189,7 @@ describe("Artifact Storage Integration", () => {
       const config: StorageProviderConfig = {
         type: "sqlite-artifact",
         databasePath: uniquePath,
+        ...baseArtifactConfig,
       };
 
       const storage = new Storage(config);
@@ -204,7 +204,7 @@ describe("Artifact Storage Integration", () => {
     });
   });
 
-  describe("environment variable handling", () => {
+  describe("branch filter handling", () => {
     let provider: SqliteArtifactStorageProvider;
 
     afterEach(async () => {
@@ -217,23 +217,10 @@ describe("Artifact Storage Integration", () => {
       }
     });
 
-    it("should use GITHUB_REF_NAME for branch filter when not specified", () => {
-      process.env.GITHUB_REF_NAME = "feature/test-branch";
-
+    it("should default to main when branchFilter not specified", () => {
       const config: SqliteArtifactConfig = {
         type: "sqlite-artifact",
-      };
-
-      provider = new SqliteArtifactStorageProvider(config);
-
-      expect(provider.getBranchFilter()).toBe("feature/test-branch");
-    });
-
-    it("should fallback to main when GITHUB_REF_NAME is not set", () => {
-      delete process.env.GITHUB_REF_NAME;
-
-      const config: SqliteArtifactConfig = {
-        type: "sqlite-artifact",
+        ...baseArtifactConfig,
       };
 
       provider = new SqliteArtifactStorageProvider(config);
@@ -241,12 +228,11 @@ describe("Artifact Storage Integration", () => {
       expect(provider.getBranchFilter()).toBe("main");
     });
 
-    it("should prefer explicit branchFilter over environment variable", () => {
-      process.env.GITHUB_REF_NAME = "env-branch";
-
+    it("should use explicit branchFilter when specified", () => {
       const config: SqliteArtifactConfig = {
         type: "sqlite-artifact",
         branchFilter: "explicit-branch",
+        ...baseArtifactConfig,
       };
 
       provider = new SqliteArtifactStorageProvider(config);
@@ -264,12 +250,14 @@ describe("Artifact Storage Integration", () => {
         type: "sqlite-artifact",
         databasePath: path1,
         artifactName: "artifact-1",
+        ...baseArtifactConfig,
       });
 
       const provider2 = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
         databasePath: path2,
         artifactName: "artifact-2",
+        ...baseArtifactConfig,
       });
 
       await provider1.initialize();
@@ -316,6 +304,7 @@ describe("Artifact Storage Integration", () => {
       const provider1 = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
         databasePath: uniquePath,
+        ...baseArtifactConfig,
       });
 
       await provider1.initialize();
@@ -332,6 +321,7 @@ describe("Artifact Storage Integration", () => {
       const provider2 = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
         databasePath: uniquePath,
+        ...baseArtifactConfig,
       });
 
       // Mock fetch to simulate finding the artifact (first-run behavior for test)

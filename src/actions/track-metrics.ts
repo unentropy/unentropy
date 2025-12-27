@@ -132,11 +132,23 @@ function createStorageConfig(inputs: ActionInputs): StorageProviderConfig {
   }
 
   // For sqlite-artifact, use artifact configuration
+  const token = process.env.GITHUB_TOKEN;
+  const repository = process.env.GITHUB_REPOSITORY;
+
+  if (!token) {
+    throw new Error("GITHUB_TOKEN environment variable is required for artifact storage");
+  }
+  if (!repository) {
+    throw new Error("GITHUB_REPOSITORY environment variable is required for artifact storage");
+  }
+
   return {
     type: "sqlite-artifact",
     artifactName: inputs.artifactName,
     branchFilter: inputs.artifactBranchFilter,
     databasePath: inputs.databaseKey,
+    token,
+    repository,
   };
 }
 
