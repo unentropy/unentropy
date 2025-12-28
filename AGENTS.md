@@ -25,7 +25,6 @@ Unentropy is a serverless tool for tracking custom code metrics in CI/CD pipelin
 ## Project Structure
 
 - **`src/`** - Main Unentropy application code (CLI, collectors, reporters, storage, etc.)
-- **`website/`** - Unentropy homepage and documentation site (Astro with Starlight)
 - **`tests/`** - Unit, integration, and contract tests
 - **`specs/`** - Specification-Driven Development documents
 
