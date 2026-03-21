@@ -1,0 +1,20 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+context: |
+  Tech stack: TypeScript, Bun runtime, SQLite (metrics store), GitHub Actions runtime
+  Testing: Bun test framework
+  Formatting: Prettier
+  We use conventional commits
+  Domain: Serverless tool for tracking custom code metrics in CI/CD pipelines
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+rules:
+  proposal:
+    - Keep proposals under 500 words
+    - Always include a "Non-goals" section
+  tasks:
+    - Break tasks into chunks of max 2 hours
