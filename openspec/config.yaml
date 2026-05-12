@@ -1,4 +1,4 @@
-schema: spec-driven
+schema: unentropy
 
 # Project context (optional)
 # This is shown to AI when creating artifacts.
@@ -9,6 +9,8 @@ context: |
   Formatting: Prettier
   We use conventional commits
   Domain: Serverless tool for tracking custom code metrics in CI/CD pipelines
+  Lint/Test: bun check
+  Project uses GitHub Actions for CI
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
@@ -16,5 +18,26 @@ rules:
   proposal:
     - Keep proposals under 500 words
     - Always include a "Non-goals" section
+    - Always include a "Documentation Impact" subsection
+  specs:
+    - Specs are behavior contracts — observable behavior only, not technical implementation
+    - Include Overview, Requirements (with user narrative + SHALL/MUST), Scenarios (happy path + edge cases), Key Entities, optional Related
+    - Do NOT include: FR-xxx numbering, standalone Edge Cases sections, Assumptions, Dependencies, Scope Boundaries, data models with attributes
+    - Every requirement MUST have at least one scenario with 4-level headers (####)
+  contracts:
+    - Create only contracts relevant to the feature
+    - Include version number and Extends: reference when building on prior specs
+    - Include TypeScript interfaces, JSON Schema, or YAML definitions as appropriate
+    - Keep contracts self-contained and documentation-ready
+  design:
+    - Do NOT duplicate contract content; reference contracts by relative path
+    - Include a "Contracts Referenced" section listing dependencies
+    - Include a "File Changes" section with exact paths
+    - If the interface is unclear, draft design first, then extract contracts iteratively
   tasks:
     - Break tasks into chunks of max 2 hours
+    - Group by phase: Setup, Foundational, User Stories (US1, US2, US3), Polish
+    - Mark parallel tasks with [P]
+    - Mark tasks by user story with [US1], [US2], etc.
+    - Include contract test tasks when contracts change
+    - Include exact file paths in descriptions

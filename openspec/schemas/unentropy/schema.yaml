@@ -1,0 +1,269 @@
+name: unentropy
+version: 1
+description: Unentropy workflow with first-class contracts for documentation generation
+
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Intent, scope, and approach
+    template: proposal.md
+    instruction: |
+      Create the proposal document that establishes WHY this change is needed.
+
+      Sections:
+
+      - **Why**: 1-2 sentences on the problem or opportunity. What problem does
+        this solve? Why now?
+
+      - **What Changes**: Bullet list of changes. Be specific about new
+        capabilities, modifications, or removals. Mark breaking changes with
+        **BREAKING**.
+
+      - **Capabilities**: Identify which specs will be created or modified:
+        - **New Capabilities**: List capabilities being introduced. Each becomes
+          a new `specs/<name>/spec.md`. Use kebab-case names.
+        - **Modified Capabilities**: List existing capabilities whose
+          REQUIREMENTS are changing. Only include if spec-level behavior changes.
+          Each needs a delta spec file. Check `openspec/specs/` for existing
+          spec names. Leave empty if no requirement changes.
+
+      - **Impact**: Affected code, APIs, dependencies, systems.
+        Include a **Documentation Impact** subsection noting which contracts
+        (if any) affect user-facing docs.
+
+      - **Non-goals**: Explicitly state what is out of scope.
+
+      IMPORTANT: The Capabilities section is critical. It creates the contract
+      between proposal and specs phases. Research existing specs before filling
+      this in. Each capability listed here will need a corresponding spec file.
+
+      Keep it concise (1-2 pages). Focus on the "why" not the "how" —
+      implementation details belong in design.md.
+    requires: []
+
+  - id: specs
+    generates: specs/**/*.md
+    description: Behavior requirements, user stories, and scenarios
+    template: spec.md
+    instruction: |
+      Create specification files that define WHAT the system should do.
+
+      A spec is a **behavior contract** — it describes observable behavior that
+      users or downstream systems rely on. It is NOT a technical specification.
+
+      Do NOT include in specs:
+      - Internal class/function names, libraries, or framework choices
+      - API endpoints, CLI flags, or configuration schemas (those go in contracts)
+      - Data models with attributes and relationships (those go in contracts)
+      - Assumptions, dependencies, or scope boundaries (those go in proposal)
+      - FR-xxx numbering — requirement names are the identifiers
+      - Standalone "Edge Cases" sections — edge cases are scenarios under the
+        relevant requirement
+
+      Create one spec file per capability listed in the proposal's Capabilities
+      section.
+
+      - New capabilities: use the exact kebab-case name from the proposal
+        (specs/<capability>/spec.md).
+      - Modified capabilities: use the existing spec folder name from
+        openspec/specs/<capability>/ when creating the delta spec at
+        specs/<capability>/spec.md.
+
+      Structure:
+
+      - **Overview**: Brief description of the feature and its place in the system.
+      - **Requirements**: Use `### Requirement: <name>` with SHALL/MUST.
+        Each requirement starts with a short user narrative (As a user, I want X
+        so that Y) followed by the normative behavior statement.
+      - **Scenarios**: `#### Scenario: <name>` with GIVEN/WHEN/THEN.
+        Include happy path AND edge cases as scenarios.
+      - **Key Entities**: Brief list of domain concepts (1 sentence each).
+        These help documentation generation.
+      - **Related (optional)**: One-line cross-references to other specs.
+        Delete if empty.
+
+      Delta operations (use ## headers):
+
+      - **ADDED Requirements**: New capabilities
+      - **MODIFIED Requirements**: Changed behavior — MUST include full updated
+        content
+      - **REMOVED Requirements**: Deprecated features — MUST include **Reason**
+        and **Migration**
+      - **RENAMED Requirements**: Name changes only — use FROM:/TO: format
+
+      Format requirements:
+
+      - Use SHALL/MUST for normative requirements (avoid should/may)
+      - Scenarios MUST use exactly 4 hashtags (`####`). Using 3 hashtags or
+        bullets will fail silently.
+      - Every requirement MUST have at least one scenario.
+
+      MODIFIED requirements workflow:
+
+      1. Locate the existing requirement in openspec/specs/<capability>/spec.md
+      2. Copy the ENTIRE requirement block (from `### Requirement:` through all
+         scenarios)
+      3. Paste under `## MODIFIED Requirements` and edit to reflect new behavior
+      4. Ensure header text matches exactly (whitespace-insensitive)
+
+      Common pitfall: Using MODIFIED with partial content loses detail at
+      archive time. If adding new concerns without changing existing behavior,
+      use ADDED instead.
+
+      After completing specs, proceed to contracts to create the technical
+      interface definitions.
+    requires:
+      - proposal
+
+  - id: contracts
+    generates: contracts/**/*.md
+    description: Technical interface contracts (schemas, APIs, action inputs)
+    template: contracts.md
+    instruction: |
+      Create contract files that declare the concrete technical interfaces
+      exposed by this change.
+
+      Contracts live under `contracts/` inside the change folder. On archive,
+      they merge into `openspec/specs/<capability>/contracts/`.
+
+      Create only the contracts relevant to this feature:
+
+      - **config-schema.md** — JSON schema for `unentropy.json` configuration
+      - **action-interface.md** — GitHub Action inputs/outputs/usage examples
+      - **cli-interface.md** — CLI commands, options, exit codes, output samples
+      - **database-schema.md** — SQL or TypeScript database schema
+      - **storage-provider-interface.md** — TypeScript storage provider interfaces
+      - **report-data-schema.md** — Embedded report JSON structure
+      - **html-report-template.md** — HTML report template structure
+      - **visual-acceptance-criteria.md** — Visual/report acceptance criteria
+      - **built-in-metrics.md** — Metric template registry with `@collect` docs
+      - **comment-layout.md** — PR comment format and layout
+
+      For each contract:
+      - Include precise technical definitions (TypeScript, JSON Schema, YAML)
+      - Include version number and `Extends:` reference when building on prior
+        specs (e.g., `Extends: openspec/specs/001-metrics-tracking-poc/contracts/config-schema.md`)
+      - Include usage examples
+      - Keep contracts self-contained and documentation-ready
+
+      Do NOT duplicate behavior requirements — those belong in specs. Contracts
+      are the "how it's exposed" layer; specs are the "what it does" layer.
+    requires:
+      - specs
+
+  - id: design
+    generates: design.md
+    description: Technical design with implementation approach
+    template: design.md
+    instruction: |
+      Create the design document that explains HOW to implement the change.
+
+      **Prerequisite: contracts must exist before design is finalized.**
+      Design references contracts by path; do not write design until the
+      interfaces are declared.
+
+      **Pragmatic escape hatch**: If the interface is unclear, write a draft
+      design first to explore the architecture, then extract contracts from it.
+      You may update both artifacts iteratively. However, design MUST reference
+      finalized contracts before the change is archived.
+
+      When to include design.md (create only if any apply):
+
+      - Cross-cutting change (multiple services/modules) or new architectural
+        pattern
+      - New external dependency or significant data model changes
+      - Security, performance, or migration complexity
+      - Ambiguity that benefits from technical decisions before coding
+
+      Sections:
+
+      - **Context**: Background, current state, constraints, stakeholders
+      - **Goals / Non-Goals**: What this design achieves and explicitly excludes
+      - **Decisions**: Key technical choices with rationale (why X over Y?).
+        Include alternatives considered for each decision.
+      - **Risks / Trade-offs**: Known limitations, things that could go wrong.
+        Format: [Risk] → Mitigation
+      - **Migration Plan**: Steps to deploy, rollback strategy (if applicable)
+      - **Open Questions**: Outstanding decisions or unknowns to resolve
+
+      **Contracts Referenced**:
+      List the contracts this design depends on with relative paths, e.g.:
+      - `contracts/config-schema.md`
+      - `contracts/action-interface.md`
+
+      Do NOT duplicate contract content (schemas, interfaces, input definitions).
+      Reference contracts by path and focus on architecture decisions, data flow,
+      and file changes.
+
+      Good design docs explain the "why" behind technical decisions.
+    requires:
+      - proposal
+      - contracts
+
+  - id: tasks
+    generates: tasks.md
+    description: Implementation checklist with trackable tasks
+    template: tasks.md
+    instruction: |
+      Create the task list that breaks down the implementation work.
+
+      **IMPORTANT: Follow the template below exactly.** The apply phase parses
+      checkbox format to track progress. Tasks not using `- [ ]` won't be
+      tracked.
+
+      Guidelines:
+
+      - Group related tasks under ## numbered headings by phase:
+        - Phase 1: Setup
+        - Phase 2: Foundational (blocking prerequisites)
+        - Phase 3+: User Stories (US1, US2, US3) in priority order
+        - Phase N: Polish & Cross-Cutting Concerns
+      - Each task MUST be a checkbox: `- [ ] X.Y Task description`
+      - Mark parallel tasks with `[P]`
+      - Mark tasks by user story with `[US1]`, `[US2]`, etc.
+      - Include exact file paths in descriptions
+      - Include contract test tasks when contracts change
+      - Tasks should be small enough to complete in one session
+      - Order tasks by dependency (what must be done first?)
+
+      Example:
+
+      ```
+      ## 1. Setup
+
+      - [ ] 1.1 [P] Create new module structure
+      - [ ] 1.2 [P] Add dependencies to package.json
+
+      ## 2. Foundational
+
+      - [ ] 2.1 [P] Setup database schema
+
+      ## 3. User Story 1 - [Title] (Priority: P1)
+
+      ### Tests
+      - [ ] 3.1 [P] [US1] Contract test for config schema
+      ### Implementation
+      - [ ] 3.2 [US1] Implement feature X
+
+      ## 4. Polish
+
+      - [ ] 4.1 [P] Update contracts in openspec/specs/<domain>/contracts/
+      - [ ] 4.2 [P] Update documentation-structure.md if needed
+      ```
+
+      Reference specs for what needs to be built, design for how to build it,
+      and contracts for exact interface definitions.
+
+      Each task should be verifiable — you know when it's done.
+    requires:
+      - specs
+      - contracts
+      - design
+
+apply:
+  requires:
+    - tasks
+  tracks: tasks.md
+  instruction: |
+    Read context files, work through pending tasks, mark complete as you go.
+    Pause if you hit blockers or need clarification.
