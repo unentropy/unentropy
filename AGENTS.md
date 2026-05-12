@@ -2,7 +2,7 @@
 
 ## SDD Principles
 
-This project follows Specification-Driven Development (SDD) principles as defined in `.specify/memory/constitution.md`:
+This project follows Specification-Driven Development (SDD) principles as defined in `openspec/config.yaml`:
 
 - **Serverless Architecture**: All components operate within GitHub Actions workflows
 - **Technology Stack Consistency**: Bun runtime with TypeScript, SQLite, Chart.js
@@ -12,7 +12,7 @@ This project follows Specification-Driven Development (SDD) principles as define
 
 ## General instructions
 
-- Use read tool on need-to-know basis to reference `.specify/memory/constitution.md` for full details
+- Reference `openspec/config.yaml` and `openspec/schemas/unentropy/schema.yaml` for SDD workflow details
 - DO NOT jump into modifying code when not explicitly instructed to do so - for example, when asked to "plan" or "analyze" or "update the spec", just run the analysis, report the results and wait for further instructions.
 - DO NOT add code comments unless asked.
 - When asked to implement a single task, do not proceed to the next - stop and wait for further instructions.
@@ -26,7 +26,7 @@ Unentropy is a serverless tool for tracking custom code metrics in CI/CD pipelin
 
 - **`src/`** - Main Unentropy application code (CLI, collectors, reporters, storage, etc.)
 - **`tests/`** - Unit, integration, and contract tests
-- **`specs/`** - Specification-Driven Development documents
+- **`openspec/`** - OpenSpec specifications with contracts, design, and change history
 
 ## Lint/Test Commands
 
@@ -51,11 +51,11 @@ Unentropy is a serverless tool for tracking custom code metrics in CI/CD pipelin
 - Project uses GitHub Actions for CI
 - Follow security best practices
 - Mimic existing code style from src/ and tests/ directories
-- When working on tasks from spec/\*/tasks.md, make sure to update the status after completion in that file
+- When working on tasks from `openspec/changes/`, update the task status after completion
 - The website/ directory is a separate Astro project with its own package.json and dependencies
 
 ## Active Technologies
 
-- Bun runtime with TypeScript (aligned with existing Unentropy codebase). + Bun runtime, TypeScript, SQLite (metrics store), GitHub Actions runtime, GitHub REST API client for pull request comments, Chart.js for existing visual reports. (004-metrics-quality-gate)
-- Existing SQLite database managed via the storage provider abstraction (local, artifact, or S3-compatible backends). (004-metrics-quality-gate)
+- Bun runtime, TypeScript, SQLite (metrics store), GitHub Actions runtime, GitHub REST API client for pull request comments, Chart.js for existing visual reports.
+- SQLite database managed via the storage provider abstraction (local, artifact, or S3-compatible backends).
 - Use yargs (https://yargs.js.org/) for command-line argument parsing

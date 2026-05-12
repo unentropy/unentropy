@@ -15,6 +15,7 @@ Only create contracts that this feature adds or modifies.
 For each contract:
 
 - Include TypeScript interfaces / JSON schema / YAML inputs as appropriate
-- Include version number and `Extends:` reference when building on prior specs
+- Include `Extends:` reference when building on prior specs
 - Include usage examples
 - Keep contracts self-contained and documentation-ready
+- Do NOT include version history or manual versioning — git tracks evolution

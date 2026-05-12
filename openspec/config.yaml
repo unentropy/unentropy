@@ -22,22 +22,20 @@ rules:
   specs:
     - Specs are behavior contracts — observable behavior only, not technical implementation
     - Include Overview, Requirements (with user narrative + SHALL/MUST), Scenarios (happy path + edge cases), Key Entities, optional Related
-    - Do NOT include: FR-xxx numbering, standalone Edge Cases sections, Assumptions, Dependencies, Scope Boundaries, data models with attributes
+    - Do NOT include: Standalone Edge Cases sections, Assumptions, Dependencies, Scope Boundaries, data models with attributes
     - Every requirement MUST have at least one scenario with 4-level headers (####)
   contracts:
     - Create only contracts relevant to the feature
-    - Include version number and Extends: reference when building on prior specs
+    - Include Extends: reference when building on prior specs
     - Include TypeScript interfaces, JSON Schema, or YAML definitions as appropriate
     - Keep contracts self-contained and documentation-ready
+    - Do NOT include version history or manual versioning — git tracks evolution
   design:
     - Do NOT duplicate contract content; reference contracts by relative path
     - Include a "Contracts Referenced" section listing dependencies
     - Include a "File Changes" section with exact paths
     - If the interface is unclear, draft design first, then extract contracts iteratively
   tasks:
-    - Break tasks into chunks of max 2 hours
-    - Group by phase: Setup, Foundational, User Stories (US1, US2, US3), Polish
-    - Mark parallel tasks with [P]
-    - Mark tasks by user story with [US1], [US2], etc.
+    - Group by phase: Setup, Foundational, User Stories, Polish
     - Include contract test tasks when contracts change
     - Include exact file paths in descriptions
