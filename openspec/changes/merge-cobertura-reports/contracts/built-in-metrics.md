@@ -10,21 +10,23 @@
 The `coverage-cobertura` collector now accepts multiple source paths and merges their coverage data.
 
 **Old Syntax**:
+
 ```
 @collect coverage-cobertura <path> [options]
 ```
 
 **New Syntax**:
+
 ```
 @collect coverage-cobertura <paths...> [options]
 ```
 
 #### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--type` | `line\|branch\|function` | `line` | Coverage type to extract |
-| `--fallback` | `number` | `0` | Fallback value on parse failure |
+| Option       | Type                     | Default | Description                     |
+| ------------ | ------------------------ | ------- | ------------------------------- |
+| `--type`     | `line\|branch\|function` | `line`  | Coverage type to extract        |
+| `--fallback` | `number`                 | `0`     | Fallback value on parse failure |
 
 #### Configuration Examples
 
@@ -40,6 +42,7 @@ The `coverage-cobertura` collector now accepts multiple source paths and merges 
 ```
 
 With glob pattern (shell expands before unentropy sees it):
+
 ```json
 {
   "metrics": {

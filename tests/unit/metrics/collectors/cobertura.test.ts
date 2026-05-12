@@ -1,8 +1,12 @@
 import { describe, it, expect } from "bun:test";
-import { parseCoberturaCoerage } from "../../../../src/metrics/collectors/cobertura.js";
+import {
+  parseCoberturaCoerage,
+  mergeCoberturaCoerage,
+} from "../../../../src/metrics/collectors/cobertura.js";
 import { join } from "path";
 
 const fixturesDir = join(process.cwd(), "tests/fixtures/cobertura");
+const f = (name: string) => join(fixturesDir, name);
 
 describe("parseCoberturaCoerage", () => {
   describe("line coverage (default)", () => {
@@ -56,34 +60,22 @@ describe("parseCoberturaCoerage", () => {
       expect(coverage).toBe(100);
     });
 
-    it("should return fallback when no methods exist", async () => {
-      const coverage = await parseCoberturaCoerage(join(fixturesDir, "no-methods.xml"), {
-        type: "function",
-        fallback: 0,
-      });
-      expect(coverage).toBe(0);
+    it("should throw when no methods exist", async () => {
+      expect(
+        parseCoberturaCoerage(join(fixturesDir, "no-methods.xml"), { type: "function" })
+      ).rejects.toThrow("No function coverage data");
     });
 
-    it("should return fallback when no packages exist for function coverage", async () => {
-      const coverage = await parseCoberturaCoerage(join(fixturesDir, "minimal.xml"), {
-        type: "function",
-        fallback: 42,
-      });
-      expect(coverage).toBe(42);
+    it("should throw when no packages exist for function coverage", async () => {
+      expect(
+        parseCoberturaCoerage(join(fixturesDir, "minimal.xml"), { type: "function" })
+      ).rejects.toThrow("No function coverage data");
     });
   });
 
-  describe("fallback handling", () => {
-    it("should return fallback value when XML is malformed", async () => {
-      const coverage = await parseCoberturaCoerage(join(fixturesDir, "malformed.xml"), {
-        fallback: 50,
-      });
-      expect(coverage).toBe(50);
-    });
-
-    it("should return 0 when no fallback provided and XML is malformed", async () => {
-      const coverage = await parseCoberturaCoerage(join(fixturesDir, "malformed.xml"));
-      expect(coverage).toBe(0);
+  describe("parse errors", () => {
+    it("should throw when coverage data is invalid", async () => {
+      expect(parseCoberturaCoerage(join(fixturesDir, "malformed.xml"))).rejects.toThrow();
     });
   });
 
@@ -108,10 +100,71 @@ describe("parseCoberturaCoerage", () => {
       const coverage = await parseCoberturaCoerage(join(fixturesDir, "minimal.xml"));
       expect(coverage).toBe(85);
     });
+  });
+});
 
-    it("should use default fallback of 0", async () => {
-      const coverage = await parseCoberturaCoerage(join(fixturesDir, "malformed.xml"));
-      expect(coverage).toBe(0);
+describe("mergeCoberturaCoerage", () => {
+  describe("line coverage (default)", () => {
+    it("should merge two non-overlapping reports", async () => {
+      const coverage = await mergeCoberturaCoerage([f("sample.xml"), f("parallel-report.xml")]);
+      // sample: 15/20, parallel: 18/20 => 33/40 = 82.5
+      expect(coverage).toBe(82.5);
+    });
+
+    it("should merge two overlapping reports", async () => {
+      const coverage = await mergeCoberturaCoerage([f("sample.xml"), f("overlap-report.xml")]);
+      // sample: 15/20, overlap: 10/10 => 25/30 ≈ 83.33
+      expect(coverage).toBeCloseTo(83.33, 1);
+    });
+  });
+
+  describe("branch coverage", () => {
+    it("should merge with branch coverage type", async () => {
+      const coverage = await mergeCoberturaCoerage([f("sample.xml"), f("parallel-report.xml")], {
+        type: "branch",
+      });
+      // sample: 6/10, parallel: 8/10 => 14/20 = 70
+      expect(coverage).toBe(70);
+    });
+  });
+
+  describe("function coverage", () => {
+    it("should merge with function coverage type", async () => {
+      const coverage = await mergeCoberturaCoerage([f("sample.xml"), f("overlap-report.xml")], {
+        type: "function",
+      });
+      // sample: add, subtract, divide, multiply (3 covered)
+      // overlap: add, divideByZero (2 covered)
+      // unique: add, subtract, divide, multiply, divideByZero => 4/5 = 80
+      expect(coverage).toBe(80);
+    });
+  });
+
+  describe("single file", () => {
+    it("should match single-file parser output when given one file", async () => {
+      const merged = await mergeCoberturaCoerage([f("sample.xml")]);
+      const single = await parseCoberturaCoerage(f("sample.xml"));
+      expect(merged).toBe(single);
+    });
+  });
+
+  describe("error handling", () => {
+    it("should fail with error on missing file", async () => {
+      expect(mergeCoberturaCoerage([f("sample.xml"), "/nonexistent/file.xml"])).rejects.toThrow();
+    });
+
+    it("should fail with error on empty file list", async () => {
+      expect(mergeCoberturaCoerage([])).rejects.toThrow("At least one source path is required");
+    });
+
+    it("should fail with error on malformed XML", async () => {
+      expect(mergeCoberturaCoerage([f("sample.xml"), f("malformed.xml")])).rejects.toThrow();
+    });
+
+    it("should fail with error on file missing required attributes", async () => {
+      expect(mergeCoberturaCoerage([f("sample.xml"), f("no-counts.xml")])).rejects.toThrow(
+        "lines-covered"
+      );
     });
   });
 });

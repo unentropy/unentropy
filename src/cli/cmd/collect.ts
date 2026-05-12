@@ -3,7 +3,7 @@ import { cmd } from "./cmd";
 import { parseSize } from "../../metrics/collectors/size";
 import { parseLcovCoverage, type CoverageType } from "../../metrics/collectors/lcov";
 import {
-  parseCoberturaCoerage,
+  mergeCoberturaCoerage,
   type CoverageType as CoberturaCoverageType,
 } from "../../metrics/collectors/cobertura";
 import { collectLoc } from "../../metrics/collectors/loc";
@@ -154,13 +154,14 @@ const CoverageXmlCommand = cmd({
 });
 
 const CoverageCoberturaCommand = cmd({
-  command: "coverage-cobertura <sourcePath>",
+  command: "coverage-cobertura <sourcePaths...>",
   describe: "parse Cobertura XML coverage reports",
   builder: (yargs: Argv) => {
     return yargs
-      .positional("sourcePath", {
+      .positional("sourcePaths", {
         type: "string",
-        description: "path to Cobertura XML file",
+        description: "paths to Cobertura XML files",
+        array: true,
       })
       .options({
         type: {
@@ -170,33 +171,14 @@ const CoverageCoberturaCommand = cmd({
           choices: ["line", "branch", "function"] as const,
           default: "line",
         },
-        fallback: {
-          type: "number",
-          description: "fallback value if parsing fails",
-          default: 0,
-        },
       });
   },
-  async handler(argv: {
-    sourcePath?: string;
-    type?: string;
-    fallback?: number;
-    [key: string]: unknown;
-  }) {
-    try {
-      if (!argv.sourcePath) {
-        throw new Error("Source path is required");
-      }
-      const coverageType = (argv.type || "line") as CoberturaCoverageType;
-      const coverage = await parseCoberturaCoerage(argv.sourcePath, {
-        type: coverageType,
-        fallback: argv.fallback,
-      });
-      console.log(coverage);
-    } catch (error) {
-      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
-      console.log(argv.fallback || 0);
-    }
+  async handler(argv: { sourcePaths?: string[]; type?: string; [key: string]: unknown }) {
+    const coverageType = (argv.type || "line") as CoberturaCoverageType;
+    const coverage = await mergeCoberturaCoerage(argv.sourcePaths ?? [], {
+      type: coverageType,
+    });
+    console.log(coverage);
   },
 });
 

@@ -16,23 +16,23 @@ unentropy collect coverage-cobertura <sourcePaths...> [options]
 
 ### Positional Arguments
 
-| Argument | Type | Description |
-|----------|------|-------------|
+| Argument      | Type       | Description                                         |
+| ------------- | ---------- | --------------------------------------------------- |
 | `sourcePaths` | `string[]` | One or more paths to Cobertura XML files (variadic) |
 
 ### Options
 
-| Option | Alias | Type | Default | Description |
-|--------|-------|------|---------|-------------|
-| `--type` | `-t` | `string` | `line` | Coverage type: `line`, `branch`, or `function` |
-| `--fallback` | | `number` | `0` | Fallback value if all files fail to parse |
+| Option       | Alias | Type     | Default | Description                                    |
+| ------------ | ----- | -------- | ------- | ---------------------------------------------- |
+| `--type`     | `-t`  | `string` | `line`  | Coverage type: `line`, `branch`, or `function` |
+| `--fallback` |       | `number` | `0`     | Fallback value if all files fail to parse      |
 
 ### Exit Codes
 
-| Code | Condition |
-|------|-----------|
-| `0` | Success — coverage value printed to stdout |
-| `1` | Error — no valid files provided, parse error without fallback |
+| Code | Condition                                                     |
+| ---- | ------------------------------------------------------------- |
+| `0`  | Success — coverage value printed to stdout                    |
+| `1`  | Error — no valid files provided, parse error without fallback |
 
 ### Output
 

@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<coverage line-rate="0.80" branch-rate="0.75" complexity="1" version="1.0" timestamp="1234567893">
+    <packages>
+        <package name="com.nocounts" line-rate="0.80" branch-rate="0.75" complexity="1">
+            <classes>
+                <class name="NoCounts" filename="src/NoCounts.ts" line-rate="0.80" branch-rate="0.75" complexity="1">
+                    <methods>
+                        <method name="doSomething" signature="()V" line-rate="1.0" branch-rate="1.0"/>
+                    </methods>
+                </class>
+            </classes>
+        </package>
+    </packages>
+</coverage>
