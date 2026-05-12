@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<coverage line-rate="1.0" branch-rate="1.0" lines-covered="10" lines-valid="10" branches-covered="4" branches-valid="4" complexity="2" version="1.0" timestamp="1234567892">
+    <sources>
+        <source>/home/user/project/src</source>
+    </sources>
+    <packages>
+        <package name="com.example" line-rate="1.0" branch-rate="1.0" complexity="2">
+            <classes>
+                <class name="Calculator" filename="src/Calculator.ts" line-rate="1.0" branch-rate="1.0" complexity="2">
+                    <methods>
+                        <method name="add" signature="(II)I" line-rate="1.0" branch-rate="1.0">
+                            <lines>
+                                <line number="10" hits="3" branch="false"/>
+                                <line number="11" hits="3" branch="false"/>
+                            </lines>
+                        </method>
+                        <method name="divideByZero" signature="(II)I" line-rate="1.0" branch-rate="1.0">
+                            <lines>
+                                <line number="30" hits="2" branch="false"/>
+                            </lines>
+                        </method>
+                    </methods>
+                    <lines>
+                        <line number="10" hits="3" branch="false"/>
+                        <line number="11" hits="3" branch="false"/>
+                        <line number="30" hits="2" branch="false"/>
+                    </lines>
+                </class>
+            </classes>
+        </package>
+    </packages>
+</coverage>

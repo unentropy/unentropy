@@ -2,7 +2,7 @@ import yargs from "yargs";
 import { collectLoc } from "../metrics/collectors/loc";
 import { parseSize } from "../metrics/collectors/size";
 import { parseLcovCoverage, type CoverageType } from "../metrics/collectors/lcov";
-import { parseCoberturaCoerage } from "../metrics/collectors/cobertura";
+import { mergeCoberturaCoerage } from "../metrics/collectors/cobertura";
 
 export interface CollectResult {
   success: boolean;
@@ -90,22 +90,20 @@ export async function executeCollect(collectArgs: string): Promise<CollectResult
         }
       )
       .command(
-        "coverage-cobertura <sourcePath>",
+        "coverage-cobertura <sourcePaths..>",
         "parse Cobertura coverage",
         (y) =>
           y
-            .positional("sourcePath", { type: "string", demandOption: true })
+            .positional("sourcePaths", { type: "string", array: true, demandOption: true })
             .option("type", {
               alias: "t",
               type: "string",
               choices: ["line", "branch", "function"] as const,
               default: "line",
-            })
-            .option("fallback", { type: "number" }),
+            }),
         async (argv) => {
-          const value = await parseCoberturaCoerage(argv.sourcePath, {
+          const value = await mergeCoberturaCoerage(argv.sourcePaths ?? [], {
             type: argv.type as CoverageType,
-            fallback: argv.fallback,
           });
           result = { success: true, value: String(value) };
         }

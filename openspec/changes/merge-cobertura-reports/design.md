@@ -27,12 +27,14 @@ For **function coverage**, there are no root-level function count attributes in 
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Accept multiple Cobertura XML file paths in both CLI and `@collect` runner
 - Merge line, branch, and function coverage across reports
 - Handle overlapping files (same source in multiple reports) by summing covered/valid counts
 - Maintain backward compatibility for single-file usage
 
 **Non-Goals:**
+
 - Modifying LCOV or other coverage collectors
 - Writing merged XML to disk
 - Detecting coverage gaps or conflicts
