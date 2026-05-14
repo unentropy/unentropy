@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1744567890" phpunit="11.0.0">
+  <project name="CalculatorProject" timestamp="1744567890">
+    <file name="/home/user/project/src/Calculator.php">
+      <class name="Calculator" namespace="App">
+        <metrics methods="4" coveredmethods="3" statements="16" coveredstatements="12" elements="30" coveredelements="21" conditionals="10" coveredconditionals="6"/>
+      </class>
+      <line num="10" type="method" name="add" count="5"/>
+      <line num="12" type="stmt" count="5"/>
+      <line num="13" type="stmt" count="5"/>
+      <line num="14" type="stmt" count="5"/>
+      <line num="15" type="stmt" count="5"/>
+      <line num="20" type="method" name="subtract" count="3"/>
+      <line num="22" type="stmt" count="3"/>
+      <line num="23" type="stmt" count="3"/>
+      <line num="24" type="stmt" count="3"/>
+      <line num="25" type="stmt" count="3"/>
+      <line num="30" type="method" name="multiply" count="0"/>
+      <line num="32" type="stmt" count="0"/>
+      <line num="33" type="stmt" count="0"/>
+      <line num="34" type="stmt" count="0"/>
+      <line num="35" type="stmt" count="0"/>
+      <line num="40" type="method" name="divide" count="2"/>
+      <line num="42" type="stmt" count="2"/>
+      <line num="43" type="stmt" count="2"/>
+      <line num="44" type="stmt" count="2"/>
+      <line num="45" type="stmt" count="2"/>
+      <metrics loc="100" ncloc="80" classes="1" methods="4" coveredmethods="3" statements="16" coveredstatements="12" elements="30" coveredelements="21" conditionals="10" coveredconditionals="6"/>
+    </file>
+    <metrics files="1" loc="100" ncloc="80" classes="1" methods="4" coveredmethods="3" statements="16" coveredstatements="12" elements="30" coveredelements="21" conditionals="10" coveredconditionals="6"/>
+  </project>
+</coverage>
