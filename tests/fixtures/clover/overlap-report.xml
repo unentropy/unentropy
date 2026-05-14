@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1744567894" phpunit="11.0.0">
+  <project name="OverlapProject" timestamp="1744567894">
+    <file name="/home/user/project/src/Calculator.php">
+      <class name="Calculator" namespace="App">
+        <metrics methods="2" coveredmethods="2" statements="8" coveredstatements="8" elements="14" coveredelements="13" conditionals="4" coveredconditionals="3"/>
+      </class>
+      <line num="12" type="method" name="add" count="8"/>
+      <line num="12" type="stmt" count="8"/>
+      <line num="13" type="stmt" count="8"/>
+      <line num="14" type="stmt" count="8"/>
+      <line num="15" type="stmt" count="8"/>
+      <line num="32" type="method" name="multiply" count="3"/>
+      <line num="32" type="stmt" count="3"/>
+      <line num="33" type="stmt" count="3"/>
+      <line num="34" type="stmt" count="3"/>
+      <line num="35" type="stmt" count="3"/>
+      <metrics loc="50" ncloc="40" classes="1" methods="2" coveredmethods="2" statements="8" coveredstatements="8" elements="14" coveredelements="13" conditionals="4" coveredconditionals="3"/>
+    </file>
+    <metrics files="1" loc="50" ncloc="40" classes="1" methods="2" coveredmethods="2" statements="8" coveredstatements="8" elements="14" coveredelements="13" conditionals="4" coveredconditionals="3"/>
+  </project>
+</coverage>

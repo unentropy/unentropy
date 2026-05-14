@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1744567895" phpunit="11.0.0">
+  <project name="NoDataProject" timestamp="1744567895">
+    <file name="/home/user/project/src/Empty.php">
+      <class name="Empty" namespace="App">
+        <metrics methods="0" coveredmethods="0" statements="0" coveredstatements="0" elements="0" coveredelements="0" conditionals="0" coveredconditionals="0"/>
+      </class>
+      <metrics loc="0" ncloc="0" classes="1" methods="0" coveredmethods="0" statements="0" coveredstatements="0" elements="0" coveredelements="0" conditionals="0" coveredconditionals="0"/>
+    </file>
+    <metrics files="1" loc="0" ncloc="0" classes="0" methods="0" coveredmethods="0" statements="0" coveredstatements="0" elements="0" coveredelements="0" conditionals="0" coveredconditionals="0"/>
+  </project>
+</coverage>

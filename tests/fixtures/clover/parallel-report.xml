@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1744567893" phpunit="11.0.0">
+  <project name="ParallelProject" timestamp="1744567893">
+    <file name="/home/user/project/src/ParallelWorker.php">
+      <class name="ParallelWorker" namespace="App">
+        <metrics methods="2" coveredmethods="1" statements="17" coveredstatements="9" elements="27" coveredelements="16" conditionals="8" coveredconditionals="6"/>
+      </class>
+      <line num="10" type="method" name="transform" count="4"/>
+      <line num="12" type="stmt" count="4"/>
+      <line num="13" type="stmt" count="4"/>
+      <line num="14" type="stmt" count="4"/>
+      <line num="15" type="stmt" count="4"/>
+      <line num="16" type="stmt" count="4"/>
+      <line num="17" type="stmt" count="4"/>
+      <line num="18" type="stmt" count="4"/>
+      <line num="19" type="stmt" count="4"/>
+      <line num="20" type="stmt" count="4"/>
+      <line num="25" type="method" name="validate" count="0"/>
+      <line num="27" type="stmt" count="0"/>
+      <line num="28" type="stmt" count="0"/>
+      <line num="29" type="stmt" count="0"/>
+      <line num="30" type="stmt" count="0"/>
+      <line num="31" type="stmt" count="0"/>
+      <line num="32" type="stmt" count="0"/>
+      <line num="33" type="stmt" count="0"/>
+      <line num="34" type="stmt" count="0"/>
+      <metrics loc="80" ncloc="65" classes="1" methods="2" coveredmethods="1" statements="17" coveredstatements="9" elements="27" coveredelements="16" conditionals="8" coveredconditionals="6"/>
+    </file>
+    <metrics files="1" loc="80" ncloc="65" classes="1" methods="2" coveredmethods="1" statements="17" coveredstatements="9" elements="27" coveredelements="16" conditionals="8" coveredconditionals="6"/>
+  </project>
+</coverage>

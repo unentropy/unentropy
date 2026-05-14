@@ -6,6 +6,7 @@ import {
   mergeCoberturaCoerage,
   type CoverageType as CoberturaCoverageType,
 } from "../../metrics/collectors/cobertura";
+import { mergeCloverCoverage, type CloverCoverageType } from "../../metrics/collectors/clover";
 import { collectLoc } from "../../metrics/collectors/loc";
 
 const SizeCommand = cmd({
@@ -182,6 +183,35 @@ const CoverageCoberturaCommand = cmd({
   },
 });
 
+const CoverageCloverCommand = cmd({
+  command: "coverage-clover <sourcePaths...>",
+  describe: "parse Clover XML coverage reports",
+  builder: (yargs: Argv) => {
+    return yargs
+      .positional("sourcePaths", {
+        type: "string",
+        description: "paths to Clover XML files",
+        array: true,
+      })
+      .options({
+        type: {
+          type: "string",
+          alias: "t",
+          description: "coverage type to extract: line, branch, or function",
+          choices: ["line", "branch", "function"] as const,
+          default: "line",
+        },
+      });
+  },
+  async handler(argv: { sourcePaths?: string[]; type?: string; [key: string]: unknown }) {
+    const coverageType = (argv.type || "line") as CloverCoverageType;
+    const coverage = await mergeCloverCoverage(argv.sourcePaths ?? [], {
+      type: coverageType,
+    });
+    console.log(coverage);
+  },
+});
+
 const LocCommand = cmd({
   command: "loc <path>",
   describe: "collect lines of code from directory",
@@ -238,6 +268,7 @@ export const CollectCommand = cmd({
       .command(SizeCommand)
       .command(CoverageLcovCommand)
       .command(CoverageCoberturaCommand)
+      .command(CoverageCloverCommand)
       .command(CoverageJsonCommand)
       .command(CoverageXmlCommand)
       .command(LocCommand)

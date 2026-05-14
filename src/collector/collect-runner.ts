@@ -3,6 +3,7 @@ import { collectLoc } from "../metrics/collectors/loc";
 import { parseSize } from "../metrics/collectors/size";
 import { parseLcovCoverage, type CoverageType } from "../metrics/collectors/lcov";
 import { mergeCoberturaCoerage } from "../metrics/collectors/cobertura";
+import { mergeCloverCoverage } from "../metrics/collectors/clover";
 
 export interface CollectResult {
   success: boolean;
@@ -10,7 +11,13 @@ export interface CollectResult {
   error?: string;
 }
 
-const AVAILABLE_COLLECTORS = ["loc", "size", "coverage-lcov", "coverage-cobertura"];
+const AVAILABLE_COLLECTORS = [
+  "loc",
+  "size",
+  "coverage-lcov",
+  "coverage-cobertura",
+  "coverage-clover",
+];
 
 export async function executeCollect(collectArgs: string): Promise<CollectResult> {
   const args = parseArguments(collectArgs);
@@ -103,6 +110,25 @@ export async function executeCollect(collectArgs: string): Promise<CollectResult
             }),
         async (argv) => {
           const value = await mergeCoberturaCoerage(argv.sourcePaths ?? [], {
+            type: argv.type as CoverageType,
+          });
+          result = { success: true, value: String(value) };
+        }
+      )
+      .command(
+        "coverage-clover <sourcePaths..>",
+        "parse Clover coverage",
+        (y) =>
+          y
+            .positional("sourcePaths", { type: "string", array: true, demandOption: true })
+            .option("type", {
+              alias: "t",
+              type: "string",
+              choices: ["line", "branch", "function"] as const,
+              default: "line",
+            }),
+        async (argv) => {
+          const value = await mergeCloverCoverage(argv.sourcePaths ?? [], {
             type: argv.type as CoverageType,
           });
           result = { success: true, value: String(value) };
