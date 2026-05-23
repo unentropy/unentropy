@@ -1,21 +1,23 @@
-import { execCapture } from "../../utils/exec.js";
-import { existsSync } from "fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "fs";
+import { join, extname } from "path";
+import sloc from "sloc";
+import { getExtensionsForLanguage, isExtensionSupported } from "./loc/language-map.js";
 
 /**
- * Options for lines of code (LOC) collection using SCC (Sloc Cloc and Code)
+ * Options for lines of code (LOC) collection using the embedded `sloc` library.
  * @interface LocOptions
  */
 export interface LocOptions {
   /**
-   * Required: Path to the directory to count lines of code
-   * Can be relative or absolute path
+   * Required: Path to the directory to count lines of code.
+   * Can be relative or absolute path.
    * @type {string}
    */
   path: string;
 
   /**
-   * Optional: Patterns to exclude from LOC count
-   * Each pattern is passed to scc as --exclude-dir
+   * Optional: Patterns to exclude from LOC count.
+   * Directory names matching any pattern are skipped.
    * @type {string[] | undefined}
    * @example
    * excludePatterns: ['node_modules', 'dist', 'build']
@@ -23,8 +25,8 @@ export interface LocOptions {
   excludePatterns?: string[];
 
   /**
-   * Optional: Specific language to count LOC for
-   * If provided, returns LOC count for that language only
+   * Optional: Specific language to count LOC for.
+   * If provided, returns LOC count for that language only.
    * @type {string | undefined}
    * @example
    * languageFilter: 'TypeScript'
@@ -33,77 +35,21 @@ export interface LocOptions {
 }
 
 /**
- * Represents a single language entry in SCC output
- * @interface SccLanguageResult
- */
-export interface SccLanguageResult {
-  /**
-   * Language name (e.g., "TypeScript", "JavaScript", "JSON")
-   * @type {string}
-   */
-  Name: string;
-
-  /**
-   * Total number of lines (code + comments + blanks)
-   * @type {number}
-   */
-  Lines: number;
-
-  /**
-   * Number of lines containing code
-   * @type {number}
-   */
-  Code: number;
-
-  /**
-   * Number of comment lines
-   * @type {number}
-   */
-  Comments: number;
-
-  /**
-   * Number of blank lines
-   * @type {number}
-   */
-  Blanks: number;
-
-  /**
-   * Complexity score (cyclomatic complexity estimate)
-   * @type {number}
-   */
-  Complexity: number;
-}
-
-/**
- * SCC output format: array of language results
- * The array includes one entry per language detected, plus a special "Total" entry
- * containing aggregated statistics across all languages.
+ * Collect lines of code (LOC) for a directory using the embedded `sloc` library.
  *
- * @type {SccLanguageResult[]}
- * @example
- * [
- *   { Name: "TypeScript", Lines: 500, Code: 450, Comments: 30, Blanks: 20, Complexity: 15 },
- *   { Name: "JSON", Lines: 50, Code: 50, Comments: 0, Blanks: 0, Complexity: 0 },
- *   { Name: "Total", Lines: 550, Code: 500, Comments: 30, Blanks: 20, Complexity: 15 }
- * ]
- */
-export type SccOutput = SccLanguageResult[];
-
-/**
- * Collect lines of code (LOC) for a directory using SCC
- *
- * Executes SCC (Sloc Cloc and Code) with JSON output and parses the result.
- * Extracts the Code field from the Total entry, or language-specific count if
- * languageFilter is provided.
+ * Walks the directory tree, applies exclude and language filters, and sums
+ * source lines across all matched files. Files with extensions supported by
+ * `sloc` are parsed for accurate source/comment/blank classification; other
+ * files fall back to counting non-empty lines.
  *
  * @async
  * @function collectLoc
  * @param {LocOptions} options - Configuration for LOC collection
- * @param {string} options.path - Directory or file path to analyze
- * @param {string[] | undefined} options.excludePatterns - Patterns to exclude from count
+ * @param {string} options.path - Directory path to analyze
+ * @param {string[] | undefined} options.excludePatterns - Directory names to exclude
  * @param {string | undefined} options.languageFilter - Specific language to count
  * @returns {Promise<number>} Total lines of code
- * @throws {Error} If SCC is unavailable, path is invalid, parsing fails, etc.
+ * @throws {Error} If path is invalid or language filter is unrecognized.
  *
  * @example
  * const loc = await collectLoc({ path: './src/' });
@@ -119,7 +65,6 @@ export type SccOutput = SccLanguageResult[];
 export async function collectLoc(options: LocOptions): Promise<number> {
   const { path, excludePatterns, languageFilter } = options;
 
-  // Validate input path
   if (!path || typeof path !== "string") {
     throw new Error("Path must be a non-empty string");
   }
@@ -128,76 +73,70 @@ export async function collectLoc(options: LocOptions): Promise<number> {
     throw new Error(`Directory not found: ${path}`);
   }
 
-  // Build SCC command arguments
-  const args = ["--format", "json", path];
-
-  // Add exclude patterns as individual arguments
-  if (excludePatterns && Array.isArray(excludePatterns)) {
-    excludePatterns.forEach((pattern) => {
-      args.push("--exclude-dir", pattern);
-    });
+  const stats = statSync(path);
+  if (!stats.isDirectory()) {
+    throw new Error(`Path is not a directory: ${path}`);
   }
 
-  // Execute SCC command
-  let output: string;
-  try {
-    output = await execCapture("scc", args);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes("not found") || errorMessage.includes("No such file")) {
-      throw new Error(
-        "SCC is not installed. Install it with: brew install scc (macOS) or download from https://github.com/boyter/scc/releases"
-      );
-    }
-    if (errorMessage.includes("EACCES") || errorMessage.includes("Permission denied")) {
-      throw new Error(`Permission denied accessing: ${path}`);
-    }
-    throw new Error(`SCC execution failed: ${errorMessage}`);
-  }
+  const excludeSet = new Set((excludePatterns || []).map((p) => p.toLowerCase()));
 
-  // Parse JSON output
-  let sccOutput: SccOutput;
-  try {
-    sccOutput = JSON.parse(output);
-  } catch {
-    throw new Error(`Failed to parse SCC output. Expected JSON but got: ${output.slice(0, 100)}`);
-  }
-
-  if (sccOutput.length === 0) {
-    return 0;
-  }
-
-  // If language filter is specified, find matching language
+  let allowedExtensions: Set<string> | undefined;
   if (languageFilter) {
-    const languageEntry = sccOutput.find(
-      (entry) => entry.Name.toLowerCase() === languageFilter.toLowerCase()
-    );
+    const extensions = getExtensionsForLanguage(languageFilter);
+    allowedExtensions = new Set(extensions.map((e) => `.${e}`));
+  }
 
-    if (!languageEntry) {
-      const availableLanguages = sccOutput
-        .filter((entry) => entry.Name !== "Total")
-        .map((entry) => entry.Name)
-        .join(", ");
-      throw new Error(
-        `Language "${languageFilter}" not found in results. Available languages: ${availableLanguages}`
-      );
+  const files = walkDirectory(path, excludeSet);
+  let totalLoc = 0;
+
+  for (const filePath of files) {
+    const ext = extname(filePath).toLowerCase();
+
+    if (allowedExtensions && !allowedExtensions.has(ext)) {
+      continue;
     }
 
-    return languageEntry.Code;
+    const content = readFileSync(filePath, "utf-8");
+    const extensionWithoutDot = ext.slice(1);
+
+    if (isExtensionSupported(extensionWithoutDot)) {
+      const stats = sloc(content, extensionWithoutDot);
+      totalLoc += stats.source;
+    } else {
+      totalLoc += countNonEmptyLines(content);
+    }
   }
 
-  // Find Total entry (standard SCC output includes this)
-  const totalEntry = sccOutput.find((entry) => entry.Name === "Total");
+  return totalLoc;
+}
 
-  // If no Total entry, calculate by summing all language entries
-  if (!totalEntry) {
-    const totalCode = sccOutput
-      .filter((entry) => entry.Name !== "Total")
-      .reduce((sum, entry) => sum + entry.Code, 0);
+/**
+ * Recursively walks a directory and returns the full paths of all files,
+ * skipping directories whose basename matches any entry in `excludeSet`.
+ */
+function walkDirectory(dirPath: string, excludeSet: Set<string>): string[] {
+  const results: string[] = [];
+  const entries = readdirSync(dirPath, { withFileTypes: true });
 
-    return totalCode;
+  for (const entry of entries) {
+    const fullPath = join(dirPath, entry.name);
+
+    if (entry.isDirectory()) {
+      if (!excludeSet.has(entry.name.toLowerCase())) {
+        results.push(...walkDirectory(fullPath, excludeSet));
+      }
+    } else if (entry.isFile()) {
+      results.push(fullPath);
+    }
   }
 
-  // Return Code field from Total entry
-  return totalEntry.Code;
+  return results;
+}
+
+/**
+ * Counts lines that are not empty after trimming.
+ * Used as a fallback for file extensions not supported by `sloc`.
+ */
+function countNonEmptyLines(content: string): number {
+  return content.split("\n").filter((line) => line.trim().length > 0).length;
 }

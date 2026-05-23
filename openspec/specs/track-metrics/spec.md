@@ -136,11 +136,6 @@ The action SHALL be implemented as a composite GitHub Action that sets up the ex
 - **WHEN** the action runs
 - **THEN** it sets up the Bun runtime for TypeScript execution
 
-#### Scenario: Install external tools
-- **GIVEN** the action requires external tools for metric collection
-- **WHEN** the action prepares the environment
-- **THEN** it installs required tools (e.g., scc for LOC counting) before invoking the entrypoint
-
 #### Scenario: Run entrypoint script
 - **GIVEN** the environment is prepared
 - **WHEN** all dependencies are installed
@@ -171,6 +166,16 @@ The action SHALL support both S3 and Artifact storage workflow variants, adaptin
 - **GIVEN** `storage-type` is set to `sqlite-local` (or omitted)
 - **WHEN** the action runs
 - **THEN** it uses local file storage for the database without any download or upload operations
+
+---
+
+## REMOVED Requirements
+
+### Requirement: (Scenario) Install external tools
+
+**Reason**: The `loc` collector now uses an embedded JavaScript library (`sloc`) and no longer requires the SCC binary. All metric collectors are self-contained within the Bun runtime.
+
+**Migration**: Remove any workflow steps that install SCC (e.g., `brew install scc` or manual binary downloads) before invoking the track-metrics action. No user configuration changes are required.
 
 ---
 
@@ -207,7 +212,6 @@ The action SHALL support both S3 and Artifact storage workflow variants, adaptin
 - GitHub Secrets for secure S3 credential storage
 - GitHub Token for artifact access (auto-detected from environment)
 - SQLite support via bun:sqlite for database operations
-- SCC tool for lines-of-code collection (installed during action setup)
 
 ## Scope Boundaries
 
