@@ -50,6 +50,6 @@
 
 ## 5. Polish & Cross-Cutting Concerns
 
-- [ ] 5.1 [P] Update contracts in `openspec/specs/metrics/contracts/built-in-metrics.md` (archive step)
+- [x] 5.1 [P] Update contracts in `openspec/specs/metrics/contracts/built-in-metrics.md` (archive step)
 - [x] 5.2 Run `bun check` to verify lint, types, and format pass
 - [x] 5.3 Run `bun test` to verify all tests pass

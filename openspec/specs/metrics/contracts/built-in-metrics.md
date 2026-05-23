@@ -110,7 +110,7 @@ This provides:
 | `size` | `@collect size <path\|glob>` | Calculate file/directory size |
 | `coverage-lcov` | `@collect coverage-lcov <path> [options]` | Parse LCOV coverage reports |
 | `coverage-clover` | `@collect coverage-clover <paths...> [options]` | Parse Clover XML coverage reports (PHPUnit format) |
-| `coverage-cobertura` | `@collect coverage-cobertura <paths...> [options]` | Parse Cobertura XML coverage reports |
+| `coverage-cobertura` | `@collect coverage-cobertura <paths...> [options]` | Parse and merge Cobertura XML coverage reports |
 
 ### Collector Options
 
@@ -173,7 +173,18 @@ Metric templates fall into two categories:
   "metrics": {
     "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov ./coverage/lcov.info" },
     "test-coverage": { "$ref": "coverage", "name": "Test Coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
-    "branch-coverage": { "$ref": "coverage", "name": "Branch Coverage", "command": "@collect coverage-lcov coverage/lcov.info --type branch" }
+    "branch-coverage": { "$ref": "coverage", "name": "Branch Coverage", "command": "@collect coverage-lcov coverage/lcov.info --type branch" },
+    "cobertura-coverage": { "$ref": "coverage", "command": "@collect coverage-cobertura ./coverage/report1.xml ./coverage/report2.xml" }
+  }
+}
+```
+
+With glob pattern (shell expands before unentropy sees it):
+
+```json
+{
+  "metrics": {
+    "cobertura-coverage": { "$ref": "coverage", "name": "Cobertura Coverage", "command": "@collect coverage-cobertura ./coverage/*-cobertura.xml" }
   }
 }
 ```
