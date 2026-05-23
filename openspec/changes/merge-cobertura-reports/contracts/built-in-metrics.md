@@ -23,10 +23,9 @@ The `coverage-cobertura` collector now accepts multiple source paths and merges 
 
 #### Options
 
-| Option       | Type                     | Default | Description                     |
-| ------------ | ------------------------ | ------- | ------------------------------- |
-| `--type`     | `line\|branch\|function` | `line`  | Coverage type to extract        |
-| `--fallback` | `number`                 | `0`     | Fallback value on parse failure |
+| Option   | Type                     | Default | Description              |
+| -------- | ------------------------ | ------- | ------------------------ |
+| `--type` | `line\|branch\|function` | `line`  | Coverage type to extract |
 
 #### Configuration Examples
 

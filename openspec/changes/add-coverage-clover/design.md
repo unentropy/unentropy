@@ -15,7 +15,10 @@ The existing codebase supports three coverage collectors: `coverage-lcov`, `cove
 
 ### Merge Algorithm
 
-Same additive approach as Cobertura: parse project-level `<metrics>` attributes from each file, sum covered/valid counts, and compute the percentage. For parallel CI runs producing disjoint coverage files, this is mathematically correct.
+Differentiated by coverage type:
+
+- **Line coverage**: Per-file, per-statement-line deduplication. Parse `<line type="stmt">` elements from each `<file>`, merge by unique filename across reports — a line is covered if any report shows `count > 0`. Sum the union of covered and total lines across all unique files.
+- **Branch & function coverage**: Project-level aggregation. Parse `<project>/<metrics>` attributes (`conditionals`/`coveredconditionals`, `methods`/`coveredmethods`), sum counts across reports. These use aggregate attributes because Clover XML has no per-line branch or function data available for dedup.
 
 ### Key Constraints
 
@@ -29,7 +32,7 @@ Same additive approach as Cobertura: parse project-level `<metrics>` attributes 
 
 - Parse Clover XML coverage reports (PHPUnit `--coverage-clover` output)
 - Support line coverage (from `statements`/`coveredstatements`), function coverage (from `methods`/`coveredmethods`), and branch coverage (from `conditionals`/`coveredconditionals`)
-- Accept multiple file paths and merge by summing aggregate counts
+- Accept multiple file paths and merge by per-file per-statement-line deduplication for line coverage; project-level aggregation for branch and function
 - Register `coverage-clover` in both the `collect` CLI subcommand and `@collect` runner
 - Add comprehensive test coverage and Clover XML fixtures
 
@@ -37,9 +40,7 @@ Same additive approach as Cobertura: parse project-level `<metrics>` attributes 
 
 - Modifying existing Cobertura, LCOV, or other collectors
 - Writing merged XML output to disk
-- Per-file deduplication in merge (uses project-level aggregates, same approach as Cobertura)
-- Supporting OpenClover line-level detail (`<line>` elements) — only aggregate `<metrics>` attributes
-- Supporting Clover test metrics (`testduration`, `testfailures`, `testpasses`, `testruns` on `<metrics>`)
+- Per-class or per-method deduplication for branch/function coverage (uses project-level aggregates)
 
 ## Decisions
 
@@ -67,13 +68,21 @@ Each type computes `covered / valid * 100`.
 
 **Alternative**: Compute percentages from lower-level data (e.g., count `<line type="stmt">` elements with `count > 0`) — rejected because project-level aggregates are already correct, simpler, and consistent with the Cobertura approach.
 
-### Decision: Merge strategy using project-level metrics
+### Decision: Merge strategy for line coverage
 
-**Chosen**: Parse `<project>/<metrics>` element from each file, sum the relevant covered/valid attributes, and compute `totalCovered / totalValid * 100`.
+**Chosen**: Per-file, per-statement-line deduplication: parse `<line type="stmt">` elements from each `<file>`, group by unique filename, union line numbers across reports. A line is counted once per file; it is covered if any report shows `count > 0`. Sum the union across all unique files and compute `totalCovered / totalValid * 100`.
 
-**Rationale**: The project-level `<metrics>` in Clover XML reports is the sum of all file-level metrics. For parallel CI runs with disjoint file sets, summing project-level aggregates across reports gives the correct merged coverage. This is the same additive approach used by the existing Cobertura collector for line/branch coverage.
+**Rationale**: When parallel CI jobs produce coverage for overlapping source files, summing project-level aggregates overcounts both covered and total lines for shared files. Per-line dedup avoids double-counting: if PHPUnit covers lines 1-50 of a file and Behat covers lines 51-100, the merged result correctly counts all 100 lines with their combined covered set. This matches how the `@connectis/coverage-merger` library handles Clover reports.
 
-**Alternative**: Parse per-file `<metrics>` and deduplicate by filename — rejected because this adds complexity without benefit for the common parallel-CI use case, and the Cobertura collector already accepts the same limitation.
+**Alternative**: Project-level summation (old approach) — rejected because it produces inaccurate results when reports overlap (e.g., aggregated 59% vs corrected 80% on real-world data).
+
+### Decision: Merge strategy for branch and function coverage
+
+**Chosen**: Parse `<project>/<metrics>` elements from each file, sum the relevant attributes (`conditionals`/`coveredconditionals`, `methods`/`coveredmethods`), and compute `totalCovered / totalValid * 100`.
+
+**Rationale**: Clover XML does not provide per-line branch or per-method coverage data in a deduplicable format. Branch data exists only as aggregate counts on `<metrics>`, and function coverage is similarly aggregate-only. Summing project-level aggregates is the only viable approach for these types.
+
+**Alternative**: Parse per-file `<metrics>` and deduplicate by filename — rejected because this adds complexity without benefit; branch/function are typically measured on disjoint test configurations and overlap is rare.
 
 ### Decision: XML parsing approach
 
@@ -89,7 +98,7 @@ Each type computes `covered / valid * 100`.
 
 ## Risks / Trade-offs
 
-- [**No per-file deduplication**] → Merge assumes disjoint file sets across parallel reports; overlapping files would overcount. Same trade-off as Cobertura merge, accepted for simplicity.
+- [**Line-level dedup only for line coverage**] → Branch and function coverage still use project-level summing and may overcount if reports overlap for the same classes. Acceptable because branch/function overlap across parallel CI jobs is rare in practice.
 - [**Conditionals semantics**] → Clover's `conditionals` is 2x branches, unlike Cobertura's `branches-covered`/`branches-valid` which count unique branches. This means `--type branch` percentages may differ between Clover and Cobertura for the same codebase. Document this difference.
 - [**Non-standard Clover XML**] → Some tools produce Clover-like XML that deviates from PHPUnit's output. The parser validates the presence of expected elements and fails fast with descriptive errors.
 

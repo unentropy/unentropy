@@ -16,7 +16,7 @@ The system SHALL accept multiple Cobertura XML file paths to the `coverage-cober
 
 - **GIVEN** two Cobertura XML files where one source file appears in both with different coverage on different lines
 - **WHEN** the merge operation runs
-- **THEN** the coverage for that file is computed from the sum of covered and valid counts across both reports
+- **THEN** the coverage for that file is computed by per-class per-line deduplication for line coverage (union of covered lines across reports), root-level summation for branch coverage, and method-key deduplication for function coverage
 
 #### Scenario: Merge with line coverage type
 
@@ -44,9 +44,9 @@ The system SHALL accept multiple Cobertura XML file paths to the `coverage-cober
 
 #### Scenario: Overlapping partial coverage
 
-- **GIVEN** two reports where file A has 50/100 lines covered in report 1 and 30/50 lines covered in report 2
-- **WHEN** the merge operation runs
-- **THEN** the merged result for file A is (50+30)/(100+50) = 80/150 = 53.3%
+- **GIVEN** two reports where file A has lines 1-50 covered out of 100 lines in report 1, and lines 51-80 covered out of 100 lines in report 2
+- **WHEN** the merge operation runs with `--type line`
+- **THEN** the merged result for file A is: total valid = 100 (union of line sets), total covered = 80 (union of covered lines) = 80%
 
 #### Scenario: Missing input file
 
@@ -75,4 +75,4 @@ The system SHALL accept multiple Cobertura XML file paths to the `coverage-cober
 ## Key Entities
 
 - **Cobertura XML Report**: A standard Cobertura XML coverage document containing package, class, and line/branch coverage data
-- **Consolidated Coverage**: The merged result computed by summing covered and valid counts across all input reports
+- **Consolidated Coverage**: The merged result computed by per-class per-line deduplication for line coverage (union of covered lines), root-level summation for branch coverage, and method-key deduplication for function coverage

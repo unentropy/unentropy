@@ -4,25 +4,37 @@ The `coverage-cobertura` collector currently accepts a single Cobertura XML file
 
 The existing collector at `src/metrics/collectors/cobertura.ts` parses XML with `fast-xml-parser` and extracts root-level rate attributes. These attributes are pre-computed ratios, not raw counts. To merge accurately, we need to work with raw `lines-covered`/`lines-valid` and `branches-covered`/`branches-valid` attributes available on the root `<coverage>` element.
 
-### Merge Algorithm (validated against `merge-cobertura`)
+### Merge Algorithm
 
-The merge algorithm follows the industry-standard approach used by `merge-cobertura` (https://github.com/Teamop/merge-cobertura):
+The merge algorithm uses different strategies depending on the coverage type:
+
+**Line coverage**:
 
 1. **Parse each XML file** into a structured representation using `fast-xml-parser`
-2. **Extract root-level raw counts** from each file: `lines-covered`, `lines-valid`, `branches-covered`, `branches-valid`
-3. **Sum the counts** across all input files:
-   - `totalLinesCovered = sum of all lines-covered`
-   - `totalLinesValid = sum of all lines-valid`
+2. **Traverse the `<package>`/`<class>` tree** from each file, extracting per-class `<lines>` elements with individual `<line number="N" hits="M">` entries
+3. **Merge by unique filename across reports**: for each unique `class filename`, union all line numbers where `hits > 0`. A line is covered if any report shows it executed.
+4. **Sum counts from the merged data**:
+   - `totalLinesCovered = sum of covered lines across all unique files (after dedup)`
+   - `totalLinesValid = sum of all lines across all unique files (after dedup)`
+5. **Recompute rate**: `line-rate = totalLinesCovered / totalLinesValid`
+6. **Return the percentage**: `rate * 100`
+
+This per-class per-line dedup approach handles parallel CI jobs that produce coverage for overlapping source files. For example, if report 1 covers lines 1-50 of a file and report 2 covers lines 51-100, the merged result correctly counts 100 total lines with the union of covered lines. The union operation prevents double-counting when both reports cover the same line.
+
+**Branch coverage**:
+
+1. **Extract root-level raw counts** from each file: `branches-covered`, `branches-valid`
+2. **Sum the counts** across all input files:
    - `totalBranchesCovered = sum of all branches-covered`
    - `totalBranchesValid = sum of all branches-valid`
-4. **Recompute rates from the summed counts**:
-   - `line-rate = totalLinesCovered / totalLinesValid`
-   - `branch-rate = totalBranchesCovered / totalBranchesValid`
-5. **Return the percentage**: `rate * 100`
+3. **Recompute rate**: `branch-rate = totalBranchesCovered / totalBranchesValid`
+4. **Return the percentage**: `rate * 100`
 
-This summation approach is mathematically correct because coverage is a ratio of covered-to-total items. Summing numerators and denominators separately before dividing gives a properly weighted combined rate. For example, if file A has 50/100 lines covered (50%) and file B has 90/100 lines covered (90%), averaging rates gives 70%, but the true combined rate is (50+90)/(100+100) = 70% — same result when files are equal size. When files differ in size, summation correctly weights larger files more heavily: 50/100 (50%) + 90/200 (45%) summed gives (50+90)/(100+200) = 46.7%, while averaging rates would incorrectly give 47.5%.
+Branch coverage uses root-level summation because Cobertura XML does not provide per-branch hit data in a deduplicable format; branch condition counts are distributed across `<line>` elements as a ratio, not individual hits per branch.
 
-For **function coverage**, there are no root-level function count attributes in Cobertura XML. Instead, we traverse the package/class/method tree and deduplicate by (package, class, name, signature). A method is covered if `line-rate > 0` in any input report.
+**Function coverage**:
+
+Same as before: traverse the package/class/method tree and deduplicate by (package, class, name, signature). A method is covered if `line-rate > 0` in any input report.
 
 ## Goals / Non-Goals
 
@@ -30,7 +42,7 @@ For **function coverage**, there are no root-level function count attributes in 
 
 - Accept multiple Cobertura XML file paths in both CLI and `@collect` runner
 - Merge line, branch, and function coverage across reports
-- Handle overlapping files (same source in multiple reports) by summing covered/valid counts
+- Handle overlapping files (same source in multiple reports) by per-class per-line deduplication for line coverage; root-level summation for branch coverage
 - Maintain backward compatibility for single-file usage
 
 **Non-Goals:**
@@ -49,13 +61,21 @@ For **function coverage**, there are no root-level function count attributes in 
 
 **Alternative**: Create `coverage-cobertura-merge` — rejected as it adds unnecessary CLI surface area and user configuration complexity for what is fundamentally the same operation on multiple files.
 
-### Decision: Merge strategy for line/branch coverage
+### Decision: Merge strategy for line coverage
 
-**Chosen**: Sum `lines-covered`/`lines-valid` (and `branches-covered`/`branches-valid`) from the root `<coverage>` element of each report, then compute `totalCovered / totalValid * 100`.
+**Chosen**: Per-class, per-line deduplication: traverse `<package>`/`<class>` tree from each report, collect `<line number="N" hits="M">` entries per `class filename`, union line numbers with `hits > 0` across reports. Sum the union of covered and total lines across all unique files.
 
-**Rationale**: Cobertura XML provides these aggregate attributes. Summing counts is mathematically correct for merging — it weights each file's contribution by its number of lines. Using root-level aggregates avoids the complexity of traversing the package/class tree for line/branch coverage.
+**Rationale**: When parallel CI jobs produce overlapping coverage for the same source files, root-level summation of `lines-covered`/`lines-valid` double-counts both the numerator and denominator for shared files, producing incorrect results. Per-class per-line dedup gives the correct union of covered lines. For example, with two reports covering the same 100-line file — one covering lines 1-50 and the other covering lines 51-100 — root-level summation would report 100/200 = 50%, while per-line dedup correctly reports 100/100 = 100%.
 
-**Alternative**: Parse per-package/class data and merge by filename — rejected because root-level sums produce identical results with simpler code for typical use cases.
+**Alternative**: Sum root-level `lines-covered`/`lines-valid` (old approach) — rejected because it produces inaccurate results when reports overlap. This was the initial implementation and had to be revised after testing against real-world overlapping reports.
+
+### Decision: Merge strategy for branch coverage
+
+**Chosen**: Sum `branches-covered`/`branches-valid` from the root `<coverage>` element of each report, then compute `totalCovered / totalValid * 100`.
+
+**Rationale**: Cobertura XML does not provide per-branch hit data in a deduplicable format. Branch condition counts are embedded in `<line>` condition-coverage attributes as a ratio string (e.g., "50% (2/4)"), not individual hits per branch. Root-level `branches-covered`/`branches-valid` are the only reliable aggregate attributes. Summing these is mathematically correct for merging disjoint branch coverage, and branch coverage overlap across parallel jobs is rare in practice.
+
+**Alternative**: Parse per-package/class branch data and merge by filename — rejected because Cobertura XML does not expose per-class or per-line branch hit counts, making this infeasible without external data.
 
 ### Decision: Merge strategy for function coverage
 
@@ -76,12 +96,6 @@ For **function coverage**, there are no root-level function count attributes in 
 **Chosen**: Full-parse each file individually (same approach as current single-file parser). `fast-xml-parser` is already a dependency and files are small (typically < 1MB).
 
 **Rationale**: Simpler implementation, reuses existing parser setup. Streaming would add complexity with no measurable benefit for typical CI coverage report sizes.
-
-### Decision: Fallback behavior with multiple files
-
-**Chosen**: If any file fails to parse and `--fallback` is set, use the fallback only when ALL files fail. If at least one file parses successfully, return the merged result of successful parses.
-
-**Rationale**: A single bad file shouldn't discard valid coverage data from other reports. This matches the user's likely intent when running against multiple report files from parallel jobs.
 
 ## Contracts Referenced
 
