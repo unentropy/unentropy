@@ -1,3 +1,2 @@
 This is not valid XML at all
-<coverage line-rate="broken">
-  <unclosed-tag>
+<random-element>unclosed tag

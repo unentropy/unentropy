@@ -1,29 +1,47 @@
 <?xml version="1.0" ?>
-<coverage line-rate="1.0" branch-rate="1.0" lines-covered="10" lines-valid="10" branches-covered="4" branches-valid="4" complexity="2" version="1.0" timestamp="1234567892">
+<coverage line-rate="1.0" branch-rate="1.0" lines-covered="10" lines-valid="10" branches-covered="4" branches-valid="4" complexity="3" version="1.0" timestamp="1234567892">
     <sources>
         <source>/home/user/project/src</source>
     </sources>
     <packages>
-        <package name="com.example" line-rate="1.0" branch-rate="1.0" complexity="2">
+        <package name="com.example" line-rate="1.0" branch-rate="1.0" complexity="3">
             <classes>
-                <class name="Calculator" filename="src/Calculator.ts" line-rate="1.0" branch-rate="1.0" complexity="2">
+                <class name="Calculator" filename="src/Calculator.ts" line-rate="1.0" branch-rate="1.0" complexity="3">
                     <methods>
                         <method name="add" signature="(II)I" line-rate="1.0" branch-rate="1.0">
                             <lines>
-                                <line number="10" hits="3" branch="false"/>
-                                <line number="11" hits="3" branch="false"/>
+                                <line number="10" hits="8" branch="false"/>
+                                <line number="11" hits="8" branch="false"/>
+                            </lines>
+                        </method>
+                        <method name="multiply" signature="(II)I" line-rate="1.0" branch-rate="1.0">
+                            <lines>
+                                <line number="26" hits="3" branch="true" condition-coverage="100% (2/2)"/>
+                                <line number="27" hits="3" branch="false"/>
+                                <line number="28" hits="3" branch="false"/>
+                                <line number="29" hits="3" branch="false"/>
+                                <line number="30" hits="3" branch="false"/>
                             </lines>
                         </method>
                         <method name="divideByZero" signature="(II)I" line-rate="1.0" branch-rate="1.0">
                             <lines>
-                                <line number="30" hits="2" branch="false"/>
+                                <line number="40" hits="2" branch="true" condition-coverage="100% (2/2)"/>
+                                <line number="41" hits="2" branch="false"/>
+                                <line number="42" hits="2" branch="false"/>
                             </lines>
                         </method>
                     </methods>
                     <lines>
-                        <line number="10" hits="3" branch="false"/>
-                        <line number="11" hits="3" branch="false"/>
-                        <line number="30" hits="2" branch="false"/>
+                        <line number="10" hits="8" branch="false"/>
+                        <line number="11" hits="8" branch="false"/>
+                        <line number="26" hits="3" branch="true" condition-coverage="100% (2/2)"/>
+                        <line number="27" hits="3" branch="false"/>
+                        <line number="28" hits="3" branch="false"/>
+                        <line number="29" hits="3" branch="false"/>
+                        <line number="30" hits="3" branch="false"/>
+                        <line number="40" hits="2" branch="true" condition-coverage="100% (2/2)"/>
+                        <line number="41" hits="2" branch="false"/>
+                        <line number="42" hits="2" branch="false"/>
                     </lines>
                 </class>
             </classes>

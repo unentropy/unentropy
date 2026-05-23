@@ -33,6 +33,13 @@ interface CoberturaMethod {
   "@_branch-rate": string;
 }
 
+interface CoberturaLine {
+  "@_number": string;
+  "@_hits": string;
+  "@_branch"?: string;
+  "@_condition-coverage"?: string;
+}
+
 interface CoberturaClass {
   "@_name": string;
   "@_filename": string;
@@ -40,6 +47,9 @@ interface CoberturaClass {
   "@_branch-rate": string;
   methods?: {
     method?: CoberturaMethod | CoberturaMethod[];
+  };
+  lines?: {
+    line?: CoberturaLine | CoberturaLine[];
   };
 }
 
@@ -161,6 +171,43 @@ function extractMethods(report: CoberturaReport): MethodEntry[] {
   return methods;
 }
 
+function toArray<T>(value: T | T[] | undefined): T[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function extractFileLineData(
+  report: CoberturaReport
+): Map<string, { total: Set<number>; covered: Set<number> }> {
+  const fileMap = new Map<string, { total: Set<number>; covered: Set<number> }>();
+  const packages = toArray(report.coverage.packages?.package);
+
+  for (const pkg of packages) {
+    const classes = toArray(pkg.classes?.class);
+    for (const cls of classes) {
+      const filename = cls["@_filename"];
+      const lines = toArray(cls.lines?.line);
+      let entry = fileMap.get(filename);
+      if (!entry) {
+        entry = { total: new Set(), covered: new Set() };
+        fileMap.set(filename, entry);
+      }
+      for (const line of lines) {
+        const num = parseInt(line["@_number"], 10);
+        if (!isNaN(num)) {
+          entry.total.add(num);
+          const hits = parseInt(line["@_hits"] || "0", 10);
+          if (hits > 0) {
+            entry.covered.add(num);
+          }
+        }
+      }
+    }
+  }
+
+  return fileMap;
+}
+
 function calcSingleFileCoverage(
   report: CoberturaReport,
   coverageType: CoverageType,
@@ -219,6 +266,38 @@ export async function mergeCoberturaCoerage(
     return mergeFunctionCoverage(sourcePaths);
   }
 
+  if (coverageType === "line") {
+    const merged = new Map<string, { total: Set<number>; covered: Set<number> }>();
+
+    for (const sourcePath of sourcePaths) {
+      const report = await readAndParseCoberturaXml(sourcePath);
+      const fileMap = extractFileLineData(report);
+      for (const [filename, data] of fileMap) {
+        let entry = merged.get(filename);
+        if (!entry) {
+          entry = { total: new Set(), covered: new Set() };
+          merged.set(filename, entry);
+        }
+        for (const num of data.total) {
+          entry.total.add(num);
+        }
+        for (const num of data.covered) {
+          entry.covered.add(num);
+        }
+      }
+    }
+
+    let totalValid = 0;
+    let totalCovered = 0;
+    for (const entry of merged.values()) {
+      totalValid += entry.total.size;
+      totalCovered += entry.covered.size;
+    }
+
+    if (totalValid === 0) return 0;
+    return (totalCovered / totalValid) * 100;
+  }
+
   let totalCovered = 0;
   let totalValid = 0;
 
@@ -226,13 +305,8 @@ export async function mergeCoberturaCoerage(
     const report = await readAndParseCoberturaXml(sourcePath);
     const counts = extractCounts(report, sourcePath);
 
-    if (coverageType === "line") {
-      totalCovered += counts.linesCovered;
-      totalValid += counts.linesValid;
-    } else {
-      totalCovered += counts.branchesCovered;
-      totalValid += counts.branchesValid;
-    }
+    totalCovered += counts.branchesCovered;
+    totalValid += counts.branchesValid;
   }
 
   if (totalValid === 0) {
