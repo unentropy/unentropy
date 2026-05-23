@@ -7,38 +7,66 @@
     <packages>
         <package name="com.example" line-rate="0.75" branch-rate="0.60" complexity="5">
             <classes>
-                <class name="Calculator" filename="src/Calculator.ts" line-rate="0.80" branch-rate="0.70" complexity="3">
+                <class name="Calculator" filename="src/Calculator.ts" line-rate="0.75" branch-rate="0.60" complexity="4">
                     <methods>
                         <method name="add" signature="(II)I" line-rate="1.0" branch-rate="1.0">
                             <lines>
                                 <line number="10" hits="5" branch="false"/>
                                 <line number="11" hits="5" branch="false"/>
+                                <line number="12" hits="5" branch="false"/>
+                                <line number="13" hits="5" branch="false"/>
+                                <line number="14" hits="5" branch="false"/>
                             </lines>
                         </method>
                         <method name="subtract" signature="(II)I" line-rate="1.0" branch-rate="1.0">
                             <lines>
-                                <line number="15" hits="3" branch="false"/>
-                            </lines>
-                        </method>
-                        <method name="divide" signature="(II)I" line-rate="0.5" branch-rate="0.5">
-                            <lines>
-                                <line number="20" hits="2" branch="true" condition-coverage="50% (1/2)"/>
-                                <line number="21" hits="0" branch="false"/>
+                                <line number="18" hits="3" branch="false"/>
+                                <line number="19" hits="3" branch="false"/>
+                                <line number="20" hits="3" branch="false"/>
+                                <line number="21" hits="3" branch="false"/>
+                                <line number="22" hits="3" branch="false"/>
                             </lines>
                         </method>
                         <method name="multiply" signature="(II)I" line-rate="0" branch-rate="0">
                             <lines>
-                                <line number="25" hits="0" branch="false"/>
+                                <line number="26" hits="0" branch="false"/>
+                                <line number="27" hits="0" branch="false"/>
+                                <line number="28" hits="0" branch="false"/>
+                                <line number="29" hits="0" branch="false"/>
+                                <line number="30" hits="0" branch="false"/>
+                            </lines>
+                        </method>
+                        <method name="divide" signature="(II)I" line-rate="1.0" branch-rate="0.6">
+                            <lines>
+                                <line number="34" hits="2" branch="true" condition-coverage="50% (1/2)"/>
+                                <line number="35" hits="2" branch="true" condition-coverage="100% (2/2)"/>
+                                <line number="36" hits="2" branch="true" condition-coverage="50% (1/2)"/>
+                                <line number="37" hits="2" branch="true" condition-coverage="50% (1/2)"/>
+                                <line number="38" hits="2" branch="true" condition-coverage="50% (1/2)"/>
                             </lines>
                         </method>
                     </methods>
                     <lines>
                         <line number="10" hits="5" branch="false"/>
                         <line number="11" hits="5" branch="false"/>
-                        <line number="15" hits="3" branch="false"/>
-                        <line number="20" hits="2" branch="true" condition-coverage="50% (1/2)"/>
-                        <line number="21" hits="0" branch="false"/>
-                        <line number="25" hits="0" branch="false"/>
+                        <line number="12" hits="5" branch="false"/>
+                        <line number="13" hits="5" branch="false"/>
+                        <line number="14" hits="5" branch="false"/>
+                        <line number="18" hits="3" branch="false"/>
+                        <line number="19" hits="3" branch="false"/>
+                        <line number="20" hits="3" branch="false"/>
+                        <line number="21" hits="3" branch="false"/>
+                        <line number="22" hits="3" branch="false"/>
+                        <line number="26" hits="0" branch="false"/>
+                        <line number="27" hits="0" branch="false"/>
+                        <line number="28" hits="0" branch="false"/>
+                        <line number="29" hits="0" branch="false"/>
+                        <line number="30" hits="0" branch="false"/>
+                        <line number="34" hits="2" branch="true" condition-coverage="50% (1/2)"/>
+                        <line number="35" hits="2" branch="true" condition-coverage="100% (2/2)"/>
+                        <line number="36" hits="2" branch="true" condition-coverage="50% (1/2)"/>
+                        <line number="37" hits="2" branch="true" condition-coverage="50% (1/2)"/>
+                        <line number="38" hits="2" branch="true" condition-coverage="50% (1/2)"/>
                     </lines>
                 </class>
             </classes>

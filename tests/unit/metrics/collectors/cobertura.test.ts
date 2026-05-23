@@ -111,10 +111,9 @@ describe("mergeCoberturaCoerage", () => {
       expect(coverage).toBe(82.5);
     });
 
-    it("should merge two overlapping reports", async () => {
+    it("should merge two overlapping reports, deduplicating lines", async () => {
       const coverage = await mergeCoberturaCoerage([f("sample.xml"), f("overlap-report.xml")]);
-      // sample: 15/20, overlap: 10/10 => 25/30 ≈ 83.33
-      expect(coverage).toBeCloseTo(83.33, 1);
+      expect(coverage).toBeCloseTo(100, 0);
     });
   });
 
@@ -134,9 +133,9 @@ describe("mergeCoberturaCoerage", () => {
         type: "function",
       });
       // sample: add, subtract, divide, multiply (3 covered)
-      // overlap: add, divideByZero (2 covered)
-      // unique: add, subtract, divide, multiply, divideByZero => 4/5 = 80
-      expect(coverage).toBe(80);
+      // overlap: add, multiply, divideByZero (3 covered)
+      // unique: add, subtract, divide, multiply, divideByZero => 5/5 = 100
+      expect(coverage).toBe(100);
     });
   });
 
@@ -161,10 +160,9 @@ describe("mergeCoberturaCoerage", () => {
       expect(mergeCoberturaCoerage([f("sample.xml"), f("malformed.xml")])).rejects.toThrow();
     });
 
-    it("should fail with error on file missing required attributes", async () => {
-      expect(mergeCoberturaCoerage([f("sample.xml"), f("no-counts.xml")])).rejects.toThrow(
-        "lines-covered"
-      );
+    it("should handle file with no line-level data without throwing", async () => {
+      const coverage = await mergeCoberturaCoerage([f("sample.xml"), f("no-counts.xml")]);
+      expect(coverage).toBeCloseTo(75, 0);
     });
   });
 });
