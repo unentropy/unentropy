@@ -147,7 +147,7 @@ describe("LOC Collector Integration Tests (T059)", () => {
           path: srcDir,
           languageFilter: "NonExistentLanguage123",
         })
-      ).rejects.toThrow("not found in results");
+      ).rejects.toThrow("not supported");
     });
 
     it("should throw error for empty path", async () => {

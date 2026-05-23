@@ -106,7 +106,7 @@ This provides:
 
 | Collector | Syntax | Description |
 |-----------|--------|-------------|
-| `loc` | `@collect loc <path> [options]` | Count lines of code using SCC |
+| `loc` | `@collect loc <path> [options]` | Count lines of code using the embedded `sloc` library |
 | `size` | `@collect size <path\|glob>` | Calculate file/directory size |
 | `coverage-lcov` | `@collect coverage-lcov <path> [options]` | Parse LCOV coverage reports |
 | `coverage-clover` | `@collect coverage-clover <paths...> [options]` | Parse Clover XML coverage reports (PHPUnit format) |
@@ -220,10 +220,6 @@ With glob pattern (shell expands before unentropy sees it):
   }
 }
 ```
-
-**SCC Requirement**: The `loc` collector uses SCC (Sloc Cloc and Code). Install with:
-- macOS: `brew install scc`
-- Linux: Download from https://github.com/boyter/scc/releases
 
 ---
 

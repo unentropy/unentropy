@@ -97,13 +97,6 @@ runs:
       with:
         bun-version: "1.3.3"
 
-    - name: Install scc (Code Counter)
-      shell: bash
-      run: |
-        wget -qO scc.tar.gz https://github.com/boyter/scc/releases/latest/download/scc_Linux_x86_64.tar.gz
-        sudo tar xf scc.tar.gz -C /usr/local/bin scc
-        scc --version
-
     - name: Run quality gate evaluation
       id: gate
       shell: bash

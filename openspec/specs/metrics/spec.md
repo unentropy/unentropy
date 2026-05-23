@@ -225,6 +225,7 @@ The system SHALL provide a `coverage-clover` built-in collector that parses Clov
 
 ## Key Entities
 
+- **`sloc` library**: The embedded JavaScript library used for in-process lines-of-code counting.
 - **Clover XML report**: An XML format produced by PHPUnit (`--coverage-clover`) and OpenClover containing coverage metrics organized as a project hierarchy with per-file `<metrics>` elements
 - **Coverage type**: The aspect of coverage being measured — line (via `statements`), function (via `methods`), or branch (via `conditionals`)
 
@@ -240,7 +241,6 @@ The system SHALL provide a `coverage-clover` built-in collector that parses Clov
 
 - Users understand basic JSON configuration syntax.
 - Metric collection scripts/commands are provided by the user and referenced in configuration (the system invokes them but does not define them).
-- The SCC tool is available for `@collect loc` (with installation instructions provided).
 - Default commands assume common project structures (e.g., `coverage/lcov.info`, `./dist`).
 - The `@collect` shortcut provides sufficient flexibility for most use cases; complex scenarios can still use shell commands.
 
