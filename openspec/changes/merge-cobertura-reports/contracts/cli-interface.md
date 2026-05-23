@@ -22,10 +22,9 @@ unentropy collect coverage-cobertura <sourcePaths...> [options]
 
 ### Options
 
-| Option       | Alias | Type     | Default | Description                                    |
-| ------------ | ----- | -------- | ------- | ---------------------------------------------- |
-| `--type`     | `-t`  | `string` | `line`  | Coverage type: `line`, `branch`, or `function` |
-| `--fallback` |       | `number` | `0`     | Fallback value if all files fail to parse      |
+| Option   | Alias | Type     | Default | Description                                    |
+| -------- | ----- | -------- | ------- | ---------------------------------------------- |
+| `--type` | `-t`  | `string` | `line`  | Coverage type: `line`, `branch`, or `function` |
 
 ### Exit Codes
 
@@ -68,4 +67,3 @@ unentropy collect coverage-cobertura ./coverage/report1.xml ./coverage/report2.x
 
 - If any file path does not exist or is unreadable, execution stops with an error identifying the problematic file
 - If zero source paths are provided, execution fails with an error
-- With `--fallback`, return the fallback value only if all files fail; if any file succeeds, use the merge result

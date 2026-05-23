@@ -40,7 +40,7 @@ Add to the Available Collectors table:
 
 ### Multi-File Merge
 
-The `coverage-clover` collector accepts multiple file paths and merges coverage by summing covered/valid counts across all files:
+The `coverage-clover` collector accepts multiple file paths and merges coverage: for line type, per-file per-statement-line deduplication via union of covered lines from `<line type="stmt">` elements; for function and branch types, project-level summation of aggregate counts. Overlapping files contribute each unique line only once for line coverage:
 
 ```json
 {

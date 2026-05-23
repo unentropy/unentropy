@@ -31,7 +31,7 @@ The system SHALL provide a `coverage-clover` built-in collector that parses Clov
 #### Scenario: Multi-file merge
 
 - **WHEN** a user provides multiple Clover XML file paths to `coverage-clover`
-- **THEN** the system merges coverage by summing `statements`/`coveredstatements` (line), `methods`/`coveredmethods` (function), or `conditionals`/`coveredconditionals` (branch) across all files before computing the percentage
+- **THEN** the system merges coverage: for line type, per-file per-statement-line deduplication via union of covered lines from `<line type="stmt">` elements; for function and branch types, project-level summation of `methods`/`coveredmethods` and `conditionals`/`coveredconditionals` across all files before computing the percentage
 
 #### Scenario: Malformed XML
 

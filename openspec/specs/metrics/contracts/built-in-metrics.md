@@ -109,7 +109,8 @@ This provides:
 | `loc` | `@collect loc <path> [options]` | Count lines of code using SCC |
 | `size` | `@collect size <path\|glob>` | Calculate file/directory size |
 | `coverage-lcov` | `@collect coverage-lcov <path> [options]` | Parse LCOV coverage reports |
-| `coverage-cobertura` | `@collect coverage-cobertura <path> [options]` | Parse Cobertura XML coverage reports |
+| `coverage-clover` | `@collect coverage-clover <paths...> [options]` | Parse Clover XML coverage reports (PHPUnit format) |
+| `coverage-cobertura` | `@collect coverage-cobertura <paths...> [options]` | Parse Cobertura XML coverage reports |
 
 ### Collector Options
 
@@ -124,8 +125,11 @@ This provides:
 #### `coverage-lcov` Options
 - `--type <line|branch|function>` - Coverage type to extract (default: `line`)
 
+#### `coverage-clover` Options
+- `--type <line|branch|function>` — Coverage type to extract (default: `line`)
+
 #### `coverage-cobertura` Options
-- `--type <line|branch|function>` - Coverage type to extract (default: `line`)
+- `--type <line|branch|function>` — Coverage type to extract (default: `line`)
 
 **Note:** When a collector fails (missing files, parse errors), execution stops with an error rather than returning a fallback value.
 
