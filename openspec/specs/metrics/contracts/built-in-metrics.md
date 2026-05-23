@@ -142,7 +142,7 @@ Metric templates fall into two categories:
 - `size`: `@collect size ./dist` - common convention
 
 **Without default commands** (require user configuration):
-- `coverage`: Technology-specific (Jest, Vitest, c8, etc.) - use `coverage-lcov` or `coverage-cobertura` collectors
+- `coverage`: Technology-specific (Jest, Vitest, c8, PHPUnit, etc.) - use `coverage-lcov`, `coverage-cobertura`, or `coverage-clover` collectors
 - `build-time`: Project-specific timing approach
 - `test-time`: Project-specific timing approach
 - `dependencies-count`: Package manager-specific (npm, bun, pnpm, yarn)
@@ -174,7 +174,8 @@ Metric templates fall into two categories:
     "coverage": { "$ref": "coverage", "command": "@collect coverage-lcov ./coverage/lcov.info" },
     "test-coverage": { "$ref": "coverage", "name": "Test Coverage", "command": "@collect coverage-lcov coverage/lcov.info" },
     "branch-coverage": { "$ref": "coverage", "name": "Branch Coverage", "command": "@collect coverage-lcov coverage/lcov.info --type branch" },
-    "cobertura-coverage": { "$ref": "coverage", "command": "@collect coverage-cobertura ./coverage/report1.xml ./coverage/report2.xml" }
+    "cobertura-coverage": { "$ref": "coverage", "command": "@collect coverage-cobertura ./coverage/report1.xml ./coverage/report2.xml" },
+    "clover-coverage": { "$ref": "coverage", "name": "Clover Coverage", "command": "@collect coverage-clover ./coverage/clover.xml" }
   }
 }
 ```
