@@ -6,11 +6,20 @@ import { resolve } from "path";
 
 type VersionType = "patch" | "minor" | "major";
 
-function execPipe(command: string): string {
-  return execSync(command, { encoding: "utf-8", stdio: "pipe" }).trim();
+function execPipe(command: string, prefix?: string): string {
+  const result = execSync(command, { encoding: "utf-8", stdio: "pipe" }).trim();
+  if (prefix && result) {
+    const prefixed = result
+      .split("\n")
+      .map((line) => `  [${prefix}] ${line}`)
+      .join("\n");
+    console.log(prefixed);
+  }
+  return result;
 }
 
-function execInherit(command: string): void {
+function execInherit(command: string, prefix: string): void {
+  console.log(`  [${prefix}] ${command}`);
   execSync(command, { encoding: "utf-8", stdio: "inherit" });
 }
 
@@ -25,84 +34,161 @@ function detectVcs(): "jj" | "git" {
   throw new Error("No supported VCS found (.jj or .git)");
 }
 
+function computeNextVersion(current: string, type: VersionType): string {
+  const parts = current.split(".").map(Number);
+  const [major, minor, patch] = parts;
+  if (type === "major") return `${major + 1}.0.0`;
+  if (type === "minor") return `${major}.${minor + 1}.0`;
+  return `${major}.${minor}.${patch + 1}`;
+}
+
 function bumpVersion(type: VersionType): string {
-  execInherit(`bun pm version ${type} --no-git-tag-version --force`);
+  execInherit(`bun pm version ${type} --no-git-tag-version --force`, "BUN");
   return getPackageVersion();
 }
 
 function jjCommit(version: string): void {
-  execInherit(`jj desc -m "v${version}"`);
+  execInherit(`jj desc -m "v${version}"`, "JJ");
+}
+
+function jjFinalize(): void {
+  execInherit("jj new", "JJ");
 }
 
 function gitCommit(version: string): void {
-  execPipe(`git add package.json`);
-  execInherit(`git commit -m "v${version}"`);
+  execPipe("git add package.json", "GIT");
+  execInherit(`git commit -m "v${version}"`, "GIT");
 }
 
-function createTag(version: string): void {
-  execInherit(`git tag v${version}`);
+function createTag(version: string, commitId?: string): void {
+  const target = commitId ? commitId : "";
+  execInherit(`git tag -f v${version} ${target}`, "GIT");
 }
 
-function getJjBookmark(): string {
+function verifyMainBookmark(): void {
   const output = execPipe("jj bookmark list");
-  const lines = output.split("\n").filter((l) => l.trim());
-  const localBookmarks: string[] = [];
-
-  for (const line of lines) {
-    const match = line.match(/^([a-zA-Z0-9_-]+):/);
-    if (match && !match[1].includes("@")) {
-      localBookmarks.push(match[1]);
-    }
+  const hasMain = output.split("\n").some((line) => line.match(/^main:/));
+  if (!hasMain) {
+    throw new Error(
+      "No local jj bookmark 'main' found. Create it with: jj bookmark create main -r @"
+    );
   }
-
-  for (const name of ["main", "master"]) {
-    if (localBookmarks.includes(name)) return name;
-  }
-
-  if (localBookmarks.length === 1) return localBookmarks[0];
-  if (localBookmarks.length === 0) {
-    throw new Error("No local jj bookmark found. Create one with: jj bookmark create main -r @");
-  }
-  throw new Error(
-    `Multiple local jj bookmarks found: ${localBookmarks.join(", ")}. Please specify which one to push.`
-  );
 }
 
-function jjPush(version: string): void {
-  const bookmark = getJjBookmark();
-  execInherit(`jj bookmark move ${bookmark} --to @`);
-  execInherit(`jj git push -b ${bookmark}`);
-  execInherit(`git push origin v${version}`);
+function jjPush(): void {
+  execInherit(`git branch -f main`, "GIT");
+  execInherit("git push --force origin main --follow-tags", "GIT");
+  execInherit("jj bookmark move main --to @-", "JJ");
 }
 
 function gitPush(): void {
-  execInherit("git push --follow-tags");
+  execInherit("git push --follow-tags", "GIT");
 }
 
-function main(): void {
-  const type = process.argv[2] as VersionType;
-  if (!type || !["patch", "minor", "major"].includes(type)) {
-    console.error("Usage: bun run scripts/version.ts <patch|minor|major>");
-    process.exit(1);
+function checkTagExists(version: string): string | null {
+  try {
+    const tagRef = execPipe(`git rev-parse v${version}`);
+    return tagRef || null;
+  } catch {
+    return null;
+  }
+}
+
+function printDryRun(type: VersionType, currentVersion: string, vcs: "jj" | "git"): void {
+  const nextVersion = computeNextVersion(currentVersion, type);
+  console.log(`\n  Current version: ${currentVersion} → Next version: ${nextVersion}\n`);
+
+  const warnings: string[] = [];
+  const existingTag = checkTagExists(nextVersion);
+  if (existingTag) {
+    warnings.push(
+      `Tag v${nextVersion} already exists at ${existingTag.substring(0, 7)} — will be force-moved`
+    );
   }
 
-  const vcs = detectVcs();
-  console.log(`Detected VCS: ${vcs}`);
+  if (vcs === "jj") {
+    try {
+      verifyMainBookmark();
+      const output = execPipe("jj log -r main --no-graph -T 'commit_id'");
+      console.log(`  Local bookmark 'main' found at ${output.substring(0, 7)}`);
+    } catch {
+      throw new Error("Cannot verify main bookmark. Create it with: jj bookmark create main -r @");
+    }
+  }
+
+  console.log(`\n  Planned actions:`);
+
+  if (vcs === "jj") {
+    console.log(`    [BUN] bun pm version ${type} --no-git-tag-version --force`);
+    console.log(`    [JJ]  jj desc -m "v${nextVersion}"`);
+    console.log(`    [JJ]  jj new`);
+    console.log(`    [GIT] git tag -f v${nextVersion} <@-commit-id>`);
+    console.log(`    [GIT] git branch -f main <@-commit-id>`);
+    console.log(`    [JJ]  jj bookmark move main --to @-`);
+    console.log(`    [GIT] git push --force origin main --follow-tags`);
+    warnings.push("Push to origin/main will be forced");
+  } else {
+    console.log(`    [BUN] bun pm version ${type} --no-git-tag-version --force`);
+    console.log(`    [GIT] git add package.json && git commit -m "v${nextVersion}"`);
+    console.log(`    [GIT] git tag v${nextVersion}`);
+    console.log(`    [GIT] git push --follow-tags`);
+  }
+
+  if (warnings.length > 0) {
+    console.log("");
+    for (const warning of warnings) {
+      console.log(`  ⚠️  ${warning}`);
+    }
+  }
+
+  console.log("");
+}
+
+function release(type: VersionType, vcs: "jj" | "git"): void {
+  if (vcs === "jj") {
+    verifyMainBookmark();
+  }
 
   const version = bumpVersion(type);
-  console.log(`Bumped to v${version}`);
+  console.log(`  Bumped to v${version}\n`);
 
   if (vcs === "jj") {
     jjCommit(version);
-    createTag(version);
-    jjPush(version);
+    jjFinalize();
+    const commitId = execPipe("jj log -r @- --no-graph -T 'commit_id'");
+    createTag(version, commitId);
+    execInherit(`git branch -f main ${commitId}`, "GIT");
+    jjPush();
   } else {
     gitCommit(version);
     createTag(version);
     gitPush();
   }
 
-  console.log(`✓ Released v${version}`);
+  console.log(`\n  ✓ Released v${version}\n`);
+}
+
+function main(): void {
+  const args = process.argv.slice(2);
+  const dryRun = args.includes("--dry-run");
+  const filteredArgs = args.filter((a) => a !== "--dry-run");
+  const type = filteredArgs[0] as VersionType;
+
+  if (!type || !["patch", "minor", "major"].includes(type)) {
+    console.error("Usage: bun run scripts/version.ts <patch|minor|major> [--dry-run]");
+    process.exit(1);
+  }
+
+  const vcs = detectVcs();
+  console.log(`\n  Detected VCS: ${vcs}\n`);
+
+  if (dryRun) {
+    const currentVersion = getPackageVersion();
+    printDryRun(type, currentVersion, vcs);
+    process.exit(0);
+  }
+
+  release(type, vcs);
 }
 
 main();

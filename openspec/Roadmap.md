@@ -53,6 +53,7 @@
 - [ ] Cleanup database structure
   - Simplify objects used for data retrieval
   - Q: do we need the "metric_definitions" table at all?
+- [ ] Collecting metrics from JSON files
 
 ## 0.5 - Alpha
 
