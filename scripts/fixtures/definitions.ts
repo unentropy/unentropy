@@ -77,12 +77,21 @@ const FULL_FEATURED_METRICS: MetricGenerator[] = [
   },
 ];
 
+const BUILT_IN_THEMES = ["lattice", "flux", "halftone", "specimen"] as const;
+
+function deterministicTheme(name: string): (typeof BUILT_IN_THEMES)[number] {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash += name.charCodeAt(i);
+  return BUILT_IN_THEMES[hash % BUILT_IN_THEMES.length];
+}
+
 export const FIXTURES: Record<string, FixtureConfig> = {
   minimal: {
     name: "minimal",
     dbPath: "tests/fixtures/visual-review/minimal/minimal.db",
     outputPath: "tests/fixtures/visual-review/minimal/report.html",
     buildCount: 5,
+    report: { theme: deterministicTheme("minimal") },
     metricGenerators: [
       {
         id: "test-coverage",
@@ -102,6 +111,7 @@ export const FIXTURES: Record<string, FixtureConfig> = {
     buildCount: 25,
     metricGenerators: FULL_FEATURED_METRICS,
     report: {
+      theme: deterministicTheme("full-featured"),
       sections: [
         {
           name: "Code Quality",
@@ -125,6 +135,7 @@ export const FIXTURES: Record<string, FixtureConfig> = {
     dbPath: "tests/fixtures/visual-review/sparse-data/sparse-data.db",
     outputPath: "tests/fixtures/visual-review/sparse-data/report.html",
     buildCount: 3,
+    report: { theme: deterministicTheme("sparse-data") },
     metricGenerators: [
       {
         id: "test-coverage",
@@ -149,6 +160,7 @@ export const FIXTURES: Record<string, FixtureConfig> = {
     dbPath: "tests/fixtures/visual-review/empty/empty.db",
     outputPath: "tests/fixtures/visual-review/empty/report.html",
     buildCount: 0,
+    report: { theme: deterministicTheme("empty") },
     metricGenerators: [
       {
         id: "test-coverage",
@@ -227,6 +239,7 @@ export const FIXTURES: Record<string, FixtureConfig> = {
       },
     ],
     report: {
+      theme: deterministicTheme("edge-cases"),
       sections: [
         {
           name: "Edge Case Comparison",
@@ -320,6 +333,7 @@ export const FIXTURES: Record<string, FixtureConfig> = {
       },
     ],
     report: {
+      theme: deterministicTheme("sections-demo"),
       sections: [
         {
           name: "Code Size",
@@ -364,6 +378,7 @@ export const FIXTURES: Record<string, FixtureConfig> = {
     dbPath: "tests/fixtures/visual-review/huge-report/huge-report.db",
     outputPath: "tests/fixtures/visual-review/huge-report/report.html",
     buildCount: 3000,
+    report: { theme: deterministicTheme("huge-report") },
     timestampGenerator: (buildIndex, baseTimestamp) => {
       const dayInMs = 24 * 60 * 60 * 1000;
       const hourInMs = 60 * 60 * 1000;
@@ -469,5 +484,18 @@ export const FIXTURES: Record<string, FixtureConfig> = {
         },
       },
     ],
+  },
+
+  "theme-custom": {
+    name: "theme-custom",
+    dbPath: "tests/fixtures/visual-review/theme-custom/theme-custom.db",
+    outputPath: "tests/fixtures/visual-review/theme-custom/report.html",
+    buildCount: 25,
+    metricGenerators: FULL_FEATURED_METRICS,
+    report: {
+      theme: {
+        dark: { "--accent": "#ff79c6", "--up": "#50fa7b", "--down": "#ff5555" },
+      },
+    },
   },
 };

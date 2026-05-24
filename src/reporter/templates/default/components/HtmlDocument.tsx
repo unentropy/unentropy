@@ -4,33 +4,43 @@ import { Footer } from "./Footer";
 import { MetricCard } from "./MetricCard";
 import { EmptyState } from "./EmptyState";
 import { ChartScripts } from "./ChartScripts";
-import { PrintStyles } from "./PrintStyles";
 import { PreviewBar } from "./PreviewBar";
 import { Section } from "./Section";
+import type { ResolvedTheme } from "../themes";
+import { buildStyleSheet, type ThemeMode } from "../styles";
+import themeToggleScript from "../scripts/theme-toggle.js" with { type: "text" };
 
 interface HtmlDocumentProps {
   data: ReportData;
   chartsData: ChartsData;
+  theme: ResolvedTheme;
+  mode: ThemeMode;
 }
 
-export function HtmlDocument({ data, chartsData }: HtmlDocumentProps) {
+export function HtmlDocument({ data, chartsData, theme, mode }: HtmlDocumentProps) {
   const hasLayout = chartsData.layout && chartsData.layout.sections.length > 0;
+  const css = buildStyleSheet(theme);
+  const htmlAttrs: { lang: string; "data-theme"?: string } = { lang: "en" };
+  if (mode === "light" || mode === "dark") {
+    htmlAttrs["data-theme"] = mode;
+  }
 
   return (
-    <html lang="en">
+    <html {...htmlAttrs}>
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Unentropy Metrics Report - {data.metadata.repository}</title>
 
+        <script dangerouslySetInnerHTML={{ __html: themeToggleScript }} />
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
-        <PrintStyles />
+        <style dangerouslySetInnerHTML={{ __html: css }} />
       </head>
-      <body class="bg-gray-50 dark:bg-gray-900">
-        <Header metadata={data.metadata} />
+      <body>
+        <Header metadata={data.metadata} buildCount={data.metadata.buildCount} />
         <PreviewBar visible={chartsData.showToggle} />
 
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -39,9 +49,9 @@ export function HtmlDocument({ data, chartsData }: HtmlDocumentProps) {
               <Section
                 key={section.name}
                 section={section}
-                metrics={
-                  data.previewMetrics && chartsData.showToggle ? data.previewMetrics : data.metrics
-                }
+                metrics={data.metrics}
+                previewMetrics={data.previewMetrics}
+                showToggle={chartsData.showToggle}
               />
             ))
           ) : (

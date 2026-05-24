@@ -14,30 +14,25 @@ export function StatsGrid({ stats, unit }: StatsGridProps) {
     stats.trendPercent !== null ? Math.abs(stats.trendPercent).toFixed(1) : "0.0";
 
   return (
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-      <div class="text-center">
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">
-          {formatValue(stats.latest, unit)}
-        </div>
-        <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+    <div class="uent-stats flex flex-wrap gap-x-6 gap-y-2 py-2 my-3">
+      <div class="flex flex-col">
+        <span class="uent-stat-l text-[10px]">latest</span>
+        <span class="uent-stat-v uent-mono text-base">{formatValue(stats.latest, unit)}</span>
       </div>
-      <div class="text-center">
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">
-          {formatValue(stats.min, unit)}
-        </div>
-        <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
+      <div class="flex flex-col">
+        <span class="uent-stat-l text-[10px]">min</span>
+        <span class="uent-stat-v uent-mono text-base">{formatValue(stats.min, unit)}</span>
       </div>
-      <div class="text-center">
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">
-          {formatValue(stats.max, unit)}
-        </div>
-        <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
+      <div class="flex flex-col">
+        <span class="uent-stat-l text-[10px]">max</span>
+        <span class="uent-stat-v uent-mono text-base">{formatValue(stats.max, unit)}</span>
       </div>
-      <div class="text-center">
-        <div class={`text-2xl font-bold ${trendColor}`}>
-          {trendArrow} {trendPercent}%
-        </div>
-        <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+      <div class="flex flex-col">
+        <span class="uent-stat-l text-[10px]">trend</span>
+        <span class={`uent-stat-v uent-mono text-base ${trendColor}`}>
+          {trendArrow}
+          {trendPercent}%
+        </span>
       </div>
     </div>
   );

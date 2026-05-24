@@ -9,9 +9,9 @@ export function formatTrendArrow(direction: "up" | "down" | "stable" | null): st
 }
 
 export function getTrendColor(direction: "up" | "down" | "stable" | null): string {
-  if (direction === "up") return "text-green-600 dark:text-green-400";
-  if (direction === "down") return "text-red-600 dark:text-red-400";
-  return "text-gray-600 dark:text-gray-400";
+  if (direction === "up") return "uent-trend-up";
+  if (direction === "down") return "uent-trend-down";
+  return "uent-trend-stable";
 }
 
 export function formatValue(value: number | null, unit: UnitType | null): string {

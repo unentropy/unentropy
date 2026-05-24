@@ -20,23 +20,7 @@
     function updateButtonStates(active) {
       filterButtons.forEach(function (btn) {
         var isActive = btn.dataset.filter === active;
-        if (isActive) {
-          btn.classList.remove(
-            "bg-gray-200",
-            "dark:bg-gray-700",
-            "text-gray-700",
-            "dark:text-gray-300"
-          );
-          btn.classList.add("bg-blue-600", "text-white");
-        } else {
-          btn.classList.remove("bg-blue-600", "text-white");
-          btn.classList.add(
-            "bg-gray-200",
-            "dark:bg-gray-700",
-            "text-gray-700",
-            "dark:text-gray-300"
-          );
-        }
+        btn.classList.toggle("uent-chip-active", isActive);
       });
     }
 
@@ -103,9 +87,10 @@
 
         var overlay = document.createElement("div");
         overlay.className =
-          "empty-range-overlay absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-900 bg-opacity-90 dark:bg-opacity-90 z-10";
+          "empty-range-overlay absolute inset-0 flex items-center justify-center z-10";
+        overlay.style.background = "color-mix(in srgb, var(--bg) 90%, transparent)";
         overlay.innerHTML =
-          '<p class="text-gray-500 dark:text-gray-400 text-sm">No data in selected range</p>';
+          '<p class="uent-mono text-sm" style="color: var(--text-muted)">No data in selected range</p>';
         container.style.position = "relative";
         container.appendChild(overlay);
       });

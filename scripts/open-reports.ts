@@ -1,17 +1,26 @@
 #!/usr/bin/env bun
 
 import { execSync } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, readdirSync, statSync } from "fs";
+import { resolve } from "path";
 
-const REPORT_FILES = [
-  "tests/fixtures/visual-review/minimal/report.html",
-  "tests/fixtures/visual-review/full-featured/report.html",
-  "tests/fixtures/visual-review/sparse-data/report.html",
-  "tests/fixtures/visual-review/edge-cases/report.html",
-  "tests/fixtures/visual-review/sections-demo/report.html",
-  "tests/fixtures/visual-review/huge-report/report.html",
-  "tests/fixtures/visual-review/empty/report.html",
-];
+const REVIEW_DIR = "tests/fixtures/visual-review";
+
+function findReportFiles(): string[] {
+  const results: string[] = [];
+  try {
+    const entries = readdirSync(REVIEW_DIR);
+    for (const entry of entries) {
+      const reportPath = resolve(REVIEW_DIR, entry, "report.html");
+      if (statSync(resolve(REVIEW_DIR, entry)).isDirectory() && existsSync(reportPath)) {
+        results.push(reportPath);
+      }
+    }
+  } catch {
+    // Directory doesn't exist yet
+  }
+  return results.sort();
+}
 
 function getOpenCommand(): string | null {
   const platform = process.platform;
@@ -46,14 +55,17 @@ function openFile(filePath: string): void {
 }
 
 async function main(): Promise<void> {
-  console.log("🌐 Opening visual review reports...\n");
+  const reports = findReportFiles();
 
-  for (const filePath of REPORT_FILES) {
-    if (existsSync(filePath)) {
-      openFile(filePath);
-    } else {
-      console.log(`⚠️  File not found: ${filePath}`);
-    }
+  if (reports.length === 0) {
+    console.log("⚠️  No reports found. Run `bun run generate-fixtures` first.");
+    return;
+  }
+
+  console.log(`🌐 Opening ${reports.length} visual review reports...\n`);
+
+  for (const filePath of reports) {
+    openFile(filePath);
   }
 
   const openCmd = getOpenCommand();

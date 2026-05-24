@@ -21,6 +21,8 @@ import type { BuildContext } from "../storage/types";
 import { calculateSyntheticStats, generateSyntheticData } from "./synthetic";
 import { ResolvedUnentropyConfig } from "../config/loader";
 import { buildReportLayout } from "./layout";
+import { resolveTheme } from "./templates/default/themes";
+import type { ThemeMode } from "./templates/default/styles";
 
 export function calculateSummaryStats(
   metricType: "numeric" | "label",
@@ -349,6 +351,9 @@ export function generateReport(
     previewMetrics,
   };
 
-  const jsx = h(HtmlDocument, { data: reportData, chartsData });
+  const theme = resolveTheme(config.report?.theme as Parameters<typeof resolveTheme>[0]);
+  const mode: ThemeMode = config.report?.mode ?? "auto";
+
+  const jsx = h(HtmlDocument, { data: reportData, chartsData, theme, mode });
   return "<!DOCTYPE html>" + render(jsx);
 }

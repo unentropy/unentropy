@@ -6,7 +6,6 @@ export { StatsGrid } from "./StatsGrid";
 export { ChartCanvas } from "./ChartCanvas";
 export { EmptyState } from "./EmptyState";
 export { ChartScripts } from "./ChartScripts";
-export { PrintStyles } from "./PrintStyles";
 export { PreviewBar } from "./PreviewBar";
 export { DateRangeFilter } from "./DateRangeFilter";
 export { CustomDatePickerPopover } from "./CustomDatePickerPopover";

@@ -39,6 +39,8 @@ describe("Section", () => {
 
     expect(html).toContain("Code Size");
     expect(html).toContain("Source code metrics by language");
+    expect(html).toContain("uent-section-head");
+    expect(html).toContain("uent-section-marker");
   });
 
   test("renders single-metric chart cards", () => {
@@ -54,6 +56,21 @@ describe("Section", () => {
 
     expect(html).toContain("Bundle Size");
     expect(html).toContain("metric-card");
+  });
+
+  test("renders single-metric chart cards with uent-card class", () => {
+    const section: SectionData = {
+      name: "Build",
+      charts: [
+        { type: "single", metricId: "bundle-size", title: "Bundle Size", chartType: "line" },
+      ],
+    };
+
+    const metrics = [createMetric("bundle-size", "Bundle Size")];
+    const html = render(h(Section, { section, metrics }));
+
+    expect(html).toContain("Bundle Size");
+    expect(html).toContain("uent-card"); // was "metric-card"
   });
 
   test("renders multi-metric chart cards", () => {

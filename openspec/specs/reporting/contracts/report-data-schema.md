@@ -67,6 +67,28 @@ interface ChartsData {
     min: string;                         // ISO date (YYYY-MM-DD) of earliest build
     max: string;                         // ISO date (YYYY-MM-DD) of latest build
   };
+
+  // NEW: report layout configuration (only present when sections are configured)
+  layout?: ReportLayout;
+}
+
+// NEW: Report layout structure
+interface ReportLayout {
+  sections: SectionData[];
+}
+
+interface SectionData {
+  name: string;
+  description?: string;
+  charts: ChartData[];
+}
+
+interface ChartData {
+  type: "single" | "multi";     // Chart type determines rendering
+  metricId?: string;             // For single-metric charts
+  metricIds?: string[];          // For multi-metric charts
+  title: string;                 // Human-readable chart title
+  chartType: "line" | "bar";     // Chart type hint for rendering
 }
 
 interface LineChartData {
@@ -151,6 +173,46 @@ function buildLineChart(chart, timeline, metadata) {
   };
 }
 ```
+
+---
+
+## Multi-Metric Chart Data Mapping
+
+For multi-metric charts, the client-side JavaScript maps `metricIds` to the shared `lineCharts` array by `id`:
+
+```javascript
+function buildMultiMetricChart(chartData, lineCharts, timeline, metadata) {
+  const datasets = chartData.metricIds.map((metricId, index) => {
+    const metric = lineCharts.find((m) => m.id === metricId);
+    return {
+      label: metric.name,
+      data: metric.values,
+      borderColor: getColor(index),
+      backgroundColor: getColor(index, 0.1),
+    };
+  });
+
+  return {
+    type: "line",
+    data: { labels: timeline, datasets },
+    options: {
+      scales: determineScales(chartData.metricIds, lineCharts),
+    },
+  };
+}
+```
+
+### Color Palette
+
+Multi-metric chart colors are assigned by series index from CSS variables at runtime, falling back to a static palette:
+
+| Index | Source           |
+|-------|------------------|
+| 0     | `--accent`       |
+| 1     | `--up`           |
+| 2     | `--warn`         |
+| 3     | `--down`         |
+| 4+    | Extended palette |
 
 ---
 

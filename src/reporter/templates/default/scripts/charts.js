@@ -2,66 +2,89 @@
 // This script is inlined into generated HTML reports and runs in the browser.
 // Variables are used by the initializeCharts function called from the data script.
 
+function themeVar(name) {
+  if (typeof document === "undefined") return "";
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function hexToRgba(hex, alpha) {
+  if (!hex || hex[0] !== "#" || hex.length !== 7) return "rgba(0,0,0," + alpha + ")";
+  var r = parseInt(hex.slice(1, 3), 16);
+  var g = parseInt(hex.slice(3, 5), 16);
+  var b = parseInt(hex.slice(5, 7), 16);
+  return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+}
+
+function buildColorPalette() {
+  var accent = themeVar("--accent");
+  var up = themeVar("--up");
+  var down = themeVar("--down");
+  var warn = themeVar("--warn");
+  return [accent, up, warn, down, "#7fbbb3", "#a89bc8", "#7c9eb2", "#bab098"].map(function (c) {
+    return c || "#888888";
+  });
+}
+
 var COLOR_PALETTE = [
-  "rgb(59, 130, 246)", // blue
-  "rgb(16, 185, 129)", // green
-  "rgb(245, 158, 11)", // amber
-  "rgb(239, 68, 68)", // red
-  "rgb(139, 92, 246)", // violet
-  "rgb(6, 182, 212)", // cyan
-  "rgb(236, 72, 153)", // pink
-  "rgb(99, 102, 241)", // indigo
+  "#6fb3d2",
+  "#8ec07c",
+  "#d4a663",
+  "#e08490",
+  "#7fbbb3",
+  "#a89bc8",
+  "#7c9eb2",
+  "#bab098",
 ];
+var COLOR_PALETTE_INITIALIZED = false;
 
 function getColor(index) {
+  if (!COLOR_PALETTE_INITIALIZED) {
+    COLOR_PALETTE = buildColorPalette();
+    COLOR_PALETTE_INITIALIZED = true;
+  }
   return COLOR_PALETTE[index % COLOR_PALETTE.length];
 }
 
 function getBackgroundColor(index) {
-  var color = getColor(index);
-  return color.replace("rgb", "rgba").replace(")", ", 0.1)");
+  return hexToRgba(getColor(index), 0.1);
 }
 
-var LINE_STYLE = {
-  borderColor: "rgb(59, 130, 246)",
-  backgroundColor: "rgba(59, 130, 246, 0.1)",
-  tension: 0.4,
-  fill: true,
-  pointRadius: 4,
-  pointHoverRadius: 6,
-  spanGaps: false,
-};
+var LINE_STYLE = null;
+var BAR_STYLE = null;
+var COMMON_OPTIONS = null;
 
-var BAR_STYLE = {
-  backgroundColor: "rgba(59, 130, 246, 0.8)",
-  borderColor: "rgb(59, 130, 246)",
-  borderWidth: 1,
-};
-
-var COMMON_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: { mode: "index", intersect: false },
-  plugins: {
-    legend: { display: false },
-    crosshair: {
-      enabled: true,
-      sync: {
+function ensureStyles() {
+  if (LINE_STYLE) return;
+  var accent = themeVar("--accent") || "#6fb3d2";
+  LINE_STYLE = {
+    borderColor: accent,
+    backgroundColor: hexToRgba(accent, 0.1),
+    tension: 0.4,
+    fill: true,
+    pointRadius: 4,
+    pointHoverRadius: 6,
+    spanGaps: false,
+  };
+  BAR_STYLE = {
+    backgroundColor: hexToRgba(accent, 0.8),
+    borderColor: accent,
+    borderWidth: 1,
+  };
+  COMMON_OPTIONS = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: { display: false },
+      crosshair: {
         enabled: true,
-        group: 1,
-      },
-      line: {
-        color: "rgba(59, 130, 246, 0.3)",
-        width: 1,
-      },
-      zoom: {
-        enabled: true,
-        minDataPoints: 10,
-        minZoomRange: 4,
+        sync: { enabled: true, group: 1 },
+        line: { color: hexToRgba(accent, 0.3), width: 1 },
+        zoom: { enabled: true, minDataPoints: 10, minZoomRange: 4 },
       },
     },
-  },
-};
+  };
+}
 
 /**
  * Format values for chart tooltips based on semantic unit types.
@@ -363,6 +386,7 @@ function initializeCharts(
   previewData,
   layout
 ) {
+  ensureStyles();
   var chartInstances = {};
 
   // Register crosshair plugin globally with Chart.js
@@ -446,7 +470,9 @@ function initializeCharts(
     toggle.addEventListener("change", function (e) {
       var showPreview = e.target.checked;
 
-      // Toggle visibility of metric cards
+      var track = toggle.parentElement.querySelector(".uent-toggle-track");
+      if (track) track.classList.toggle("uent-toggle-on", showPreview);
+
       document.querySelectorAll('[data-view="real"]').forEach(function (el) {
         el.classList.toggle("hidden", showPreview);
         el.setAttribute("aria-hidden", showPreview ? "true" : "false");
