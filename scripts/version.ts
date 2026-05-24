@@ -75,14 +75,15 @@ function verifyMainBookmark(): void {
   }
 }
 
-function jjPush(): void {
-  execInherit(`git branch -f main`, "GIT");
-  execInherit("git push --force origin main --follow-tags", "GIT");
+function jjPush(version: string): void {
+  execInherit("git push --force origin main", "GIT");
+  execInherit(`git push --force origin v${version}`, "GIT");
   execInherit("jj bookmark move main --to @-", "JJ");
 }
 
-function gitPush(): void {
-  execInherit("git push --follow-tags", "GIT");
+function gitPush(version: string): void {
+  execInherit("git push", "GIT");
+  execInherit(`git push --force origin v${version}`, "GIT");
 }
 
 function checkTagExists(version: string): string | null {
@@ -125,13 +126,16 @@ function printDryRun(type: VersionType, currentVersion: string, vcs: "jj" | "git
     console.log(`    [GIT] git tag -f v${nextVersion} <@-commit-id>`);
     console.log(`    [GIT] git branch -f main <@-commit-id>`);
     console.log(`    [JJ]  jj bookmark move main --to @-`);
-    console.log(`    [GIT] git push --force origin main --follow-tags`);
+    console.log(`    [GIT] git push --force origin main`);
+    console.log(`    [GIT] git push --force origin v${nextVersion}`);
     warnings.push("Push to origin/main will be forced");
+    warnings.push("Tag push to origin will be forced");
   } else {
     console.log(`    [BUN] bun pm version ${type} --no-git-tag-version --force`);
     console.log(`    [GIT] git add package.json && git commit -m "v${nextVersion}"`);
     console.log(`    [GIT] git tag v${nextVersion}`);
-    console.log(`    [GIT] git push --follow-tags`);
+    console.log(`    [GIT] git push`);
+    console.log(`    [GIT] git push --force origin v${nextVersion}`);
   }
 
   if (warnings.length > 0) {
@@ -158,11 +162,11 @@ function release(type: VersionType, vcs: "jj" | "git"): void {
     const commitId = execPipe("jj log -r @- --no-graph -T 'commit_id'");
     createTag(version, commitId);
     execInherit(`git branch -f main ${commitId}`, "GIT");
-    jjPush();
+    jjPush(version);
   } else {
     gitCommit(version);
     createTag(version);
-    gitPush();
+    gitPush(version);
   }
 
   console.log(`\n  ✓ Released v${version}\n`);
