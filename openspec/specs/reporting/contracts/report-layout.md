@@ -18,6 +18,10 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 
 ### Overall Structure
 
+The report supports two layout modes: **section-based** (when `report.sections` is configured) and **flat** (default/backward compatible).
+
+#### Section-Based Layout
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                           HEADER                                 │
@@ -25,6 +29,37 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 ├─────────────────────────────────────────────────────────────────┤
 │                       PREVIEW BAR (conditional)                  │
 │  Toggle to show sample data when < 10 builds                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ▾ Code Size                                                     │
+│  // Source code metrics by language                              │
+│  ┌─────────────────────────┐  ┌─────────────────────────┐       │
+│  │      METRIC CARD        │  │      METRIC CARD        │       │
+│  │  Chart + Stats + Actions│  │  Chart + Stats + Actions│       │
+│  └─────────────────────────┘  └─────────────────────────┘       │
+│                                                                  │
+│  ▾ Test Coverage                                                 │
+│  ┌─────────────────────────────────────────────────────────┐     │
+│  │  MULTI-METRIC CHART CARD                                 │     │
+│  │  Shared chart + per-metric stat mini-cards               │     │
+│  └─────────────────────────────────────────────────────────┘     │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                           FOOTER                                 │
+│  Build count, date range, version info, documentation link      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Flat Layout (Default)
+
+When no `report` configuration is present, all metrics render in a flat grid:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                           HEADER                                 │
+│  Repository name, date filters (7d/30d/90d/All/Custom)          │
+├─────────────────────────────────────────────────────────────────┤
+│                       PREVIEW BAR (conditional)                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌─────────────────────────┐  ┌─────────────────────────┐       │
@@ -36,7 +71,6 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 │                                                                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                           FOOTER                                 │
-│  Build count, date range, version info, documentation link      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -55,30 +89,33 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 ### 3.1 Header
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  REPOSITORY NAME                                                 │
-│                                                                  │
-│  ┌─────┬─────┬─────┬─────┬────────┐                             │
-│  │7 day│30day│90day│ All │ Custom │                             │
-│  └─────┴─────┴─────┴─────┴────────┘                             │
-│                              ↓ (when clicked)                    │
-│                    ┌──────────────────────┐                      │
-│                    │ From: [📅 picker]    │                      │
-│                    │ To:   [📅 picker]    │                      │
-│                    │         [Clear]      │                      │
-│                    └──────────────────────┘                      │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  [logo]  ~/owner/repo · report.html                  [🌙 theme]    │
+│                                                                     │
+│  RANGE                                                              │
+│  [all]  [7d]  [30d]  [90d]  [custom…]              42 builds       │
+│                                                                     │
+│                          ↓ (when custom clicked)                    │
+│                ┌──────────────────────────┐                          │
+│                │ From: [📅 date input]    │                          │
+│                │ To:   [📅 date input]    │                          │
+│                │        [clear]           │                          │
+│                └──────────────────────────┘                          │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 **Elements**:
-- Repository name (prominent, left-aligned)
-- Date filter buttons (right-aligned on desktop): "7 days", "30 days", "90 days", "All", "Custom"
-- One button is always active (highlighted); default: "All" on page load
+- Logo: Unentropy brand mark, links to unentropy.dev
+- Repo path breadcrumb: `~/owner/repo · report.html`
+- Theme toggle button: cycles system → light → dark, persisted to localStorage
+- Date range label: "RANGE" in muted uppercase
+- Filter chips: "all", "7d", "30d", "90d", "custom…" — active chip highlighted
+- Build count: shown in header toolbar
 
 **Custom Date Picker Popover**:
-- **Trigger**: Click on "Custom" button
-- **Position**: Below Custom button, right-aligned on desktop; intelligently positioned on mobile
-- **Contains**: "From"/"To" date pickers (native HTML5 `<input type="date">`), "Clear" button
+- **Trigger**: Click on "custom…" button
+- **Position**: Below chips, right-aligned on desktop; intelligently positioned on mobile
+- **Contains**: "From"/"To" date pickers (native HTML5 `<input type="date">`), "clear" button
 - **Behavior**: Opens immediately on click; applies filter on valid selection; closes on outside click, Clear, or preset filter click
 - **Validation**: "From" cannot be after "To"; shows inline error; dates outside data range grayed out
 
@@ -98,7 +135,54 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 - Toggle OFF: Charts show actual recorded data
 - Stats update to reflect currently displayed data
 
-### 3.3 Metric Card
+### 3.3 Section Header
+
+```
+▾ Code Size
+// Source code metrics by language
+```
+
+**Elements**:
+- Section marker: `▾` in accent color
+- Section name: prominent text
+- Optional description: prefixed with `//`, muted color, monospace font
+
+### 3.4 Multi-Metric Chart Card
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  Modern vs Legacy Classes                              [📥 export]   │
+├──────────────────────────────────────────────────────────────────────┤
+│                         CHART AREA                                    │
+│      ╭─────────────────────────────────────────────╮                 │
+│      │     ── modern-classes                       │                 │
+│      │     ·· legacy-classes                       │                 │
+│      │                                             │                 │
+│      │   ──       ··      ──       ··              │                 │
+│      │                                             │                 │
+│      ╰─────────────────────────────────────────────╯                 │
+├──────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
+│  │ modern-classes│  │ legacy-classes│  │              │               │
+│  │ Latest: 42    │  │ Latest: 18    │  │              │               │
+│  │ Min: 35       │  │ Min: 20       │  │              │               │
+│  │ Max: 48       │  │ Max: 25       │  │              │               │
+│  │ Trend: ↑ +20% │  │ Trend: ↓ -10% │  │              │               │
+│  └──────────────┘  └──────────────┘  └──────────────┘               │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+**Elements**:
+- Title row: Chart title (from `title` property or derived from metric names), export button
+- Chart area: Multi-line chart with legend, distinct colors per series
+- Stats row: One mini-stat card per metric (metric name, Latest, Min, Max, Trend)
+
+**Interaction**:
+- Tooltip shows all metric values for the hovered build with color indicators
+- Legend click toggles series visibility, chart rescales Y-axis
+- Synchronized crosshair across all charts including multi-metric
+
+### 3.5 Metric Card (Single-Metric)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -123,7 +207,7 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 - Chart area: Interactive chart (line or bar)
 - Stats row: Latest, Min, Max, Trend (direction + percentage)
 
-### 3.4 Chart Area
+### 3.6 Chart Area
 
 **Chart Types**:
 - **Line chart**: Numeric metrics with smooth curve, filled area, point dots, gaps for missing data
@@ -131,21 +215,29 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 
 **Vertical Alignment Indicator**:
 - Appears on hover over any chart
-- 1px solid vertical line, 30% opacity, semi-transparent blue
-- Extends full chart height
+- 1px solid vertical line, 30% opacity
 - Synchronized across all charts
 - Dismissed when cursor leaves chart areas
 
 **Tooltip Content**:
 ```
+Single-metric:
 ┌─────────────────────────┐      ┌─────────────────────────┐
 │ Dec 7, 2025             │      │ Dec 5, 2025             │
 │ Coverage: 82.5%         │      │ No data for this build  │
 │ Build #47, abc1234      │      └─────────────────────────┘
 └─────────────────────────┘
+
+Multi-metric:
+┌─────────────────────────┐
+│ Dec 7, 2025             │
+│ Build #47, abc1234      │
+│ ── modern-classes: 42   │
+│ ·· legacy-classes: 18   │
+└─────────────────────────┘
 ```
 
-### 3.5 Footer
+### 3.7 Footer
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -158,7 +250,7 @@ The Metrics Report is a self-contained HTML file that visualizes code metrics tr
 - Remains static regardless of filter changes
 - Shows total database build count and full date range
 
-### 3.6 Global Date Filter State
+### 3.8 Global Date Filter State
 
 ```typescript
 interface GlobalDateFilterState {
@@ -178,12 +270,18 @@ State does not persist across page reloads. All interactive elements update this
 
 | Element | Condition | Visible |
 |---------|-----------|---------|
+| Section header | `report.sections` configured | ✓ |
+| Section description | `section.description` present | ✓ |
+| Multi-metric chart | `metrics` is array in config | ✓ |
+| Flat layout | `report` absent | ✓ |
 | Preview Bar | Build count < 10 | ✓ |
 | Preview Bar | Build count ≥ 10 | ✗ |
 | Custom Date Popover | "Custom" button clicked | ✓ |
 | Custom Date Popover | Click outside, Clear, or preset filter clicked | ✗ |
 | Drag-to-zoom | Metric has ≥ 10 data points | Enabled |
 | Drag-to-zoom | Metric has < 10 data points | Disabled |
+| Section with no valid charts | All metrics unreferenced | Shows "No metrics configured" |
+| Multi-metric chart, all missing | All referenced metrics absent | Shows "No data available" |
 
 **Empty States**:
 - No metrics collected: Friendly message with guidance

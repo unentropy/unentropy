@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { THEME_VAR_NAMES, BUILT_IN_THEME_NAMES } from "../reporter/templates/default/themes";
 
 export const UnitTypeSchema = z.enum(["percent", "integer", "bytes", "duration", "decimal"], {
   message: "unit must be one of: percent, integer, bytes, duration, decimal",
@@ -152,11 +153,44 @@ const ReportSectionSchema = z
   })
   .strict();
 
+const ThemeVarValueSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, {
+  message: "theme values must be 7-character hex (e.g. #1c2230)",
+});
+
+const ThemeVarRecordSchema = z
+  .object(
+    Object.fromEntries(THEME_VAR_NAMES.map((k) => [k, ThemeVarValueSchema.optional()])) as Record<
+      (typeof THEME_VAR_NAMES)[number],
+      z.ZodOptional<typeof ThemeVarValueSchema>
+    >
+  )
+  .strict();
+
+const CustomThemeSchema = z
+  .object({
+    dark: ThemeVarRecordSchema.optional(),
+    light: ThemeVarRecordSchema.optional(),
+  })
+  .strict();
+
 export const ReportConfigSchema = z
   .object({
     sections: z
       .array(ReportSectionSchema)
       .min(1, { message: "report.sections cannot be empty" })
+      .optional(),
+    theme: z
+      .union([
+        z.enum(BUILT_IN_THEME_NAMES, {
+          message: `theme must be one of: ${BUILT_IN_THEME_NAMES.join(", ")}`,
+        }),
+        CustomThemeSchema,
+      ])
+      .optional(),
+    mode: z
+      .enum(["auto", "light", "dark"], {
+        message: "mode must be one of: auto, light, dark",
+      })
       .optional(),
   })
   .strict();

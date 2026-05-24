@@ -1,6 +1,9 @@
 import { Storage } from "../../src/storage/storage";
 import type { ResolvedUnentropyConfig } from "../../src/config/loader";
 import type { FixtureConfig, MetricGenerator, MetricInput } from "./definitions";
+import type { Database } from "bun:sqlite";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { metricDefinitions } from "../../src/storage/schema";
 
 export function calculateBaseTimestamp(config: FixtureConfig): number {
   const hourInMs = 60 * 60 * 1000;
@@ -17,6 +20,12 @@ export function calculateBaseTimestamp(config: FixtureConfig): number {
   }
 
   return endDate.getTime() - (config.buildCount - 1) * dayInMs;
+}
+
+function setPragma(conn: Database, name: string, value: string): string | undefined {
+  const row = conn.query(`PRAGMA ${name}`).get() as Record<string, string> | undefined;
+  conn.run(`PRAGMA ${name} = ${value}`);
+  return row?.[name];
 }
 
 export async function generateFixtureDatabase(
@@ -39,48 +48,77 @@ export async function generateFixtureDatabase(
   });
   await db.ready();
 
+  const conn = db.getConnection();
+  const origSync = setPragma(conn, "synchronous", "OFF");
+  const origJournal = setPragma(conn, "journal_mode", "MEMORY");
+
+  // Pre-insert metric definitions once so onConflictDoUpdate is a no-op in the loop
   const repo = db.getRepository();
+  const seenDefs = new Set<string>();
+  for (const metricGen of config.metricGenerators) {
+    if (seenDefs.has(metricGen.id)) continue;
+    seenDefs.add(metricGen.id);
+    const drizzleDb = drizzle(conn, { schema: { metricDefinitions } });
+    drizzleDb
+      .insert(metricDefinitions)
+      .values({
+        id: metricGen.id,
+        type: metricGen.type,
+        unit: metricGen.unit ?? null,
+        description: metricGen.description ?? null,
+      })
+      .onConflictDoNothing()
+      .run();
+  }
+
   const dayInMs = 24 * 60 * 60 * 1000;
   const baseTimestamp = calculateBaseTimestamp(config);
-  const buildInterval = config.buildCount > 10 ? 1 : 1;
+  const buildInterval = 1;
 
-  for (let i = 0; i < config.buildCount; i++) {
-    const buildDate = config.timestampGenerator
-      ? config.timestampGenerator(i, baseTimestamp)
-      : new Date(baseTimestamp + i * buildInterval * dayInMs);
-    const buildTimestamp = buildDate.toISOString();
-    const commitSha = `abc${i.toString().padStart(4, "0")}def0123456789012345678901234`;
+  const tx = conn.transaction(() => {
+    for (let i = 0; i < config.buildCount; i++) {
+      const buildDate = config.timestampGenerator
+        ? config.timestampGenerator(i, baseTimestamp)
+        : new Date(baseTimestamp + i * buildInterval * dayInMs);
+      const buildTimestamp = buildDate.toISOString();
+      const commitSha = `abc${i.toString().padStart(4, "0")}def0123456789012345678901234`;
 
-    const metrics: MetricInput[] = [];
+      const metrics: MetricInput[] = [];
 
-    for (const metricGen of config.metricGenerators) {
-      const value = metricGen.valueGenerator(i);
-      if (value === null) continue;
+      for (const metricGen of config.metricGenerators) {
+        const value = metricGen.valueGenerator(i);
+        if (value === null) continue;
 
-      metrics.push({
-        definition: {
-          id: metricGen.id,
-          type: metricGen.type,
-          description: metricGen.description,
-          unit: metricGen.unit || undefined,
+        metrics.push({
+          definition: {
+            id: metricGen.id,
+            type: metricGen.type,
+            description: metricGen.description,
+            unit: metricGen.unit || undefined,
+          },
+          value_numeric: metricGen.type === "numeric" ? Number(value) : undefined,
+          value_label: metricGen.type === "label" ? String(value) : undefined,
+        });
+      }
+
+      repo.recordBuild(
+        {
+          commit_sha: commitSha,
+          branch: "main",
+          run_id: `run-${i + 1000}`,
+          run_number: i + 1,
+          event_name: "push",
+          timestamp: buildTimestamp,
         },
-        value_numeric: metricGen.type === "numeric" ? Number(value) : undefined,
-        value_label: metricGen.type === "label" ? String(value) : undefined,
-      });
+        metrics
+      );
     }
+  });
+  tx();
 
-    await repo.recordBuild(
-      {
-        commit_sha: commitSha,
-        branch: "main",
-        run_id: `run-${i + 1000}`,
-        run_number: i + 1,
-        event_name: "push",
-        timestamp: buildTimestamp,
-      },
-      metrics
-    );
-  }
+  // Restore original PRAGMAs
+  if (origSync) conn.run(`PRAGMA synchronous = ${origSync}`);
+  if (origJournal) conn.run(`PRAGMA journal_mode = ${origJournal}`);
 
   return db;
 }

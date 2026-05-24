@@ -70,7 +70,7 @@
 
 - [x] 5.1 [P] Run `bun check` and fix any lint/type/format errors
 - [x] 5.2 [P] Run `bun test` and ensure unit tests pass (integration tests have pre-existing S3 env failures)
-- [ ] 5.3 [P] Update `openspec/specs/reporting/contracts/` with final `config-schema.md`, `report-data-schema.md`, and `report-layout.md`
-- [ ] 5.4 [P] Update user-facing documentation examples (if docs site is in-repo)
-- [ ] 5.5 [P] Verify `unentropy preview` with and without `report` config works correctly
-- [ ] 5.6 [P] Verify generated report HTML is self-contained and valid
+- [x] 5.3 [P] Update `openspec/specs/reporting/contracts/` with final `config-schema.md`, `report-data-schema.md`, and `report-layout.md`
+- [x] 5.4 [P] Update user-facing documentation examples (if docs site is in-repo)
+- [x] 5.5 [P] Verify `unentropy preview` with and without `report` config works correctly
+- [x] 5.6 [P] Verify generated report HTML is self-contained and valid

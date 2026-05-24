@@ -1542,3 +1542,58 @@ describe("Config Schema Validation", () => {
     });
   });
 });
+
+describe("ReportConfig theme + mode", () => {
+  it("accepts theme as a built-in name", () => {
+    const result = validateConfig({
+      metrics: { x: { type: "numeric", command: "echo 1" } },
+      report: { theme: "lattice" },
+    });
+    expect(result.report?.theme).toBe("lattice");
+  });
+
+  it("accepts theme as a custom palette object", () => {
+    const result = validateConfig({
+      metrics: { x: { type: "numeric", command: "echo 1" } },
+      report: { theme: { dark: { "--accent": "#ff00ff" } } },
+    });
+    expect(result.report?.theme).toEqual({ dark: { "--accent": "#ff00ff" } });
+  });
+
+  it("accepts mode 'auto', 'light', 'dark'", () => {
+    for (const mode of ["auto", "light", "dark"] as const) {
+      const result = validateConfig({
+        metrics: { x: { type: "numeric", command: "echo 1" } },
+        report: { mode },
+      });
+      expect(result.report?.mode).toBe(mode);
+    }
+  });
+
+  it("rejects an unknown mode value", () => {
+    expect(() =>
+      validateConfig({
+        metrics: { x: { type: "numeric", command: "echo 1" } },
+        report: { mode: "wat" },
+      })
+    ).toThrow();
+  });
+
+  it("rejects unknown theme variable names", () => {
+    expect(() =>
+      validateConfig({
+        metrics: { x: { type: "numeric", command: "echo 1" } },
+        report: { theme: { dark: { "--not-a-real-var": "#ff00ff" } } },
+      })
+    ).toThrow();
+  });
+
+  it("rejects unknown built-in theme name", () => {
+    expect(() =>
+      validateConfig({
+        metrics: { x: { type: "numeric", command: "echo 1" } },
+        report: { theme: "neon" },
+      })
+    ).toThrow();
+  });
+});

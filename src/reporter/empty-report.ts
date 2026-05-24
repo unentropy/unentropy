@@ -24,6 +24,7 @@ export async function generateEmptyReport(
   const render = await import("preact-render-to-string").then((m) => m.default);
   const { h } = await import("preact");
   const { HtmlDocument } = await import("./templates/default/components");
+  const { resolveTheme } = await import("./templates/default/themes");
 
   const repository = options.repository || "preview/repository";
   const now = new Date().toISOString();
@@ -140,6 +141,9 @@ export async function generateEmptyReport(
 
   const reportData: ReportData = { metadata, metrics, previewMetrics };
 
-  const jsx = h(HtmlDocument, { data: reportData, chartsData });
+  const theme = resolveTheme(config.report?.theme as Parameters<typeof resolveTheme>[0]);
+  const mode = (config.report?.mode ?? "auto") as "auto" | "light" | "dark";
+
+  const jsx = h(HtmlDocument, { data: reportData, chartsData, theme, mode });
   return "<!DOCTYPE html>" + render(jsx);
 }

@@ -132,7 +132,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
   test("includes metadata with correct build count and date range", () => {
     const html = generateReport("test-org/test-repo", db, testConfig);
 
-    expect(html).toContain("Builds: 15");
+    expect(html).toContain("15 builds");
     expect(html).toMatch(/Oct.*2025/);
   });
 
@@ -151,11 +151,12 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     expect(html).toContain("chartjs-adapter-date-fns");
   });
 
-  test("includes responsive and dark mode classes", () => {
+  test("includes responsive layout and theme variables", () => {
     const html = generateReport("test-org/test-repo", db, testConfig);
 
-    expect(html).toContain("dark:bg-gray");
-    expect(html).toContain("sm:grid-cols");
+    expect(html).toContain("prefers-color-scheme: light");
+    expect(html).toContain("--bg:");
+    expect(html).toContain("uent-titlebar");
     expect(html).toContain("lg:grid-cols");
   });
 
@@ -178,8 +179,8 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
     const html = generateReport("empty/repo", emptyDb, testConfig);
 
     // With config, we get preview data instead of "No metrics data"
-    expect(html).toContain("Show preview data");
-    expect(html).toContain("Builds: 0");
+    expect(html).toContain("show preview");
+    expect(html).toContain("0 builds");
 
     emptyDb.close();
     fs.unlinkSync(emptyDbPath);
