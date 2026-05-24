@@ -18,7 +18,7 @@ async function generateFixture(config: FixtureConfig): Promise<void> {
     `  ✅ Generated ${config.buildCount} builds with ${config.metricGenerators.length} metrics each`
   );
 
-  const reportConfig = createReportConfig(config.metricGenerators);
+  const reportConfig = createReportConfig(config.metricGenerators, config.report);
   const html = generateReport(`unentropy/fixture-${config.name}`, db, reportConfig);
 
   mkdirSync(dirname(config.outputPath), { recursive: true });

@@ -1,7 +1,13 @@
 import { describe, test, expect } from "bun:test";
 import { calculateSummaryStats, normalizeMetricToBuilds } from "../../../src/reporter/generator";
+import { buildReportLayout } from "../../../src/reporter/layout";
 import type { BuildContext } from "../../../src/storage/types";
-import type { TimeSeriesData, TimeSeriesDataPoint } from "../../../src/reporter/types";
+import type {
+  TimeSeriesData,
+  TimeSeriesDataPoint,
+  MetricReportData,
+} from "../../../src/reporter/types";
+import type { ResolvedUnentropyConfig } from "../../../src/config/loader";
 
 describe("calculateSummaryStats", () => {
   test("calculates summary statistics for numeric metric", () => {
@@ -333,5 +339,241 @@ describe("normalizeMetricToBuilds", () => {
     const normalized = normalizeMetricToBuilds(allBuilds, timeSeries);
 
     expect(normalized.length).toBe(allBuilds.length);
+  });
+});
+
+describe("buildReportLayout", () => {
+  const createMetrics = (): MetricReportData[] => [
+    {
+      id: "bundle-size",
+      name: "Bundle Size",
+      description: null,
+      unit: "bytes",
+      stats: {
+        latest: null,
+        min: null,
+        max: null,
+        average: null,
+        trendDirection: null,
+        trendPercent: null,
+      },
+      chartType: "line",
+      dataPointCount: 0,
+    },
+    {
+      id: "test-coverage",
+      name: "Test Coverage",
+      description: null,
+      unit: "percent",
+      stats: {
+        latest: null,
+        min: null,
+        max: null,
+        average: null,
+        trendDirection: null,
+        trendPercent: null,
+      },
+      chartType: "line",
+      dataPointCount: 0,
+    },
+    {
+      id: "build-status",
+      name: "Build Status",
+      description: null,
+      unit: null,
+      stats: {
+        latest: null,
+        min: null,
+        max: null,
+        average: null,
+        trendDirection: null,
+        trendPercent: null,
+      },
+      chartType: "bar",
+      dataPointCount: 0,
+    },
+  ];
+
+  test("returns undefined when no report config", () => {
+    const config = {
+      metrics: {},
+      storage: { type: "sqlite-local" as const },
+    } as ResolvedUnentropyConfig;
+    const layout = buildReportLayout(config, createMetrics());
+    expect(layout).toBeUndefined();
+  });
+
+  test("creates sections with correct names and descriptions", () => {
+    const config = {
+      metrics: {},
+      storage: { type: "sqlite-local" as const },
+      report: {
+        sections: [
+          {
+            name: "Build Metrics",
+            description: "Size and timing metrics",
+            charts: [{ metrics: "bundle-size" }],
+          },
+          {
+            name: "Quality",
+            charts: [{ metrics: "test-coverage" }],
+          },
+        ],
+      },
+    } as ResolvedUnentropyConfig;
+
+    const layout = buildReportLayout(config, createMetrics());
+
+    expect(layout).toBeDefined();
+    expect(layout?.sections).toHaveLength(2);
+    expect(layout?.sections[0]?.name).toBe("Build Metrics");
+    expect(layout?.sections[0]?.description).toBe("Size and timing metrics");
+    expect(layout?.sections[1]?.name).toBe("Quality");
+    expect(layout?.sections[1]?.description).toBeUndefined();
+  });
+
+  test("creates single-metric charts with correct type", () => {
+    const config = {
+      metrics: {},
+      storage: { type: "sqlite-local" as const },
+      report: {
+        sections: [
+          {
+            name: "Build",
+            charts: [{ metrics: "bundle-size" }],
+          },
+        ],
+      },
+    } as ResolvedUnentropyConfig;
+
+    const layout = buildReportLayout(config, createMetrics());
+
+    expect(layout).toBeDefined();
+    expect(layout?.sections[0]?.charts[0]).toEqual({
+      type: "single",
+      metricId: "bundle-size",
+      metricIds: undefined,
+      title: "Bundle Size",
+      chartType: "line",
+    });
+  });
+
+  test("creates multi-metric charts with custom title", () => {
+    const config = {
+      metrics: {},
+      storage: { type: "sqlite-local" as const },
+      report: {
+        sections: [
+          {
+            name: "Refactoring",
+            charts: [
+              {
+                metrics: ["bundle-size", "test-coverage"],
+                title: "Size vs Coverage",
+              },
+            ],
+          },
+        ],
+      },
+    } as ResolvedUnentropyConfig;
+
+    const layout = buildReportLayout(config, createMetrics());
+
+    expect(layout).toBeDefined();
+    expect(layout?.sections[0]?.charts[0]).toEqual({
+      type: "multi",
+      metricId: undefined,
+      metricIds: ["bundle-size", "test-coverage"],
+      title: "Size vs Coverage",
+      chartType: "line",
+    });
+  });
+
+  test("auto-generates title for multi-metric charts without title", () => {
+    const config = {
+      metrics: {},
+      storage: { type: "sqlite-local" as const },
+      report: {
+        sections: [
+          {
+            name: "Overview",
+            charts: [{ metrics: ["bundle-size", "test-coverage"] }],
+          },
+        ],
+      },
+    } as ResolvedUnentropyConfig;
+
+    const layout = buildReportLayout(config, createMetrics());
+
+    expect(layout).toBeDefined();
+    expect(layout?.sections[0]?.charts[0]?.title).toBe("Bundle Size, Test Coverage");
+  });
+
+  test("omits invalid metric references silently", () => {
+    const config = {
+      metrics: {},
+      storage: { type: "sqlite-local" as const },
+      report: {
+        sections: [
+          {
+            name: "Section",
+            charts: [{ metrics: "nonexistent-metric" }],
+          },
+        ],
+      },
+    } as ResolvedUnentropyConfig;
+
+    const layout = buildReportLayout(config, createMetrics());
+
+    expect(layout).toBeDefined();
+    expect(layout?.sections[0]?.charts).toHaveLength(0);
+  });
+
+  test("keeps valid metrics and omits invalid ones in multi-metric chart", () => {
+    const config = {
+      metrics: {},
+      storage: { type: "sqlite-local" as const },
+      report: {
+        sections: [
+          {
+            name: "Section",
+            charts: [{ metrics: ["bundle-size", "nonexistent", "test-coverage"] }],
+          },
+        ],
+      },
+    } as ResolvedUnentropyConfig;
+
+    const layout = buildReportLayout(config, createMetrics());
+
+    expect(layout).toBeDefined();
+    expect(layout?.sections[0]?.charts[0]?.type).toBe("multi");
+    expect(layout?.sections[0]?.charts[0]?.metricIds).toEqual(["bundle-size", "test-coverage"]);
+  });
+
+  test("uses definition order for sections and charts", () => {
+    const config = {
+      metrics: {},
+      storage: { type: "sqlite-local" as const },
+      report: {
+        sections: [
+          {
+            name: "Second",
+            charts: [{ metrics: "test-coverage" }, { metrics: "bundle-size" }],
+          },
+          {
+            name: "First",
+            charts: [{ metrics: "build-status" }],
+          },
+        ],
+      },
+    } as ResolvedUnentropyConfig;
+
+    const layout = buildReportLayout(config, createMetrics());
+
+    expect(layout).toBeDefined();
+    expect(layout?.sections[0]?.name).toBe("Second");
+    expect(layout?.sections[1]?.name).toBe("First");
+    expect(layout?.sections[0]?.charts[0]?.metricId).toBe("test-coverage");
+    expect(layout?.sections[0]?.charts[1]?.metricId).toBe("bundle-size");
   });
 });

@@ -19,7 +19,8 @@ export function ChartScripts({ chartsData }: ChartScriptsProps) {
       previewBarCharts: ${serialize(chartsData.previewBarCharts)},
       showToggle: ${chartsData.showToggle},
       previewData: ${serialize(chartsData.previewData)},
-      availableDateRange: ${serialize(chartsData.availableDateRange)}
+      availableDateRange: ${serialize(chartsData.availableDateRange)},
+      layout: ${serialize(chartsData.layout)}
     };
     var __chartInstances = initializeCharts(
       __chartData.timeline, 
@@ -29,7 +30,8 @@ export function ChartScripts({ chartsData }: ChartScriptsProps) {
       __chartData.previewLineCharts,
       __chartData.previewBarCharts,
       __chartData.showToggle, 
-      __chartData.previewData
+      __chartData.previewData,
+      __chartData.layout
     );
     
     // Initialize date filters after charts are created

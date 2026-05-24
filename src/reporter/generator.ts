@@ -20,6 +20,7 @@ import type {
 import type { BuildContext } from "../storage/types";
 import { calculateSyntheticStats, generateSyntheticData } from "./synthetic";
 import { ResolvedUnentropyConfig } from "../config/loader";
+import { buildReportLayout } from "./layout";
 
 export function calculateSummaryStats(
   metricType: "numeric" | "label",
@@ -326,6 +327,8 @@ export function generateReport(
     }
   }
 
+  const layout = buildReportLayout(config, metrics);
+
   const chartsData: ChartsData = {
     timeline,
     metadata: sharedMetadata,
@@ -337,6 +340,7 @@ export function generateReport(
     showToggle,
     previewData,
     availableDateRange,
+    layout,
   };
 
   const reportData: ReportData = {

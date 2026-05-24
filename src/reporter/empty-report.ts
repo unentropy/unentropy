@@ -9,6 +9,7 @@ import type {
 } from "./types";
 import type { ResolvedUnentropyConfig } from "../config/loader";
 import { generateSyntheticData, calculateSyntheticStats } from "./synthetic";
+import { buildReportLayout } from "./layout";
 
 /**
  * Generate an empty report showing configured metrics with no data.
@@ -121,6 +122,8 @@ export async function generateEmptyReport(
     }
   });
 
+  const layout = buildReportLayout(config, metrics);
+
   // Charts data with toggle enabled for 0-build preview
   const chartsData: ChartsData = {
     timeline: [],
@@ -132,6 +135,7 @@ export async function generateEmptyReport(
     buildCount: 0,
     showToggle: true,
     previewData,
+    layout,
   };
 
   const reportData: ReportData = { metadata, metrics, previewMetrics };

@@ -2,6 +2,26 @@
 // This script is inlined into generated HTML reports and runs in the browser.
 // Variables are used by the initializeCharts function called from the data script.
 
+var COLOR_PALETTE = [
+  "rgb(59, 130, 246)", // blue
+  "rgb(16, 185, 129)", // green
+  "rgb(245, 158, 11)", // amber
+  "rgb(239, 68, 68)", // red
+  "rgb(139, 92, 246)", // violet
+  "rgb(6, 182, 212)", // cyan
+  "rgb(236, 72, 153)", // pink
+  "rgb(99, 102, 241)", // indigo
+];
+
+function getColor(index) {
+  return COLOR_PALETTE[index % COLOR_PALETTE.length];
+}
+
+function getBackgroundColor(index) {
+  var color = getColor(index);
+  return color.replace("rgb", "rgba").replace(")", ", 0.1)");
+}
+
 var LINE_STYLE = {
   borderColor: "rgb(59, 130, 246)",
   backgroundColor: "rgba(59, 130, 246, 0.1)",
@@ -142,7 +162,7 @@ function formatChartValue(value, unit) {
   return value.toFixed(2) + (unit ? unit : "");
 }
 
-function createTimeSeriesTooltip(metricName, unit, timeline, metadata) {
+function createTimeSeriesTooltip(metricName, unit, timeline, metadata, isMultiMetric) {
   return {
     callbacks: {
       title: function (items) {
@@ -160,8 +180,8 @@ function createTimeSeriesTooltip(metricName, unit, timeline, metadata) {
         }
         var meta = metadata && metadata[ctx.dataIndex];
         var formattedValue = formatChartValue(ctx.raw, unit);
-        var label = metricName + ": " + formattedValue;
-        if (meta) {
+        var label = ctx.dataset.label + ": " + formattedValue;
+        if (meta && !isMultiMetric) {
           label += " (Build #" + meta.run + ", " + meta.sha + ")";
         }
         return label;
@@ -247,6 +267,91 @@ function buildBarChart(chart) {
   };
 }
 
+function buildMultiMetricLineChart(chartConfig, lineChartsData, timeline, metadata) {
+  var datasets = chartConfig.metricIds.map(function (metricId, index) {
+    var chart = lineChartsData.find(function (c) {
+      return c.id === metricId;
+    });
+    return {
+      label: chart ? chart.name : metricId,
+      data: chart ? chart.values : [],
+      borderColor: getColor(index),
+      backgroundColor: getBackgroundColor(index),
+      tension: LINE_STYLE.tension,
+      fill: false,
+      pointRadius: LINE_STYLE.pointRadius,
+      pointHoverRadius: LINE_STYLE.pointHoverRadius,
+      spanGaps: LINE_STYLE.spanGaps,
+    };
+  });
+
+  var yAxes = {};
+  var hasMixedUnits = false;
+  var firstUnit = null;
+
+  chartConfig.metricIds.forEach(function (metricId) {
+    var chart = lineChartsData.find(function (c) {
+      return c.id === metricId;
+    });
+    if (chart) {
+      if (firstUnit === null) {
+        firstUnit = chart.unit;
+      } else if (firstUnit !== chart.unit) {
+        hasMixedUnits = true;
+      }
+    }
+  });
+
+  if (hasMixedUnits) {
+    chartConfig.metricIds.forEach(function (metricId, index) {
+      var chart = lineChartsData.find(function (c) {
+        return c.id === metricId;
+      });
+      if (chart) {
+        var axisKey = index === 0 ? "y" : "y" + index;
+        yAxes[axisKey] = {
+          type: "linear",
+          display: true,
+          position: index === 0 ? "left" : "right",
+          title: { display: true, text: chart.name },
+        };
+        datasets[index].yAxisID = axisKey;
+      }
+    });
+  } else {
+    yAxes.y = {
+      beginAtZero: true,
+      title: { display: true, text: chartConfig.title },
+    };
+  }
+
+  return {
+    type: "line",
+    data: {
+      labels: timeline,
+      datasets: datasets,
+    },
+    options: {
+      responsive: COMMON_OPTIONS.responsive,
+      maintainAspectRatio: COMMON_OPTIONS.maintainAspectRatio,
+      interaction: COMMON_OPTIONS.interaction,
+      plugins: {
+        legend: { display: true, position: "top" },
+        tooltip: createTimeSeriesTooltip(chartConfig.title, null, timeline, metadata, true),
+        crosshair: COMMON_OPTIONS.plugins.crosshair,
+      },
+      scales: {
+        x: {
+          type: "time",
+          time: { unit: "day", displayFormats: { day: "MMM d" } },
+          title: { display: true, text: "Build Date" },
+        },
+        ...yAxes,
+      },
+    },
+  };
+}
+
 function initializeCharts(
   timeline,
   metadata,
@@ -255,29 +360,65 @@ function initializeCharts(
   previewLineCharts,
   previewBarCharts,
   showToggle,
-  previewData
+  previewData,
+  layout
 ) {
   var chartInstances = {};
 
   // Register crosshair plugin globally with Chart.js
   Chart.register(crosshairPlugin);
 
-  // Render REAL charts
-  lineCharts.forEach(function (chart) {
-    var ctx = document.getElementById("chart-" + chart.id);
-    if (ctx) {
-      var chartInstance = new Chart(ctx, buildLineChart(chart, timeline, metadata));
-      chartInstances[chart.id] = chartInstance;
-    }
-  });
+  if (layout && layout.sections && layout.sections.length > 0) {
+    // Layout-based rendering with sections
+    layout.sections.forEach(function (section) {
+      section.charts.forEach(function (chartConfig) {
+        var chartElementId =
+          chartConfig.type === "multi" && chartConfig.metricIds
+            ? chartConfig.metricIds.join("-")
+            : chartConfig.metricId;
+        var ctx = document.getElementById("chart-" + chartElementId);
+        if (!ctx) return;
 
-  barCharts.forEach(function (chart) {
-    var ctx = document.getElementById("chart-" + chart.id);
-    if (ctx) {
-      var chartInstance = new Chart(ctx, buildBarChart(chart));
-      chartInstances[chart.id] = chartInstance;
-    }
-  });
+        if (chartConfig.type === "multi" && chartConfig.metricIds) {
+          var chartInstance = new Chart(
+            ctx,
+            buildMultiMetricLineChart(chartConfig, lineCharts, timeline, metadata)
+          );
+          chartInstances[chartConfig.metricIds.join("-")] = chartInstance;
+        } else if (chartConfig.type === "single" && chartConfig.metricId) {
+          var singleChart =
+            lineCharts.find(function (c) {
+              return c.id === chartConfig.metricId;
+            }) ||
+            barCharts.find(function (c) {
+              return c.id === chartConfig.metricId;
+            });
+          if (singleChart) {
+            var builder = singleChart.values !== undefined ? buildLineChart : buildBarChart;
+            var chartInstance = new Chart(ctx, builder(singleChart, timeline, metadata));
+            chartInstances[chartConfig.metricId] = chartInstance;
+          }
+        }
+      });
+    });
+  } else {
+    // Render REAL charts (flat layout)
+    lineCharts.forEach(function (chart) {
+      var ctx = document.getElementById("chart-" + chart.id);
+      if (ctx) {
+        var chartInstance = new Chart(ctx, buildLineChart(chart, timeline, metadata));
+        chartInstances[chart.id] = chartInstance;
+      }
+    });
+
+    barCharts.forEach(function (chart) {
+      var ctx = document.getElementById("chart-" + chart.id);
+      if (ctx) {
+        var chartInstance = new Chart(ctx, buildBarChart(chart));
+        chartInstances[chart.id] = chartInstance;
+      }
+    });
+  }
 
   // Render PREVIEW charts (if toggle enabled)
   if (showToggle) {

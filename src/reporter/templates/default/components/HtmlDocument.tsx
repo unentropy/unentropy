@@ -6,6 +6,7 @@ import { EmptyState } from "./EmptyState";
 import { ChartScripts } from "./ChartScripts";
 import { PrintStyles } from "./PrintStyles";
 import { PreviewBar } from "./PreviewBar";
+import { Section } from "./Section";
 
 interface HtmlDocumentProps {
   data: ReportData;
@@ -13,6 +14,8 @@ interface HtmlDocumentProps {
 }
 
 export function HtmlDocument({ data, chartsData }: HtmlDocumentProps) {
+  const hasLayout = chartsData.layout && chartsData.layout.sections.length > 0;
+
   return (
     <html lang="en">
       <head>
@@ -31,28 +34,40 @@ export function HtmlDocument({ data, chartsData }: HtmlDocumentProps) {
         <PreviewBar visible={chartsData.showToggle} />
 
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {data.metrics.length > 0 ? (
-              chartsData.showToggle ? (
-                <>
-                  {data.metrics.map((metric) => (
-                    <div key={metric.id} data-view="real" class="hidden" aria-hidden="true">
-                      <MetricCard metric={metric} />
-                    </div>
-                  ))}
-                  {data.previewMetrics?.map((metric) => (
-                    <div key={metric.id} data-view="preview">
-                      <MetricCard metric={metric} />
-                    </div>
-                  ))}
-                </>
+          {hasLayout && chartsData.layout ? (
+            chartsData.layout.sections.map((section) => (
+              <Section
+                key={section.name}
+                section={section}
+                metrics={
+                  data.previewMetrics && chartsData.showToggle ? data.previewMetrics : data.metrics
+                }
+              />
+            ))
+          ) : (
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {data.metrics.length > 0 ? (
+                chartsData.showToggle ? (
+                  <>
+                    {data.metrics.map((metric) => (
+                      <div key={metric.id} data-view="real" class="hidden" aria-hidden="true">
+                        <MetricCard metric={metric} />
+                      </div>
+                    ))}
+                    {data.previewMetrics?.map((metric) => (
+                      <div key={metric.id} data-view="preview">
+                        <MetricCard metric={metric} />
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  data.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} />)
+                )
               ) : (
-                data.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} />)
-              )
-            ) : (
-              <EmptyState />
-            )}
-          </div>
+                <EmptyState />
+              )}
+            </div>
+          )}
         </main>
 
         <Footer metadata={data.metadata} />

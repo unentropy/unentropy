@@ -1,12 +1,18 @@
 import { readFile } from "fs/promises";
 import { validateConfig } from "./schema";
 import { resolveMetricReference } from "../metrics/resolver.js";
-import type { ResolvedMetricConfig, StorageConfig, QualityGateConfig } from "./schema";
+import type {
+  ResolvedMetricConfig,
+  StorageConfig,
+  QualityGateConfig,
+  ReportConfig,
+} from "./schema";
 
 export interface ResolvedUnentropyConfig {
   metrics: Record<string, ResolvedMetricConfig>;
   storage: StorageConfig;
   qualityGate?: QualityGateConfig;
+  report?: ReportConfig;
 }
 
 export async function loadConfig(configPath = "unentropy.json"): Promise<ResolvedUnentropyConfig> {
@@ -52,5 +58,6 @@ export async function loadConfig(configPath = "unentropy.json"): Promise<Resolve
     metrics: resolvedMetrics,
     storage: validated.storage,
     qualityGate: validated.qualityGate,
+    report: validated.report,
   };
 }
