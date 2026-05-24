@@ -60,6 +60,11 @@ inputs:
     required: false
     default: "30"
 
+  output-file:
+    description: "Path to write structured JSON results file (relative to workspace)"
+    required: false
+    default: ".unentropy/quality-gate-results.json"
+
 outputs:
   quality-gate-status:
     description: "Overall gate status: pass, fail, or unknown"
@@ -89,6 +94,14 @@ outputs:
     description: "Reference branch used for baseline"
     value: ${{ steps.gate.outputs.baseline-reference-branch }}
 
+  quality-gate-results-path:
+    description: "Absolute path to the written JSON results file"
+    value: ${{ steps.gate.outputs.quality-gate-results-path }}
+
+  quality-gate-results-json:
+    description: "Full quality gate result as a JSON string (usable with fromJSON() in workflow expressions)"
+    value: ${{ steps.gate.outputs.quality-gate-results-json }}
+
 runs:
   using: "composite"
   steps:
@@ -115,4 +128,5 @@ runs:
         INPUT_ENABLE-PR-COMMENT: ${{ inputs.enable-pr-comment }}
         INPUT_PR-COMMENT-MARKER: ${{ inputs.pr-comment-marker }}
         INPUT_MAX-PR-COMMENT-METRICS: ${{ inputs.max-pr-comment-metrics }}
+        INPUT_OUTPUT-FILE: ${{ inputs.output-file }}
         GITHUB_TOKEN: ${{ github.token }}

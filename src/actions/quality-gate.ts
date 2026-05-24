@@ -1,5 +1,7 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
+import { dirname, resolve } from "path";
 import { loadConfig } from "../config/loader.js";
 import { Storage } from "../storage/storage.js";
 import { collectMetrics } from "../collector/collector.js";
@@ -33,6 +35,7 @@ interface QualityGateInputs {
   enablePrComment?: boolean;
   prCommentMarker?: string;
   maxPrCommentMetrics?: number;
+  outputFile: string;
 }
 
 function parseInputs(): QualityGateInputs {
@@ -50,6 +53,7 @@ function parseInputs(): QualityGateInputs {
   const enablePrCommentInput = core.getInput("enable-pr-comment");
   const prCommentMarkerInput = core.getInput("pr-comment-marker");
   const maxPrCommentMetricsInput = core.getInput("max-pr-comment-metrics");
+  const outputFile = core.getInput("output-file") || ".unentropy/quality-gate-results.json";
 
   const enablePrComment = enablePrCommentInput
     ? enablePrCommentInput.toLowerCase() === "true"
@@ -78,6 +82,7 @@ function parseInputs(): QualityGateInputs {
     enablePrComment,
     prCommentMarker,
     maxPrCommentMetrics,
+    outputFile,
   };
 }
 
@@ -287,6 +292,35 @@ async function createQualityGateComment(
   }
 }
 
+function writeResultsJson(
+  outputFile: string,
+  gateResult: QualityGateResult,
+  collectionResult: { successful: number; failed: number; total: number },
+  commentUrl: string | undefined,
+  startTime: number
+): { path: string; json: string } {
+  const envelope = {
+    timestamp: new Date().toISOString(),
+    durationMs: Date.now() - startTime,
+    collection: {
+      successful: collectionResult.successful,
+      failed: collectionResult.failed,
+      total: collectionResult.total,
+    },
+    prCommentUrl: commentUrl ?? null,
+    qualityGate: gateResult,
+  };
+
+  const serialized = JSON.stringify(envelope, null, 2);
+  const absolutePath = resolve(outputFile);
+  const dir = dirname(absolutePath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  writeFileSync(absolutePath, serialized);
+  return { path: absolutePath, json: serialized };
+}
+
 export async function runQualityGateAction(): Promise<void> {
   const startTime = Date.now();
 
@@ -309,6 +343,23 @@ export async function runQualityGateAction(): Promise<void> {
       core.info("Quality gate disabled (mode: off)");
       core.setOutput("quality-gate-status", "unknown");
       core.setOutput("quality-gate-mode", "off");
+      const emptyResult: QualityGateResult = {
+        status: "unknown",
+        mode: "off",
+        metrics: [],
+        failingMetrics: [],
+        summary: { totalMetrics: 0, evaluatedMetrics: 0, passed: 0, failed: 0, unknown: 0 },
+        baselineInfo: { referenceBranch: "", maxAgeDays: 0 },
+      };
+      const resultsJson = writeResultsJson(
+        inputs.outputFile,
+        emptyResult,
+        { successful: 0, failed: 0, total: 0 },
+        undefined,
+        startTime
+      );
+      core.setOutput("quality-gate-results-path", resultsJson.path);
+      core.setOutput("quality-gate-results-json", resultsJson.json);
       return;
     }
 
@@ -382,6 +433,16 @@ export async function runQualityGateAction(): Promise<void> {
     }
     core.setOutput("metrics-collected", collectionResult.successful);
     core.setOutput("baseline-reference-branch", referenceBranch);
+
+    const resultsJson = writeResultsJson(
+      inputs.outputFile,
+      gateResult,
+      collectionResult,
+      commentUrl,
+      startTime
+    );
+    core.setOutput("quality-gate-results-path", resultsJson.path);
+    core.setOutput("quality-gate-results-json", resultsJson.json);
 
     await storage.close();
 
