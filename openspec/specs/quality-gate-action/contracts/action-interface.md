@@ -95,6 +95,11 @@ inputs:
     description: "Maximum metrics to show in PR comment"
     required: false
     default: "30"
+
+  output-file:
+    description: "Path to write the structured JSON results file (relative to workspace)"
+    required: false
+    default: ".unentropy/quality-gate-results.json"
 ```
 
 ### Output Parameters
@@ -121,6 +126,12 @@ outputs:
 
   baseline-reference-branch:
     description: "Reference branch used for baseline"
+
+  quality-gate-results-path:
+    description: "Absolute path to the written JSON results file"
+
+  quality-gate-results-json:
+    description: "Full quality gate result as a JSON string (usable with fromJSON() in workflow expressions)"
 ```
 
 ## Behavioural Contract
@@ -167,6 +178,17 @@ outputs:
   - Show a compact table of key metrics (up to `max-pr-comment-metrics`), including baseline value, PR value, delta, threshold, and pass/fail state
   - List any blocking violations clearly in a dedicated section
   - For first PRs with no baseline, show a helpful message explaining the situation
+
+### JSON Output
+
+- The action MUST write a JSON file to the path specified by the `output-file` input after evaluation completes
+- If the `output-file` contains directory components that do not exist, the action MUST create them
+- The action MUST set `quality-gate-results-path` to the absolute path of the written file
+- The action MUST set `quality-gate-results-json` to a JSON-stringified representation of the full quality gate result
+- The JSON output SHALL contain a timestamp, duration, collection stats (successful/failed/total), PR comment URL, and a `qualityGate` field containing the full `QualityGateResult`
+- The JSON output MUST be written synchronously (flushed to disk) before the action sets its step outputs
+- On hard failure, the JSON file MUST still be written with the results available before the error exit
+- On unexpected errors before evaluation, the action MAY omit writing the JSON file entirely
 
 ## Security Considerations
 

@@ -13,3 +13,4 @@ coverage/
 tests/fixtures/visual-review/*/report.html
 test-artifacts/
 .unentropy/
+.opencode/package-lock.json

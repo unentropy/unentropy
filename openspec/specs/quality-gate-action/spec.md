@@ -147,12 +147,12 @@ The action SHALL accept documented input parameters and expose documented output
 #### Scenario: Input parameters available
 - **GIVEN** a user configures the quality-gate action in a workflow
 - **WHEN** the workflow runs
-- **THEN** the action accepts storage configuration, quality gate mode, and PR comment settings as inputs
+- **THEN** the action accepts storage configuration, quality gate mode, PR comment settings, and output file path as inputs
 
 #### Scenario: Output parameters exposed
 - **GIVEN** the action has completed
 - **WHEN** subsequent workflow steps reference action outputs
-- **THEN** outputs such as `quality-gate-status`, `quality-gate-mode`, and `quality-gate-failing-metrics` are available
+- **THEN** outputs such as `quality-gate-status`, `quality-gate-mode`, `quality-gate-failing-metrics`, `quality-gate-results-path`, and `quality-gate-results-json` are available
 
 ---
 
@@ -219,6 +219,48 @@ Comment update failures (e.g., permissions, API errors) SHALL NOT cause the gate
 - **WHEN** the action handles the error
 - **THEN** a warning is logged and results are written to the job summary instead
 
+### Requirement: Structured JSON Output
+
+As a CI/CD pipeline or AI agent consuming quality gate results, I want a complete, machine-readable JSON representation of all evaluation data so that I can programmatically analyze metric changes, deltas, and pass/fail status without parsing human-targeted output.
+
+The action SHALL produce a structured JSON output file containing the full quality gate result and SHALL expose the serialized result as a GitHub Action step output.
+
+#### Scenario: JSON file written to workspace
+
+- **GIVEN** the quality gate action has completed evaluation
+- **WHEN** results are available
+- **THEN** a JSON file is written to the path specified by the `output-file` input (default: `.unentropy/quality-gate-results.json`)
+
+#### Scenario: JSON file contains complete evaluation data
+
+- **GIVEN** the JSON output file has been written
+- **WHEN** the file is read
+- **THEN** it contains the `QualityGateResult` (status, mode, all per-metric evaluations with baselines, deltas, thresholds, pass/fail status, summary) wrapped in a thin envelope with timestamp, duration, collection stats, and PR comment URL
+
+#### Scenario: JSON step output set
+
+- **GIVEN** the quality gate action has completed evaluation
+- **WHEN** the action sets its outputs
+- **THEN** `quality-gate-results-json` is set to the full serialized JSON string of the quality gate result, and `quality-gate-results-path` is set to the absolute path of the written JSON file
+
+#### Scenario: JSON file path is configurable
+
+- **GIVEN** a workflow with the quality gate action configured
+- **WHEN** the user sets the `output-file` input to a custom path (e.g., `reports/gate-results.json`)
+- **THEN** the JSON file is written to that custom path instead of the default
+
+#### Scenario: JSON output when gate mode is off
+
+- **GIVEN** `quality-gate-mode` is `off`
+- **WHEN** the action runs
+- **THEN** the JSON file is still written with status `unknown` and no metric evaluations, maintaining a consistent output format
+
+#### Scenario: JSON output on error
+
+- **GIVEN** the action encounters an error before evaluation completes
+- **WHEN** the action fails
+- **THEN** the JSON output file is not written (or contains only available data if partial), and the error is communicated via `core.setFailed` and exit code
+
 ## Edge Cases
 
 - What happens when `enable-pr-comment` is `false`? The action still evaluates thresholds and exposes outputs, but no PR comment is posted. Results are available via job summary.
@@ -254,6 +296,7 @@ Comment update failures (e.g., permissions, API errors) SHALL NOT cause the gate
 - Quality gate mode selection (off/soft/hard)
 - Missing baseline and missing threshold handling in the action context
 - Job summary fallback when comment cannot be posted
+- Structured JSON output file and step outputs
 
 ### Out of Scope
 
