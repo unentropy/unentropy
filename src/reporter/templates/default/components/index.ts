@@ -10,3 +10,5 @@ export { PrintStyles } from "./PrintStyles";
 export { PreviewBar } from "./PreviewBar";
 export { DateRangeFilter } from "./DateRangeFilter";
 export { CustomDatePickerPopover } from "./CustomDatePickerPopover";
+export { Section } from "./Section";
+export { MultiMetricChartCard } from "./MultiMetricChartCard";

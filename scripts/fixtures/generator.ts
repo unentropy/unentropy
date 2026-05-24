@@ -85,7 +85,10 @@ export async function generateFixtureDatabase(
   return db;
 }
 
-export function createReportConfig(metricGenerators: MetricGenerator[]): ResolvedUnentropyConfig {
+export function createReportConfig(
+  metricGenerators: MetricGenerator[],
+  report?: import("./definitions").FixtureConfig["report"]
+): ResolvedUnentropyConfig {
   return {
     metrics: Object.fromEntries(
       metricGenerators.map((mg) => [
@@ -103,5 +106,6 @@ export function createReportConfig(metricGenerators: MetricGenerator[]): Resolve
     storage: {
       type: "sqlite-local",
     },
+    report,
   };
 }

@@ -1011,6 +1011,186 @@ describe("Config Schema Validation", () => {
     });
   });
 
+  describe("Report Configuration", () => {
+    describe("Valid Report Configurations", () => {
+      it("should accept config with report sections", () => {
+        const config = {
+          metrics: {
+            "bundle-size": { type: "numeric", command: "echo 100" },
+            "test-coverage": { type: "numeric", command: "echo 85" },
+          },
+          report: {
+            sections: [
+              {
+                name: "Build Metrics",
+                charts: [{ metrics: "bundle-size" }],
+              },
+              {
+                name: "Quality",
+                charts: [{ metrics: "test-coverage" }],
+              },
+            ],
+          },
+        };
+
+        expect(() => validateConfig(config)).not.toThrow();
+      });
+
+      it("should accept report with multi-metric charts", () => {
+        const config = {
+          metrics: {
+            "modern-classes": { type: "numeric", command: "echo 42" },
+            "legacy-classes": { type: "numeric", command: "echo 18" },
+          },
+          report: {
+            sections: [
+              {
+                name: "Refactoring",
+                charts: [
+                  {
+                    metrics: ["modern-classes", "legacy-classes"],
+                    title: "Modern vs Legacy",
+                  },
+                ],
+              },
+            ],
+          },
+        };
+
+        expect(() => validateConfig(config)).not.toThrow();
+      });
+
+      it("should accept report with custom chart titles", () => {
+        const config = {
+          metrics: {
+            "bundle-size": { type: "numeric", command: "echo 100" },
+          },
+          report: {
+            sections: [
+              {
+                name: "Build",
+                charts: [{ metrics: "bundle-size", title: "Production Bundle Size" }],
+              },
+            ],
+          },
+        };
+
+        expect(() => validateConfig(config)).not.toThrow();
+      });
+
+      it("should accept report with section descriptions", () => {
+        const config = {
+          metrics: {
+            coverage: { type: "numeric", command: "echo 85" },
+          },
+          report: {
+            sections: [
+              {
+                name: "Quality",
+                description: "Test coverage and quality metrics",
+                charts: [{ metrics: "coverage" }],
+              },
+            ],
+          },
+        };
+
+        expect(() => validateConfig(config)).not.toThrow();
+      });
+
+      it("should accept config without report block", () => {
+        const config = {
+          metrics: {
+            coverage: { type: "numeric", command: "echo 85" },
+          },
+        };
+
+        expect(() => validateConfig(config)).not.toThrow();
+      });
+    });
+
+    describe("Invalid Report Configurations", () => {
+      it("should reject empty sections array", () => {
+        const config = {
+          metrics: {
+            coverage: { type: "numeric", command: "echo 85" },
+          },
+          report: {
+            sections: [],
+          },
+        };
+
+        expect(() => validateConfig(config)).toThrow();
+      });
+
+      it("should reject section with empty charts array", () => {
+        const config = {
+          metrics: {
+            coverage: { type: "numeric", command: "echo 85" },
+          },
+          report: {
+            sections: [
+              {
+                name: "Empty Section",
+                charts: [],
+              },
+            ],
+          },
+        };
+
+        expect(() => validateConfig(config)).toThrow();
+      });
+
+      it("should reject chart with empty metrics array", () => {
+        const config = {
+          metrics: {
+            coverage: { type: "numeric", command: "echo 85" },
+          },
+          report: {
+            sections: [
+              {
+                name: "Section",
+                charts: [{ metrics: [] }],
+              },
+            ],
+          },
+        };
+
+        expect(() => validateConfig(config)).toThrow();
+      });
+
+      it("should reject chart with empty metrics string", () => {
+        const config = {
+          metrics: {
+            coverage: { type: "numeric", command: "echo 85" },
+          },
+          report: {
+            sections: [
+              {
+                name: "Section",
+                charts: [{ metrics: "" }],
+              },
+            ],
+          },
+        };
+
+        expect(() => validateConfig(config)).toThrow();
+      });
+
+      it("should reject unknown properties in report config", () => {
+        const config = {
+          metrics: {
+            coverage: { type: "numeric", command: "echo 85" },
+          },
+          report: {
+            unknownProp: "value",
+          },
+        };
+
+        expect(() => validateConfig(config)).toThrow();
+      });
+    });
+  });
+
   describe("Built-in Metric References ($ref)", () => {
     describe("Pure $ref Usage", () => {
       it("should accept $ref without command field (validation happens at resolution)", () => {

@@ -97,6 +97,41 @@ export interface ChartsData {
   };
 }
 
+export interface ChartData {
+  type: "single" | "multi";
+  metricId?: string;
+  metricIds?: string[];
+  title: string;
+  chartType: "line" | "bar";
+}
+
+export interface SectionData {
+  name: string;
+  description?: string;
+  charts: ChartData[];
+}
+
+export interface ReportLayout {
+  sections: SectionData[];
+}
+
+export interface ChartsData {
+  timeline: string[];
+  metadata: (MetadataPoint | null)[];
+  lineCharts: LineChartData[];
+  barCharts: BarChartData[];
+  previewLineCharts: LineChartData[];
+  previewBarCharts: BarChartData[];
+  buildCount: number;
+  showToggle: boolean;
+  previewData: PreviewDataSet[];
+  availableDateRange?: {
+    min: string;
+    max: string;
+  };
+  layout?: ReportLayout;
+}
+
 export interface ReportData {
   metadata: ReportMetadata;
   metrics: MetricReportData[];

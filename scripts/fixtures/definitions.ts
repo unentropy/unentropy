@@ -1,4 +1,5 @@
 import type { UnitType } from "../../src/metrics/types";
+import type { ReportConfig } from "../../src/config/schema";
 
 export interface MetricGenerator {
   id: string;
@@ -27,6 +28,7 @@ export interface FixtureConfig {
   buildCount: number;
   timestampGenerator?: (buildIndex: number, baseTimestamp: number) => Date;
   metricGenerators: MetricGenerator[];
+  report?: ReportConfig;
 }
 
 const FULL_FEATURED_METRICS: MetricGenerator[] = [
@@ -99,6 +101,23 @@ export const FIXTURES: Record<string, FixtureConfig> = {
     outputPath: "tests/fixtures/visual-review/full-featured/report.html",
     buildCount: 25,
     metricGenerators: FULL_FEATURED_METRICS,
+    report: {
+      sections: [
+        {
+          name: "Code Quality",
+          description: "Coverage and performance metrics",
+          charts: [
+            { metrics: "test-coverage" },
+            { metrics: "bundle-size" },
+            { metrics: "api-response-time" },
+          ],
+        },
+        {
+          name: "Project Health",
+          charts: [{ metrics: "build-status" }, { metrics: "primary-language" }],
+        },
+      ],
+    },
   },
 
   "sparse-data": {
@@ -207,6 +226,137 @@ export const FIXTURES: Record<string, FixtureConfig> = {
           ] || "normal",
       },
     ],
+    report: {
+      sections: [
+        {
+          name: "Edge Case Comparison",
+          charts: [
+            {
+              metrics: ["flatline-metric", "negative-metric"],
+              title: "Flatline vs Negative (Dual Y-Axis)",
+            },
+          ],
+        },
+        {
+          name: "Standard Metrics",
+          charts: [{ metrics: "test-coverage" }, { metrics: "bundle-size-kb" }],
+        },
+        {
+          name: "Labels",
+          charts: [{ metrics: "special-chars-label" }],
+        },
+      ],
+    },
+  },
+
+  "sections-demo": {
+    name: "sections-demo",
+    dbPath: "tests/fixtures/visual-review/sections-demo/sections-demo.db",
+    outputPath: "tests/fixtures/visual-review/sections-demo/report.html",
+    buildCount: 30,
+    metricGenerators: [
+      {
+        id: "typescript-loc",
+        name: "TypeScript LOC",
+        type: "numeric",
+        description: "Lines of TypeScript code",
+        unit: "integer",
+        valueGenerator: (i) => 1200 + i * 15 + Math.sin(i * 0.4) * 50,
+      },
+      {
+        id: "javascript-loc",
+        name: "JavaScript LOC",
+        type: "numeric",
+        description: "Lines of JavaScript code",
+        unit: "integer",
+        valueGenerator: (i) => 800 - i * 8 + Math.cos(i * 0.3) * 30,
+      },
+      {
+        id: "css-loc",
+        name: "CSS LOC",
+        type: "numeric",
+        description: "Lines of CSS code",
+        unit: "integer",
+        valueGenerator: (i) => 400 + i * 3 + Math.sin(i * 0.2) * 20,
+      },
+      {
+        id: "bundle-size",
+        name: "Bundle Size",
+        type: "numeric",
+        description: "Production bundle size",
+        unit: "bytes",
+        valueGenerator: (i) => (180 + i * 2 + Math.sin(i * 0.15) * 10) * 1024,
+      },
+      {
+        id: "test-coverage",
+        name: "Test Coverage",
+        type: "numeric",
+        description: "Percentage of code covered by tests",
+        unit: "percent",
+        valueGenerator: (i) => 65 + 25 * (1 - Math.exp(-i / 8)) + Math.sin(i * 0.3) * 3,
+      },
+      {
+        id: "api-response-time",
+        name: "API Response Time",
+        type: "numeric",
+        description: "Average API response time in seconds",
+        unit: "duration",
+        valueGenerator: (i) => (120 - i * 1.5 + Math.sin(i * 0.5) * 8) / 1000,
+      },
+      {
+        id: "heap-usage",
+        name: "Heap Usage",
+        type: "numeric",
+        description: "Average heap usage in bytes",
+        unit: "bytes",
+        valueGenerator: (i) => (32 + i * 0.8 + Math.cos(i * 0.2) * 4) * 1024 * 1024,
+      },
+      {
+        id: "build-status",
+        name: "Build Status",
+        type: "label",
+        description: "CI build result",
+        valueGenerator: (i) => (i % 8 === 0 ? "failure" : i % 12 === 0 ? "warning" : "success"),
+      },
+    ],
+    report: {
+      sections: [
+        {
+          name: "Code Size",
+          description: "Source lines by programming language",
+          charts: [
+            {
+              metrics: ["typescript-loc", "javascript-loc"],
+              title: "LOC by Language",
+            },
+            { metrics: "css-loc" },
+          ],
+        },
+        {
+          name: "Performance & Quality",
+          charts: [
+            {
+              metrics: ["bundle-size", "test-coverage"],
+              title: "Size vs Coverage",
+            },
+            { metrics: "api-response-time" },
+          ],
+        },
+        {
+          name: "Memory & Timing",
+          charts: [
+            {
+              metrics: ["heap-usage", "api-response-time"],
+              title: "Memory vs Response Time",
+            },
+          ],
+        },
+        {
+          name: "Build Info",
+          charts: [{ metrics: "build-status" }],
+        },
+      ],
+    },
   },
 
   "huge-report": {

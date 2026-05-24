@@ -135,11 +135,38 @@ export const MetricsObjectSchema = z
     message: "metrics object cannot contain more than 50 metrics",
   });
 
+const ChartConfigSchema = z
+  .object({
+    metrics: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
+    title: z.string().max(256).optional(),
+  })
+  .strict();
+
+const ReportSectionSchema = z
+  .object({
+    name: z.string().max(256),
+    description: z.string().max(512).optional(),
+    charts: z
+      .array(ChartConfigSchema)
+      .min(1, { message: "Each section must contain at least one chart" }),
+  })
+  .strict();
+
+export const ReportConfigSchema = z
+  .object({
+    sections: z
+      .array(ReportSectionSchema)
+      .min(1, { message: "report.sections cannot be empty" })
+      .optional(),
+  })
+  .strict();
+
 export const UnentropyConfigSchema = z
   .object({
     storage: StorageConfigSchema.optional(),
     metrics: MetricsObjectSchema,
     qualityGate: QualityGateConfigSchema.optional(),
+    report: ReportConfigSchema.optional(),
   })
   .strict()
   .transform((data) => ({
@@ -153,6 +180,9 @@ export type StorageConfig = z.infer<typeof StorageConfigSchema>;
 export type MetricThresholdConfig = z.infer<typeof MetricThresholdConfigSchema>;
 export type BaselineConfig = z.infer<typeof BaselineConfigSchema>;
 export type QualityGateConfig = z.infer<typeof QualityGateConfigSchema>;
+export type ChartConfig = z.infer<typeof ChartConfigSchema>;
+export type ReportSection = z.infer<typeof ReportSectionSchema>;
+export type ReportConfig = z.infer<typeof ReportConfigSchema>;
 export type UnentropyConfig = z.infer<typeof UnentropyConfigSchema>;
 
 export function validateConfig(config: unknown): UnentropyConfig {
