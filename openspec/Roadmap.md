@@ -43,7 +43,7 @@
 
 - [x] Agent skill
 - [x] Public docs
-- [ ] Inline LOC calculation
+- [x] Inline LOC calculation
 - [x] Support for Clover coverage format
 - [x] Merging XML coverage reports
 - [ ] Public config schema

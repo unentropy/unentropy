@@ -4,7 +4,7 @@
   "repository": {
     "url": "git+https://github.com/unentropy/unentropy.git"
   },
-  "version": "0.3.5",
+  "version": "0.3.6",
   "type": "module",
   "description": "Serverless tool for tracking custom code metrics in CI/CD pipelines",
   "license": "MIT",
@@ -50,9 +50,9 @@
     "generate-fixtures": "bun run scripts/generate-fixtures.ts",
     "visual-review": "bun run scripts/generate-fixtures.ts && bun run scripts/open-reports.ts",
     "dev-report": "bun run scripts/dev-report.ts",
-    "version:patch": "bun pm version patch && git push --follow-tags",
-    "version:minor": "bun pm version minor && git push --follow-tags",
-    "version:major": "bun pm version major && git push --follow-tags"
+    "version:patch": "bun run scripts/version.ts patch",
+    "version:minor": "bun run scripts/version.ts minor",
+    "version:major": "bun run scripts/version.ts major"
   },
   "devDependencies": {
     "@types/bun": "latest",
