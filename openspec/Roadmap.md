@@ -53,7 +53,6 @@
 - [ ] Allow replacing existing build context
 - [x] Themes
 
-
 ## 0.5 - Alpha
 
 - [ ] Importing metric history

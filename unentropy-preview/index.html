@@ -1,1114 +1,1932 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Unentropy Metrics Report - preview/repository</title><script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script><script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script><style>
-    @media print {
-      body { background: white !important; }
-      .no-print { display: none !important; }
-      .metric-card {
-        page-break-inside: avoid;
-        break-inside: avoid;
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unentropy Metrics Report - preview/repository</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+      @media print {
+        body {
+          background: white !important;
+        }
+        .no-print {
+          display: none !important;
+        }
+        .metric-card {
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+        canvas {
+          max-height: 300px;
+        }
       }
-      canvas { max-height: 300px; }
-    }
-  </style></head><body class="bg-gray-50 dark:bg-gray-900"><header class="bg-white dark:bg-gray-800 shadow-sm"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"><div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"><div><h1 class="text-3xl font-bold text-gray-900 dark:text-white">Unentropy Metrics Report</h1><p class="mt-1 text-sm text-gray-600 dark:text-gray-400">preview/repository</p></div><div class="relative"><div class="flex items-center gap-2 flex-wrap"><span class="text-sm font-medium text-gray-700 dark:text-gray-300">Date Range:</span><div class="flex gap-2 flex-wrap"><button type="button" data-filter="all" class="px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors">All</button><button type="button" data-filter="7d" class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">7 days</button><button type="button" data-filter="30d" class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">30 days</button><button type="button" data-filter="90d" class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">90 days</button><button type="button" data-filter="custom" id="custom-filter-btn" class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors relative whitespace-nowrap"><span id="custom-filter-label">Custom</span></button></div></div><div id="custom-date-popover" class="hidden absolute z-50 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[320px]" style="right: 0;"><div class="space-y-4"><div><label for="date-from" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From Date</label><input type="date" id="date-from" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" aria-label="From date"/></div><div><label for="date-to" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">To Date</label><input type="date" id="date-to" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" aria-label="To date"/></div><div id="date-error" class="hidden text-sm text-red-600 dark:text-red-400">Invalid date range: &quot;From&quot; date must be before or equal to &quot;To&quot; date.</div><div class="pt-2"><button type="button" id="clear-custom-date" class="w-full px-4 py-2 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Clear</button></div></div></div></div></div></div></header><div class="bg-blue-50 dark:bg-blue-900 border-b border-blue-200 dark:border-blue-800"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3"><div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div class="flex items-start gap-3"><svg class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg><div class="text-sm text-blue-800 dark:text-blue-200"><span class="font-medium">Limited data available.</span> Preview data is displayed to help visualize trends. Toggle to view your actual data.</div></div><label class="inline-flex items-center cursor-pointer flex-shrink-0"><input type="checkbox" id="preview-toggle" class="sr-only peer" role="switch" checked/><div class="relative w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div><span class="ms-3 text-sm font-medium text-blue-900 dark:text-blue-100">Show preview data</span></label></div></div></div><main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div data-view="real" class="hidden" aria-hidden="true"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card"><div class="mb-4"><h2 class="text-xl font-semibold text-gray-900 dark:text-white">Lines of code</h2><p class="text-sm text-gray-600 dark:text-gray-400">total lines of typescript/tsx code in src/ directory</p></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6"><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Latest</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Min</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Max</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div><div class="text-xs text-gray-600 dark:text-gray-400">Trend</div></div></div><div class="chart-container"><div class="relative h-64 sm:h-80"><canvas id="chart-lines-of-code" aria-label="Line chart showing Lines of code over time"></canvas></div></div></div></div><div data-view="real" class="hidden" aria-hidden="true"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card"><div class="mb-4"><h2 class="text-xl font-semibold text-gray-900 dark:text-white">Lines of test code</h2><p class="text-sm text-gray-600 dark:text-gray-400">Total lines of TypeScript/TSX code in tests/ directory</p></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6"><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Latest</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Min</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Max</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div><div class="text-xs text-gray-600 dark:text-gray-400">Trend</div></div></div><div class="chart-container"><div class="relative h-64 sm:h-80"><canvas id="chart-lines-of-test-code" aria-label="Line chart showing Lines of test code over time"></canvas></div></div></div></div><div data-view="real" class="hidden" aria-hidden="true"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card"><div class="mb-4"><h2 class="text-xl font-semibold text-gray-900 dark:text-white">coverage</h2><p class="text-sm text-gray-600 dark:text-gray-400">Overall test coverage percentage across the codebase</p></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6"><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Latest</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Min</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Max</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div><div class="text-xs text-gray-600 dark:text-gray-400">Trend</div></div></div><div class="chart-container"><div class="relative h-64 sm:h-80"><canvas id="chart-test-coverage" aria-label="Line chart showing coverage over time"></canvas></div></div></div></div><div data-view="real" class="hidden" aria-hidden="true"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card"><div class="mb-4"><h2 class="text-xl font-semibold text-gray-900 dark:text-white">Actions bundle size</h2><p class="text-sm text-gray-600 dark:text-gray-400">Total size of all compiled GitHub Actions</p></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6"><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Latest</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Min</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Max</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div><div class="text-xs text-gray-600 dark:text-gray-400">Trend</div></div></div><div class="chart-container"><div class="relative h-64 sm:h-80"><canvas id="chart-total-bundle-size" aria-label="Line chart showing Actions bundle size over time"></canvas></div></div></div></div><div data-view="real" class="hidden" aria-hidden="true"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card"><div class="mb-4"><h2 class="text-xl font-semibold text-gray-900 dark:text-white">Specs size (lines)</h2><p class="text-sm text-gray-600 dark:text-gray-400">Total lines of specification documentation</p></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6"><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Latest</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Min</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div><div class="text-xs text-gray-600 dark:text-gray-400">Max</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div><div class="text-xs text-gray-600 dark:text-gray-400">Trend</div></div></div><div class="chart-container"><div class="relative h-64 sm:h-80"><canvas id="chart-specs-size" aria-label="Line chart showing Specs size (lines) over time"></canvas></div></div></div></div><div data-view="preview"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card"><div class="mb-4"><h2 class="text-xl font-semibold text-gray-900 dark:text-white">Lines of code</h2><p class="text-sm text-gray-600 dark:text-gray-400">total lines of typescript/tsx code in src/ directory</p></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6"><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">59</div><div class="text-xs text-gray-600 dark:text-gray-400">Latest</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">45</div><div class="text-xs text-gray-600 dark:text-gray-400">Min</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">59</div><div class="text-xs text-gray-600 dark:text-gray-400">Max</div></div><div class="text-center"><div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 22.9%</div><div class="text-xs text-gray-600 dark:text-gray-400">Trend</div></div></div><div class="chart-container"><div class="relative h-64 sm:h-80"><canvas id="chart-lines-of-code-preview" aria-label="Line chart showing Lines of code over time"></canvas></div></div></div></div><div data-view="preview"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card"><div class="mb-4"><h2 class="text-xl font-semibold text-gray-900 dark:text-white">Lines of test code</h2><p class="text-sm text-gray-600 dark:text-gray-400">Total lines of TypeScript/TSX code in tests/ directory</p></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6"><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">49</div><div class="text-xs text-gray-600 dark:text-gray-400">Latest</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">38</div><div class="text-xs text-gray-600 dark:text-gray-400">Min</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">49</div><div class="text-xs text-gray-600 dark:text-gray-400">Max</div></div><div class="text-center"><div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 2.3%</div><div class="text-xs text-gray-600 dark:text-gray-400">Trend</div></div></div><div class="chart-container"><div class="relative h-64 sm:h-80"><canvas id="chart-lines-of-test-code-preview" aria-label="Line chart showing Lines of test code over time"></canvas></div></div></div></div><div data-view="preview"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card"><div class="mb-4"><h2 class="text-xl font-semibold text-gray-900 dark:text-white">coverage</h2><p class="text-sm text-gray-600 dark:text-gray-400">Overall test coverage percentage across the codebase</p></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6"><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">51.8%</div><div class="text-xs text-gray-600 dark:text-gray-400">Latest</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">47.0%</div><div class="text-xs text-gray-600 dark:text-gray-400">Min</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">62.2%</div><div class="text-xs text-gray-600 dark:text-gray-400">Max</div></div><div class="text-center"><div class="text-2xl font-bold text-red-600 dark:text-red-400">↓ 6.4%</div><div class="text-xs text-gray-600 dark:text-gray-400">Trend</div></div></div><div class="chart-container"><div class="relative h-64 sm:h-80"><canvas id="chart-test-coverage-preview" aria-label="Line chart showing coverage over time"></canvas></div></div></div></div><div data-view="preview"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card"><div class="mb-4"><h2 class="text-xl font-semibold text-gray-900 dark:text-white">Actions bundle size</h2><p class="text-sm text-gray-600 dark:text-gray-400">Total size of all compiled GitHub Actions</p></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6"><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">52 B</div><div class="text-xs text-gray-600 dark:text-gray-400">Latest</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">46 B</div><div class="text-xs text-gray-600 dark:text-gray-400">Min</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">62 B</div><div class="text-xs text-gray-600 dark:text-gray-400">Max</div></div><div class="text-center"><div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 2.8%</div><div class="text-xs text-gray-600 dark:text-gray-400">Trend</div></div></div><div class="chart-container"><div class="relative h-64 sm:h-80"><canvas id="chart-total-bundle-size-preview" aria-label="Line chart showing Actions bundle size over time"></canvas></div></div></div></div><div data-view="preview"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card"><div class="mb-4"><h2 class="text-xl font-semibold text-gray-900 dark:text-white">Specs size (lines)</h2><p class="text-sm text-gray-600 dark:text-gray-400">Total lines of specification documentation</p></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6"><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">48</div><div class="text-xs text-gray-600 dark:text-gray-400">Latest</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">39</div><div class="text-xs text-gray-600 dark:text-gray-400">Min</div></div><div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">59</div><div class="text-xs text-gray-600 dark:text-gray-400">Max</div></div><div class="text-center"><div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 7.1%</div><div class="text-xs text-gray-600 dark:text-gray-400">Trend</div></div></div><div class="chart-container"><div class="relative h-64 sm:h-80"><canvas id="chart-specs-size-preview" aria-label="Line chart showing Specs size (lines) over time"></canvas></div></div></div></div></div></main><footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-8 border-t border-gray-200 dark:border-gray-700"><div class="space-y-3 text-sm text-gray-600 dark:text-gray-400"><div class="flex flex-col sm:flex-row sm:items-center sm:justify-between"><div>Builds: 0 · May 25, 2026, 12:12 PM – May 25, 2026, 12:12 PM</div></div><div class="flex flex-col sm:flex-row sm:items-center sm:justify-between"><div>Generated by <span class="font-semibold">Unentropy</span> v0.1.0 on May 25, 2026, 12:12 PM</div><div class="mt-2 sm:mt-0"><a href="https://unentropy.dev/getting-started/" class="hover:text-gray-900 dark:hover:text-white">View Documentation</a></div></div></div></footer><script>/* eslint-disable @typescript-eslint/no-unused-vars */
-// Unified Chart.js plugin for synchronized crosshair line, tooltips, and drag-to-zoom
-// Based on https://chartjs-plugin-crosshair.netlify.app/
-//
-// Features:
-// - Draws a vertical crosshair line on hover
-// - Synchronizes line position and tooltips across all charts in the same sync group
-// - Snaps to nearest data point when enabled
-// - Configurable line appearance
-// - Drag-to-zoom: click and drag to select a range, then zoom to that range
-// - Reset zoom button: appears when zoomed, clicking resets all charts
-// - Synchronized zoom: all charts zoom together
+    </style>
+  </head>
+  <body class="bg-gray-50 dark:bg-gray-900">
+    <header class="bg-white dark:bg-gray-800 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+              Unentropy Metrics Report
+            </h1>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">preview/repository</p>
+          </div>
+          <div class="relative">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Date Range:</span>
+              <div class="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  data-filter="all"
+                  class="px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                >
+                  All</button
+                ><button
+                  type="button"
+                  data-filter="7d"
+                  class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  7 days</button
+                ><button
+                  type="button"
+                  data-filter="30d"
+                  class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  30 days</button
+                ><button
+                  type="button"
+                  data-filter="90d"
+                  class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  90 days</button
+                ><button
+                  type="button"
+                  data-filter="custom"
+                  id="custom-filter-btn"
+                  class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors relative whitespace-nowrap"
+                >
+                  <span id="custom-filter-label">Custom</span>
+                </button>
+              </div>
+            </div>
+            <div
+              id="custom-date-popover"
+              class="hidden absolute z-50 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[320px]"
+              style="right: 0"
+            >
+              <div class="space-y-4">
+                <div>
+                  <label
+                    for="date-from"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >From Date</label
+                  ><input
+                    type="date"
+                    id="date-from"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    aria-label="From date"
+                  />
+                </div>
+                <div>
+                  <label
+                    for="date-to"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >To Date</label
+                  ><input
+                    type="date"
+                    id="date-to"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    aria-label="To date"
+                  />
+                </div>
+                <div id="date-error" class="hidden text-sm text-red-600 dark:text-red-400">
+                  Invalid date range: &quot;From&quot; date must be before or equal to
+                  &quot;To&quot; date.
+                </div>
+                <div class="pt-2">
+                  <button
+                    type="button"
+                    id="clear-custom-date"
+                    class="w-full px-4 py-2 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <div class="bg-blue-50 dark:bg-blue-900 border-b border-blue-200 dark:border-blue-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="flex items-start gap-3">
+            <svg
+              class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+            <div class="text-sm text-blue-800 dark:text-blue-200">
+              <span class="font-medium">Limited data available.</span> Preview data is displayed to
+              help visualize trends. Toggle to view your actual data.
+            </div>
+          </div>
+          <label class="inline-flex items-center cursor-pointer flex-shrink-0"
+            ><input
+              type="checkbox"
+              id="preview-toggle"
+              class="sr-only peer"
+              role="switch"
+              checked
+            />
+            <div
+              class="relative w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"
+            ></div>
+            <span class="ms-3 text-sm font-medium text-blue-900 dark:text-blue-100"
+              >Show preview data</span
+            ></label
+          >
+        </div>
+      </div>
+    </div>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div data-view="real" class="hidden" aria-hidden="true">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Lines of code</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                total lines of typescript/tsx code in src/ directory
+              </p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="relative h-64 sm:h-80">
+                <canvas
+                  id="chart-lines-of-code"
+                  aria-label="Line chart showing Lines of code over time"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-view="real" class="hidden" aria-hidden="true">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+                Lines of test code
+              </h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Total lines of TypeScript/TSX code in tests/ directory
+              </p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="relative h-64 sm:h-80">
+                <canvas
+                  id="chart-lines-of-test-code"
+                  aria-label="Line chart showing Lines of test code over time"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-view="real" class="hidden" aria-hidden="true">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">coverage</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Overall test coverage percentage across the codebase
+              </p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="relative h-64 sm:h-80">
+                <canvas
+                  id="chart-test-coverage"
+                  aria-label="Line chart showing coverage over time"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-view="real" class="hidden" aria-hidden="true">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+                Actions bundle size
+              </h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Total size of all compiled GitHub Actions
+              </p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="relative h-64 sm:h-80">
+                <canvas
+                  id="chart-total-bundle-size"
+                  aria-label="Line chart showing Actions bundle size over time"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-view="real" class="hidden" aria-hidden="true">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+                Specs size (lines)
+              </h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Total lines of specification documentation
+              </p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="relative h-64 sm:h-80">
+                <canvas
+                  id="chart-specs-size"
+                  aria-label="Line chart showing Specs size (lines) over time"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-view="preview">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Lines of code</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                total lines of typescript/tsx code in src/ directory
+              </p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">59</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">45</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">59</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 22.9%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="relative h-64 sm:h-80">
+                <canvas
+                  id="chart-lines-of-code-preview"
+                  aria-label="Line chart showing Lines of code over time"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-view="preview">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+                Lines of test code
+              </h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Total lines of TypeScript/TSX code in tests/ directory
+              </p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">49</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">38</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">49</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 2.3%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="relative h-64 sm:h-80">
+                <canvas
+                  id="chart-lines-of-test-code-preview"
+                  aria-label="Line chart showing Lines of test code over time"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-view="preview">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">coverage</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Overall test coverage percentage across the codebase
+              </p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">51.8%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">47.0%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">62.2%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-red-600 dark:text-red-400">↓ 6.4%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="relative h-64 sm:h-80">
+                <canvas
+                  id="chart-test-coverage-preview"
+                  aria-label="Line chart showing coverage over time"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-view="preview">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+                Actions bundle size
+              </h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Total size of all compiled GitHub Actions
+              </p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">52 B</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">46 B</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">62 B</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 2.8%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="relative h-64 sm:h-80">
+                <canvas
+                  id="chart-total-bundle-size-preview"
+                  aria-label="Line chart showing Actions bundle size over time"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-view="preview">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+                Specs size (lines)
+              </h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Total lines of specification documentation
+              </p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">48</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">39</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">59</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 7.1%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <div class="relative h-64 sm:h-80">
+                <canvas
+                  id="chart-specs-size-preview"
+                  aria-label="Line chart showing Specs size (lines) over time"
+                ></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-8 border-t border-gray-200 dark:border-gray-700"
+    >
+      <div class="space-y-3 text-sm text-gray-600 dark:text-gray-400">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>Builds: 0 · May 25, 2026, 12:12 PM – May 25, 2026, 12:12 PM</div>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            Generated by <span class="font-semibold">Unentropy</span> v0.1.0 on May 25, 2026, 12:12
+            PM
+          </div>
+          <div class="mt-2 sm:mt-0">
+            <a
+              href="https://unentropy.dev/getting-started/"
+              class="hover:text-gray-900 dark:hover:text-white"
+              >View Documentation</a
+            >
+          </div>
+        </div>
+      </div>
+    </footer>
+    <script>
+      /* eslint-disable @typescript-eslint/no-unused-vars */
+      // Unified Chart.js plugin for synchronized crosshair line, tooltips, and drag-to-zoom
+      // Based on https://chartjs-plugin-crosshair.netlify.app/
+      //
+      // Features:
+      // - Draws a vertical crosshair line on hover
+      // - Synchronizes line position and tooltips across all charts in the same sync group
+      // - Snaps to nearest data point when enabled
+      // - Configurable line appearance
+      // - Drag-to-zoom: click and drag to select a range, then zoom to that range
+      // - Reset zoom button: appears when zoomed, clicking resets all charts
+      // - Synchronized zoom: all charts zoom together
 
-var crosshairPlugin = (function () {
-  var defaultOptions = {
-    enabled: true,
-    line: {
-      color: "rgba(59, 130, 246, 0.5)",
-      width: 1,
-      dashPattern: [],
-    },
-    sync: {
-      enabled: true,
-      group: 1,
-      suppressTooltips: false,
-    },
-    snap: {
-      enabled: true,
-    },
-    zoom: {
-      enabled: true,
-      zoomboxBackgroundColor: "rgba(59, 130, 246, 0.2)",
-      zoomboxBorderColor: "rgba(59, 130, 246, 0.5)",
-      minDataPoints: 10,
-      minZoomRange: 4,
-    },
-  };
+      var crosshairPlugin = (function () {
+        var defaultOptions = {
+          enabled: true,
+          line: {
+            color: "rgba(59, 130, 246, 0.5)",
+            width: 1,
+            dashPattern: [],
+          },
+          sync: {
+            enabled: true,
+            group: 1,
+            suppressTooltips: false,
+          },
+          snap: {
+            enabled: true,
+          },
+          zoom: {
+            enabled: true,
+            zoomboxBackgroundColor: "rgba(59, 130, 246, 0.2)",
+            zoomboxBorderColor: "rgba(59, 130, 246, 0.5)",
+            minDataPoints: 10,
+            minZoomRange: 4,
+          },
+        };
 
-  function isPluginEnabled(chart) {
-    var pluginOpts = chart.options.plugins.crosshair || {};
-    if (pluginOpts.enabled !== undefined) {
-      return pluginOpts.enabled;
-    }
-    return defaultOptions.enabled;
-  }
+        function isPluginEnabled(chart) {
+          var pluginOpts = chart.options.plugins.crosshair || {};
+          if (pluginOpts.enabled !== undefined) {
+            return pluginOpts.enabled;
+          }
+          return defaultOptions.enabled;
+        }
 
-  function getOption(chart, category, name) {
-    var pluginOpts = chart.options.plugins.crosshair || {};
-    var categoryOpts = pluginOpts[category];
-    if (categoryOpts && categoryOpts[name] !== undefined) {
-      return categoryOpts[name];
-    }
-    return defaultOptions[category][name];
-  }
+        function getOption(chart, category, name) {
+          var pluginOpts = chart.options.plugins.crosshair || {};
+          var categoryOpts = pluginOpts[category];
+          if (categoryOpts && categoryOpts[name] !== undefined) {
+            return categoryOpts[name];
+          }
+          return defaultOptions[category][name];
+        }
 
-  function getXScale(chart) {
-    if (!chart.data.datasets.length) return null;
-    var meta = chart.getDatasetMeta(0);
-    return meta ? chart.scales[meta.xAxisID] : null;
-  }
+        function getXScale(chart) {
+          if (!chart.data.datasets.length) return null;
+          var meta = chart.getDatasetMeta(0);
+          return meta ? chart.scales[meta.xAxisID] : null;
+        }
 
-  function getYScale(chart) {
-    if (!chart.data.datasets.length) return null;
-    var meta = chart.getDatasetMeta(0);
-    return meta ? chart.scales[meta.yAxisID] : null;
-  }
+        function getYScale(chart) {
+          if (!chart.data.datasets.length) return null;
+          var meta = chart.getDatasetMeta(0);
+          return meta ? chart.scales[meta.yAxisID] : null;
+        }
 
-  function countNonNullDataPoints(chart) {
-    if (!chart.data.datasets.length) return 0;
-    var data = chart.data.datasets[0].data;
-    var count = 0;
-    for (var item of data) {
-      if (item !== null && item !== undefined) {
-        count++;
-      }
-    }
-    return count;
-  }
+        function countNonNullDataPoints(chart) {
+          if (!chart.data.datasets.length) return 0;
+          var data = chart.data.datasets[0].data;
+          var count = 0;
+          for (var item of data) {
+            if (item !== null && item !== undefined) {
+              count++;
+            }
+          }
+          return count;
+        }
 
-  function isZoomEnabled(chart) {
-    if (!getOption(chart, "zoom", "enabled")) {
-      return false;
-    }
-    var minDataPoints = getOption(chart, "zoom", "minDataPoints");
-    return countNonNullDataPoints(chart) >= minDataPoints;
-  }
+        function isZoomEnabled(chart) {
+          if (!getOption(chart, "zoom", "enabled")) {
+            return false;
+          }
+          var minDataPoints = getOption(chart, "zoom", "minDataPoints");
+          return countNonNullDataPoints(chart) >= minDataPoints;
+        }
 
-  function drawZoombox(chart) {
-    var ctx = chart.ctx;
-    var dragStartX = chart.crosshair.dragStartX;
-    var currentX = chart.crosshair.x;
+        function drawZoombox(chart) {
+          var ctx = chart.ctx;
+          var dragStartX = chart.crosshair.dragStartX;
+          var currentX = chart.crosshair.x;
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(
-      dragStartX,
-      chart.chartArea.top,
-      currentX - dragStartX,
-      chart.chartArea.bottom - chart.chartArea.top
-    );
-    ctx.fillStyle = getOption(chart, "zoom", "zoomboxBackgroundColor");
-    ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = getOption(chart, "zoom", "zoomboxBorderColor");
-    ctx.stroke();
-    ctx.closePath();
-    ctx.restore();
-  }
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(
+            dragStartX,
+            chart.chartArea.top,
+            currentX - dragStartX,
+            chart.chartArea.bottom - chart.chartArea.top
+          );
+          ctx.fillStyle = getOption(chart, "zoom", "zoomboxBackgroundColor");
+          ctx.fill();
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = getOption(chart, "zoom", "zoomboxBorderColor");
+          ctx.stroke();
+          ctx.closePath();
+          ctx.restore();
+        }
 
-  function doZoom(chart, start, end, broadcast) {
-    if (start > end) {
-      var tmp = start;
-      start = end;
-      end = tmp;
-    }
+        function doZoom(chart, start, end, broadcast) {
+          if (start > end) {
+            var tmp = start;
+            start = end;
+            end = tmp;
+          }
 
-    var xScale = getXScale(chart);
-    if (!xScale) return;
+          var xScale = getXScale(chart);
+          if (!xScale) return;
 
-    var minZoomRange = getOption(chart, "zoom", "minZoomRange");
-    var dataLength = chart.data.datasets[0]?.data.length || 0;
-    var startIndex = Math.max(
-      0,
-      Math.round(((start - xScale.min) / (xScale.max - xScale.min)) * dataLength)
-    );
-    var endIndex = Math.min(
-      dataLength,
-      Math.round(((end - xScale.min) / (xScale.max - xScale.min)) * dataLength)
-    );
+          var minZoomRange = getOption(chart, "zoom", "minZoomRange");
+          var dataLength = chart.data.datasets[0]?.data.length || 0;
+          var startIndex = Math.max(
+            0,
+            Math.round(((start - xScale.min) / (xScale.max - xScale.min)) * dataLength)
+          );
+          var endIndex = Math.min(
+            dataLength,
+            Math.round(((end - xScale.min) / (xScale.max - xScale.min)) * dataLength)
+          );
 
-    if (endIndex - startIndex < minZoomRange) {
-      return;
-    }
+          if (endIndex - startIndex < minZoomRange) {
+            return;
+          }
 
-    if (chart.crosshair.originalXRange.min === undefined) {
-      chart.crosshair.originalXRange.min = xScale.min;
-      chart.crosshair.originalXRange.max = xScale.max;
-    }
+          if (chart.crosshair.originalXRange.min === undefined) {
+            chart.crosshair.originalXRange.min = xScale.min;
+            chart.crosshair.originalXRange.max = xScale.max;
+          }
 
-    chart.options.scales.x.min = start;
-    chart.options.scales.x.max = end;
+          chart.options.scales.x.min = start;
+          chart.options.scales.x.max = end;
 
-    chart.crosshair.ignoreNextEvents = 2;
-    chart.update("none");
+          chart.crosshair.ignoreNextEvents = 2;
+          chart.update("none");
 
-    if (broadcast !== false) {
-      var syncEnabled = getOption(chart, "sync", "enabled");
-      var syncGroup = getOption(chart, "sync", "group");
+          if (broadcast !== false) {
+            var syncEnabled = getOption(chart, "sync", "enabled");
+            var syncGroup = getOption(chart, "sync", "group");
 
-      if (syncEnabled) {
-        var event = new CustomEvent("zoom-sync");
-        event.chartId = chart.id;
-        event.syncGroup = syncGroup;
-        event.start = start;
-        event.end = end;
-        window.dispatchEvent(event);
-      }
-    }
-  }
+            if (syncEnabled) {
+              var event = new CustomEvent("zoom-sync");
+              event.chartId = chart.id;
+              event.syncGroup = syncGroup;
+              event.start = start;
+              event.end = end;
+              window.dispatchEvent(event);
+            }
+          }
+        }
 
-  function handleZoomSync(chart, e) {
-    var syncGroup = getOption(chart, "sync", "group");
+        function handleZoomSync(chart, e) {
+          var syncGroup = getOption(chart, "sync", "group");
 
-    if (e.chartId === chart.id) return;
-    if (e.syncGroup !== syncGroup) return;
-    if (!isZoomEnabled(chart)) return;
+          if (e.chartId === chart.id) return;
+          if (e.syncGroup !== syncGroup) return;
+          if (!isZoomEnabled(chart)) return;
 
-    doZoom(chart, e.start, e.end, false);
-  }
+          doZoom(chart, e.start, e.end, false);
+        }
 
-  function handleSyncEvent(chart, e) {
-    if (!isPluginEnabled(chart)) {
-      return;
-    }
+        function handleSyncEvent(chart, e) {
+          if (!isPluginEnabled(chart)) {
+            return;
+          }
 
-    var syncGroup = getOption(chart, "sync", "group");
+          var syncGroup = getOption(chart, "sync", "group");
 
-    // Stop if the sync event was fired from this chart
-    if (e.chartId === chart.id) {
-      return;
-    }
+          // Stop if the sync event was fired from this chart
+          if (e.chartId === chart.id) {
+            return;
+          }
 
-    // Stop if the sync event was fired from a different group
-    if (e.syncGroup !== syncGroup) {
-      return;
-    }
+          // Stop if the sync event was fired from a different group
+          if (e.syncGroup !== syncGroup) {
+            return;
+          }
 
-    if (e.original.type === "mouseout") {
-      chart.crosshair.x = null;
-      chart.setActiveElements([]);
-      chart.tooltip.setActiveElements([], { x: 0, y: 0 });
-      chart.update("none");
-      return;
-    }
+          if (e.original.type === "mouseout") {
+            chart.crosshair.x = null;
+            chart.setActiveElements([]);
+            chart.tooltip.setActiveElements([], { x: 0, y: 0 });
+            chart.update("none");
+            return;
+          }
 
-    // Use data index for syncing tooltips (more reliable than x value for different scales)
-    var dataIndex = e.dataIndex;
-    if (dataIndex === undefined || dataIndex < 0) {
-      return;
-    }
+          // Use data index for syncing tooltips (more reliable than x value for different scales)
+          var dataIndex = e.dataIndex;
+          if (dataIndex === undefined || dataIndex < 0) {
+            return;
+          }
 
-    // Build active elements for this chart at the same data index
-    var activeElements = [];
-    for (var i = 0; i < chart.data.datasets.length; i++) {
-      if (dataIndex < chart.data.datasets[i].data.length) {
-        activeElements.push({ datasetIndex: i, index: dataIndex });
-      }
-    }
+          // Build active elements for this chart at the same data index
+          var activeElements = [];
+          for (var i = 0; i < chart.data.datasets.length; i++) {
+            if (dataIndex < chart.data.datasets[i].data.length) {
+              activeElements.push({ datasetIndex: i, index: dataIndex });
+            }
+          }
 
-    if (activeElements.length > 0) {
-      // Get pixel position for crosshair line
-      var meta = chart.getDatasetMeta(0);
-      if (meta.data[dataIndex]) {
-        chart.crosshair.x = meta.data[dataIndex].x;
-      }
+          if (activeElements.length > 0) {
+            // Get pixel position for crosshair line
+            var meta = chart.getDatasetMeta(0);
+            if (meta.data[dataIndex]) {
+              chart.crosshair.x = meta.data[dataIndex].x;
+            }
 
-      chart.setActiveElements(activeElements);
+            chart.setActiveElements(activeElements);
 
-      var suppressTooltips = getOption(chart, "sync", "suppressTooltips");
-      if (!suppressTooltips) {
-        var point = meta.data[dataIndex];
-        var tooltipPoint = point ? { x: point.x, y: point.y } : { x: 0, y: 0 };
-        chart.tooltip.setActiveElements(activeElements, tooltipPoint);
-      }
-    }
+            var suppressTooltips = getOption(chart, "sync", "suppressTooltips");
+            if (!suppressTooltips) {
+              var point = meta.data[dataIndex];
+              var tooltipPoint = point ? { x: point.x, y: point.y } : { x: 0, y: 0 };
+              chart.tooltip.setActiveElements(activeElements, tooltipPoint);
+            }
+          }
 
-    chart.update("none");
-  }
+          chart.update("none");
+        }
 
-  function handleSyncClear(chart, e) {
-    if (!isPluginEnabled(chart)) {
-      return;
-    }
+        function handleSyncClear(chart, e) {
+          if (!isPluginEnabled(chart)) {
+            return;
+          }
 
-    var syncGroup = getOption(chart, "sync", "group");
+          var syncGroup = getOption(chart, "sync", "group");
 
-    if (e.chartId === chart.id) {
-      return;
-    }
+          if (e.chartId === chart.id) {
+            return;
+          }
 
-    if (e.syncGroup !== syncGroup) {
-      return;
-    }
+          if (e.syncGroup !== syncGroup) {
+            return;
+          }
 
-    chart.crosshair.x = null;
-    chart.setActiveElements([]);
-    chart.tooltip.setActiveElements([], { x: 0, y: 0 });
-    chart.update("none");
-  }
+          chart.crosshair.x = null;
+          chart.setActiveElements([]);
+          chart.tooltip.setActiveElements([], { x: 0, y: 0 });
+          chart.update("none");
+        }
 
-  return {
-    id: "crosshair",
+        return {
+          id: "crosshair",
 
-    defaults: defaultOptions,
+          defaults: defaultOptions,
 
-    afterInit: function (chart) {
-      chart.crosshair = {
-        x: null,
-        dragStarted: false,
-        dragStartX: null,
-        originalXRange: {},
-        button: null,
-        ignoreNextEvents: 0,
+          afterInit: function (chart) {
+            chart.crosshair = {
+              x: null,
+              dragStarted: false,
+              dragStartX: null,
+              originalXRange: {},
+              button: null,
+              ignoreNextEvents: 0,
+            };
+
+            if (!isPluginEnabled(chart)) {
+              return;
+            }
+
+            var syncEnabled = getOption(chart, "sync", "enabled");
+            if (syncEnabled) {
+              chart.crosshair.syncEventHandler = function (e) {
+                handleSyncEvent(chart, e);
+              };
+              chart.crosshair.syncClearHandler = function (e) {
+                handleSyncClear(chart, e);
+              };
+              chart.crosshair.zoomSyncHandler = function (e) {
+                handleZoomSync(chart, e);
+              };
+
+              window.addEventListener("crosshair-sync", chart.crosshair.syncEventHandler);
+              window.addEventListener("crosshair-clear", chart.crosshair.syncClearHandler);
+              window.addEventListener("zoom-sync", chart.crosshair.zoomSyncHandler);
+            }
+          },
+
+          beforeDestroy: function (chart) {
+            if (!isPluginEnabled(chart)) {
+              return;
+            }
+
+            var syncEnabled = getOption(chart, "sync", "enabled");
+            if (syncEnabled && chart.crosshair) {
+              window.removeEventListener("crosshair-sync", chart.crosshair.syncEventHandler);
+              window.removeEventListener("crosshair-clear", chart.crosshair.syncClearHandler);
+              window.removeEventListener("zoom-sync", chart.crosshair.zoomSyncHandler);
+            }
+          },
+
+          afterEvent: function (chart, args) {
+            if (!isPluginEnabled(chart)) {
+              return;
+            }
+
+            var xScale = getXScale(chart);
+            if (!xScale) {
+              return;
+            }
+
+            var e = args.event;
+            var syncEnabled = getOption(chart, "sync", "enabled");
+            var syncGroup = getOption(chart, "sync", "group");
+
+            if (chart.crosshair.ignoreNextEvents > 0) {
+              chart.crosshair.ignoreNextEvents -= 1;
+              return;
+            }
+
+            var buttons = e.native.buttons === undefined ? e.native.which : e.native.buttons;
+            if (e.native.type === "mouseup") {
+              buttons = 0;
+            }
+
+            if (e.type === "mouseout") {
+              chart.crosshair.x = null;
+              chart.crosshair.dragStarted = false;
+
+              if (syncEnabled) {
+                var clearEvent = new CustomEvent("crosshair-clear");
+                clearEvent.chartId = chart.id;
+                clearEvent.syncGroup = syncGroup;
+                window.dispatchEvent(clearEvent);
+              }
+              return;
+            }
+
+            if (!args.inChartArea) {
+              chart.crosshair.dragStarted = false;
+              return;
+            }
+
+            var zoomEnabled = isZoomEnabled(chart);
+
+            if (buttons === 1 && !chart.crosshair.dragStarted && zoomEnabled) {
+              chart.crosshair.dragStartX = e.x;
+              chart.crosshair.dragStarted = true;
+            }
+
+            if (chart.crosshair.dragStarted && buttons === 0) {
+              chart.crosshair.dragStarted = false;
+
+              var dragDistance = Math.abs(chart.crosshair.dragStartX - e.x);
+              if (dragDistance > 5) {
+                var start = xScale.getValueForPixel(chart.crosshair.dragStartX);
+                var end = xScale.getValueForPixel(e.x);
+                doZoom(chart, start, end, true);
+              }
+              chart.update("none");
+              return;
+            }
+
+            chart.crosshair.x = e.x;
+
+            if (!chart.crosshair.dragStarted && syncEnabled) {
+              var elements = chart.getElementsAtEventForMode(
+                e,
+                "index",
+                { intersect: false },
+                true
+              );
+              var dataIndex = elements.length > 0 ? elements[0].index : -1;
+
+              var syncEvent = new CustomEvent("crosshair-sync");
+              syncEvent.chartId = chart.id;
+              syncEvent.syncGroup = syncGroup;
+              syncEvent.original = e;
+              syncEvent.xValue = xScale.getValueForPixel(e.x);
+              syncEvent.dataIndex = dataIndex;
+              window.dispatchEvent(syncEvent);
+            }
+          },
+
+          afterDatasetsDraw: function (chart) {
+            if (!isPluginEnabled(chart)) {
+              return;
+            }
+
+            if (chart.crosshair.dragStarted) {
+              drawZoombox(chart);
+              return;
+            }
+
+            if (chart.crosshair.x === null) {
+              return;
+            }
+
+            var xScale = getXScale(chart);
+            var yScale = getYScale(chart);
+            if (!xScale || !yScale) {
+              return;
+            }
+
+            var ctx = chart.ctx;
+            var lineX = chart.crosshair.x;
+
+            var snapEnabled = getOption(chart, "snap", "enabled");
+            if (snapEnabled && chart._active && chart._active.length) {
+              lineX = chart._active[0].element.x;
+            }
+
+            if (lineX < chart.chartArea.left || lineX > chart.chartArea.right) {
+              return;
+            }
+
+            var lineColor = getOption(chart, "line", "color");
+            var lineWidth = getOption(chart, "line", "width");
+            var dashPattern = getOption(chart, "line", "dashPattern");
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.setLineDash(dashPattern);
+            ctx.moveTo(lineX, chart.chartArea.top);
+            ctx.lineTo(lineX, chart.chartArea.bottom);
+            ctx.lineWidth = lineWidth;
+            ctx.strokeStyle = lineColor;
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+          },
+
+          beforeTooltipDraw: function (chart) {
+            return !chart.crosshair.dragStarted;
+          },
+        };
+      })();
+    </script>
+    <script>
+      /* eslint-disable @typescript-eslint/no-unused-vars */
+      // This script is inlined into generated HTML reports and runs in the browser.
+      // Variables are used by the initializeCharts function called from the data script.
+
+      var LINE_STYLE = {
+        borderColor: "rgb(59, 130, 246)",
+        backgroundColor: "rgba(59, 130, 246, 0.1)",
+        tension: 0.4,
+        fill: true,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        spanGaps: false,
       };
 
-      if (!isPluginEnabled(chart)) {
-        return;
-      }
+      var BAR_STYLE = {
+        backgroundColor: "rgba(59, 130, 246, 0.8)",
+        borderColor: "rgb(59, 130, 246)",
+        borderWidth: 1,
+      };
 
-      var syncEnabled = getOption(chart, "sync", "enabled");
-      if (syncEnabled) {
-        chart.crosshair.syncEventHandler = function (e) {
-          handleSyncEvent(chart, e);
-        };
-        chart.crosshair.syncClearHandler = function (e) {
-          handleSyncClear(chart, e);
-        };
-        chart.crosshair.zoomSyncHandler = function (e) {
-          handleZoomSync(chart, e);
-        };
+      var COMMON_OPTIONS = {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          crosshair: {
+            enabled: true,
+            sync: {
+              enabled: true,
+              group: 1,
+            },
+            line: {
+              color: "rgba(59, 130, 246, 0.3)",
+              width: 1,
+            },
+            zoom: {
+              enabled: true,
+              minDataPoints: 10,
+              minZoomRange: 4,
+            },
+          },
+        },
+      };
 
-        window.addEventListener("crosshair-sync", chart.crosshair.syncEventHandler);
-        window.addEventListener("crosshair-clear", chart.crosshair.syncClearHandler);
-        window.addEventListener("zoom-sync", chart.crosshair.zoomSyncHandler);
-      }
-    },
+      /**
+       * Format values for chart tooltips based on semantic unit types.
+       *
+       * NOTE: This function duplicates logic from src/metrics/unit-formatter.ts
+       * because this script runs in the browser without module support.
+       *
+       * IMPORTANT: When updating this function, also update:
+       * - src/metrics/unit-formatter.ts (TypeScript server-side version)
+       * - src/reporter/templates/default/components/formatUtils.ts (legacy unit parsing)
+       *
+       * @param {number|null|undefined} value - The numeric value to format
+       * @param {string|null} unit - The semantic unit type (percent, integer, bytes, duration, decimal)
+       * @returns {string} Formatted value string
+       */
+      function formatChartValue(value, unit) {
+        if (value === null || value === undefined) return "N/A";
 
-    beforeDestroy: function (chart) {
-      if (!isPluginEnabled(chart)) {
-        return;
-      }
-
-      var syncEnabled = getOption(chart, "sync", "enabled");
-      if (syncEnabled && chart.crosshair) {
-        window.removeEventListener("crosshair-sync", chart.crosshair.syncEventHandler);
-        window.removeEventListener("crosshair-clear", chart.crosshair.syncClearHandler);
-        window.removeEventListener("zoom-sync", chart.crosshair.zoomSyncHandler);
-      }
-    },
-
-    afterEvent: function (chart, args) {
-      if (!isPluginEnabled(chart)) {
-        return;
-      }
-
-      var xScale = getXScale(chart);
-      if (!xScale) {
-        return;
-      }
-
-      var e = args.event;
-      var syncEnabled = getOption(chart, "sync", "enabled");
-      var syncGroup = getOption(chart, "sync", "group");
-
-      if (chart.crosshair.ignoreNextEvents > 0) {
-        chart.crosshair.ignoreNextEvents -= 1;
-        return;
-      }
-
-      var buttons = e.native.buttons === undefined ? e.native.which : e.native.buttons;
-      if (e.native.type === "mouseup") {
-        buttons = 0;
-      }
-
-      if (e.type === "mouseout") {
-        chart.crosshair.x = null;
-        chart.crosshair.dragStarted = false;
-
-        if (syncEnabled) {
-          var clearEvent = new CustomEvent("crosshair-clear");
-          clearEvent.chartId = chart.id;
-          clearEvent.syncGroup = syncGroup;
-          window.dispatchEvent(clearEvent);
+        if (!unit) {
+          return value.toFixed(2);
         }
-        return;
-      }
 
-      if (!args.inChartArea) {
-        chart.crosshair.dragStarted = false;
-        return;
-      }
-
-      var zoomEnabled = isZoomEnabled(chart);
-
-      if (buttons === 1 && !chart.crosshair.dragStarted && zoomEnabled) {
-        chart.crosshair.dragStartX = e.x;
-        chart.crosshair.dragStarted = true;
-      }
-
-      if (chart.crosshair.dragStarted && buttons === 0) {
-        chart.crosshair.dragStarted = false;
-
-        var dragDistance = Math.abs(chart.crosshair.dragStartX - e.x);
-        if (dragDistance > 5) {
-          var start = xScale.getValueForPixel(chart.crosshair.dragStartX);
-          var end = xScale.getValueForPixel(e.x);
-          doZoom(chart, start, end, true);
-        }
-        chart.update("none");
-        return;
-      }
-
-      chart.crosshair.x = e.x;
-
-      if (!chart.crosshair.dragStarted && syncEnabled) {
-        var elements = chart.getElementsAtEventForMode(e, "index", { intersect: false }, true);
-        var dataIndex = elements.length > 0 ? elements[0].index : -1;
-
-        var syncEvent = new CustomEvent("crosshair-sync");
-        syncEvent.chartId = chart.id;
-        syncEvent.syncGroup = syncGroup;
-        syncEvent.original = e;
-        syncEvent.xValue = xScale.getValueForPixel(e.x);
-        syncEvent.dataIndex = dataIndex;
-        window.dispatchEvent(syncEvent);
-      }
-    },
-
-    afterDatasetsDraw: function (chart) {
-      if (!isPluginEnabled(chart)) {
-        return;
-      }
-
-      if (chart.crosshair.dragStarted) {
-        drawZoombox(chart);
-        return;
-      }
-
-      if (chart.crosshair.x === null) {
-        return;
-      }
-
-      var xScale = getXScale(chart);
-      var yScale = getYScale(chart);
-      if (!xScale || !yScale) {
-        return;
-      }
-
-      var ctx = chart.ctx;
-      var lineX = chart.crosshair.x;
-
-      var snapEnabled = getOption(chart, "snap", "enabled");
-      if (snapEnabled && chart._active && chart._active.length) {
-        lineX = chart._active[0].element.x;
-      }
-
-      if (lineX < chart.chartArea.left || lineX > chart.chartArea.right) {
-        return;
-      }
-
-      var lineColor = getOption(chart, "line", "color");
-      var lineWidth = getOption(chart, "line", "width");
-      var dashPattern = getOption(chart, "line", "dashPattern");
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.setLineDash(dashPattern);
-      ctx.moveTo(lineX, chart.chartArea.top);
-      ctx.lineTo(lineX, chart.chartArea.bottom);
-      ctx.lineWidth = lineWidth;
-      ctx.strokeStyle = lineColor;
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.restore();
-    },
-
-    beforeTooltipDraw: function (chart) {
-      return !chart.crosshair.dragStarted;
-    },
-  };
-})();
-</script><script>/* eslint-disable @typescript-eslint/no-unused-vars */
-// This script is inlined into generated HTML reports and runs in the browser.
-// Variables are used by the initializeCharts function called from the data script.
-
-var LINE_STYLE = {
-  borderColor: "rgb(59, 130, 246)",
-  backgroundColor: "rgba(59, 130, 246, 0.1)",
-  tension: 0.4,
-  fill: true,
-  pointRadius: 4,
-  pointHoverRadius: 6,
-  spanGaps: false,
-};
-
-var BAR_STYLE = {
-  backgroundColor: "rgba(59, 130, 246, 0.8)",
-  borderColor: "rgb(59, 130, 246)",
-  borderWidth: 1,
-};
-
-var COMMON_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: { mode: "index", intersect: false },
-  plugins: {
-    legend: { display: false },
-    crosshair: {
-      enabled: true,
-      sync: {
-        enabled: true,
-        group: 1,
-      },
-      line: {
-        color: "rgba(59, 130, 246, 0.3)",
-        width: 1,
-      },
-      zoom: {
-        enabled: true,
-        minDataPoints: 10,
-        minZoomRange: 4,
-      },
-    },
-  },
-};
-
-/**
- * Format values for chart tooltips based on semantic unit types.
- *
- * NOTE: This function duplicates logic from src/metrics/unit-formatter.ts
- * because this script runs in the browser without module support.
- *
- * IMPORTANT: When updating this function, also update:
- * - src/metrics/unit-formatter.ts (TypeScript server-side version)
- * - src/reporter/templates/default/components/formatUtils.ts (legacy unit parsing)
- *
- * @param {number|null|undefined} value - The numeric value to format
- * @param {string|null} unit - The semantic unit type (percent, integer, bytes, duration, decimal)
- * @returns {string} Formatted value string
- */
-function formatChartValue(value, unit) {
-  if (value === null || value === undefined) return "N/A";
-
-  if (!unit) {
-    return value.toFixed(2);
-  }
-
-  // Handle semantic unit types
-  if (unit === "percent") {
-    return (
-      value.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%"
-    );
-  }
-
-  if (unit === "integer") {
-    return Math.round(value).toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-  }
-
-  if (unit === "bytes") {
-    var absValue = Math.abs(value);
-    var sign = value < 0 ? "-" : "";
-
-    if (absValue < 1024) {
-      return sign + Math.round(absValue) + " B";
-    }
-    if (absValue < 1024 * 1024) {
-      var kb = absValue / 1024;
-      var decimals = kb % 1 === 0 ? 0 : 1;
-      return (
-        sign +
-        kb.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: 1 }) +
-        " KB"
-      );
-    }
-    if (absValue < 1024 * 1024 * 1024) {
-      var mb = absValue / (1024 * 1024);
-      var decimals = mb % 1 === 0 ? 0 : 1;
-      return (
-        sign +
-        mb.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: 1 }) +
-        " MB"
-      );
-    }
-    var gb = absValue / (1024 * 1024 * 1024);
-    var decimals = gb % 1 === 0 ? 0 : 1;
-    return (
-      sign +
-      gb.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: 1 }) +
-      " GB"
-    );
-  }
-
-  if (unit === "duration") {
-    var absSeconds = Math.abs(value);
-    var sign = value < 0 ? "-" : "";
-
-    if (absSeconds < 1) {
-      var ms = Math.round(absSeconds * 1000);
-      return sign + ms + "ms";
-    }
-    if (absSeconds < 60) {
-      var rounded = Math.round(absSeconds);
-      return sign + rounded + "s";
-    }
-    if (absSeconds < 3600) {
-      var minutes = Math.floor(absSeconds / 60);
-      var secs = Math.round(absSeconds % 60);
-      return sign + minutes + "m " + secs + "s";
-    }
-    var hours = Math.floor(absSeconds / 3600);
-    var mins = Math.round((absSeconds % 3600) / 60);
-    return sign + hours + "h " + mins + "m";
-  }
-
-  if (unit === "decimal") {
-    return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-
-  // Legacy unit support (e.g., "%", "KB", etc.)
-  return value.toFixed(2) + (unit ? unit : "");
-}
-
-function createTimeSeriesTooltip(metricName, unit, timeline, metadata) {
-  return {
-    callbacks: {
-      title: function (items) {
-        if (!items.length) return "";
-        var date = new Date(timeline[items[0].dataIndex]);
-        return date.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        });
-      },
-      label: function (ctx) {
-        if (ctx.raw === null || ctx.raw === undefined) {
-          return "No data recorded for this build";
-        }
-        var meta = metadata && metadata[ctx.dataIndex];
-        var formattedValue = formatChartValue(ctx.raw, unit);
-        var label = metricName + ": " + formattedValue;
-        if (meta) {
-          label += " (Build #" + meta.run + ", " + meta.sha + ")";
-        }
-        return label;
-      },
-    },
-  };
-}
-
-function buildLineChart(chart, timeline, metadata) {
-  return {
-    type: "line",
-    data: {
-      labels: timeline,
-      datasets: [
-        {
-          label: chart.name,
-          data: chart.values,
-          borderColor: LINE_STYLE.borderColor,
-          backgroundColor: LINE_STYLE.backgroundColor,
-          tension: LINE_STYLE.tension,
-          fill: LINE_STYLE.fill,
-          pointRadius: LINE_STYLE.pointRadius,
-          pointHoverRadius: LINE_STYLE.pointHoverRadius,
-          spanGaps: LINE_STYLE.spanGaps,
-        },
-      ],
-    },
-    options: {
-      responsive: COMMON_OPTIONS.responsive,
-      maintainAspectRatio: COMMON_OPTIONS.maintainAspectRatio,
-      interaction: COMMON_OPTIONS.interaction,
-      plugins: {
-        legend: COMMON_OPTIONS.plugins.legend,
-        tooltip: createTimeSeriesTooltip(chart.name, chart.unit, timeline, metadata),
-        crosshair: COMMON_OPTIONS.plugins.crosshair,
-      },
-      scales: {
-        x: {
-          type: "time",
-          time: { unit: "day", displayFormats: { day: "MMM d" } },
-          title: { display: true, text: "Build Date" },
-        },
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: chart.name },
-        },
-      },
-    },
-  };
-}
-
-function buildBarChart(chart) {
-  return {
-    type: "bar",
-    data: {
-      labels: chart.labels,
-      datasets: [
-        {
-          label: "Occurrences",
-          data: chart.counts,
-          backgroundColor: BAR_STYLE.backgroundColor,
-          borderColor: BAR_STYLE.borderColor,
-          borderWidth: BAR_STYLE.borderWidth,
-        },
-      ],
-    },
-    options: {
-      responsive: COMMON_OPTIONS.responsive,
-      maintainAspectRatio: COMMON_OPTIONS.maintainAspectRatio,
-      interaction: COMMON_OPTIONS.interaction,
-      plugins: {
-        legend: COMMON_OPTIONS.plugins.legend,
-        crosshair: { enabled: false },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { stepSize: 1 },
-          title: { display: true, text: "Count" },
-        },
-      },
-    },
-  };
-}
-
-function initializeCharts(
-  timeline,
-  metadata,
-  lineCharts,
-  barCharts,
-  previewLineCharts,
-  previewBarCharts,
-  showToggle,
-  previewData
-) {
-  var chartInstances = {};
-
-  // Register crosshair plugin globally with Chart.js
-  Chart.register(crosshairPlugin);
-
-  // Render REAL charts
-  lineCharts.forEach(function (chart) {
-    var ctx = document.getElementById("chart-" + chart.id);
-    if (ctx) {
-      var chartInstance = new Chart(ctx, buildLineChart(chart, timeline, metadata));
-      chartInstances[chart.id] = chartInstance;
-    }
-  });
-
-  barCharts.forEach(function (chart) {
-    var ctx = document.getElementById("chart-" + chart.id);
-    if (ctx) {
-      var chartInstance = new Chart(ctx, buildBarChart(chart));
-      chartInstances[chart.id] = chartInstance;
-    }
-  });
-
-  // Render PREVIEW charts (if toggle enabled)
-  if (showToggle) {
-    previewLineCharts.forEach(function (chart, index) {
-      var ctx = document.getElementById("chart-" + chart.id);
-      if (ctx) {
-        var previewTimeline = previewData[index]?.timestamps || timeline;
-        var chartInstance = new Chart(ctx, buildLineChart(chart, previewTimeline, null));
-        chartInstances[chart.id] = chartInstance;
-      }
-    });
-
-    previewBarCharts.forEach(function (chart) {
-      var ctx = document.getElementById("chart-" + chart.id);
-      if (ctx) {
-        var chartInstance = new Chart(ctx, buildBarChart(chart));
-        chartInstances[chart.id] = chartInstance;
-      }
-    });
-  }
-
-  // Toggle handler - pure CSS visibility toggle
-  var toggle = document.getElementById("preview-toggle");
-  if (toggle && showToggle) {
-    toggle.addEventListener("change", function (e) {
-      var showPreview = e.target.checked;
-
-      // Toggle visibility of metric cards
-      document.querySelectorAll('[data-view="real"]').forEach(function (el) {
-        el.classList.toggle("hidden", showPreview);
-        el.setAttribute("aria-hidden", showPreview ? "true" : "false");
-      });
-      document.querySelectorAll('[data-view="preview"]').forEach(function (el) {
-        el.classList.toggle("hidden", !showPreview);
-        el.setAttribute("aria-hidden", showPreview ? "false" : "true");
-      });
-    });
-  }
-
-  // Return chart instances for date filter integration
-  return chartInstances;
-}
-</script><script>(function () {
-  function initializeDateFilters(chartsData, chartInstances) {
-    // State
-    var state = {
-      activeFilter: "all",
-      customRange: { from: null, to: null },
-    };
-
-    // Elements
-    var customBtn = document.getElementById("custom-filter-btn");
-    var customLabel = document.getElementById("custom-filter-label");
-    var popover = document.getElementById("custom-date-popover");
-    var dateFromInput = document.getElementById("date-from");
-    var dateToInput = document.getElementById("date-to");
-    var clearBtn = document.getElementById("clear-custom-date");
-    var dateError = document.getElementById("date-error");
-    var filterButtons = document.querySelectorAll("[data-filter]");
-
-    // Helper: Update button states
-    function updateButtonStates(active) {
-      filterButtons.forEach(function (btn) {
-        var isActive = btn.dataset.filter === active;
-        if (isActive) {
-          btn.classList.remove(
-            "bg-gray-200",
-            "dark:bg-gray-700",
-            "text-gray-700",
-            "dark:text-gray-300"
-          );
-          btn.classList.add("bg-blue-600", "text-white");
-        } else {
-          btn.classList.remove("bg-blue-600", "text-white");
-          btn.classList.add(
-            "bg-gray-200",
-            "dark:bg-gray-700",
-            "text-gray-700",
-            "dark:text-gray-300"
+        // Handle semantic unit types
+        if (unit === "percent") {
+          return (
+            value.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) +
+            "%"
           );
         }
-      });
-    }
 
-    // Helper: Update custom button label
-    function updateCustomButtonLabel() {
-      if (state.activeFilter === "custom" && state.customRange.from && state.customRange.to) {
-        customLabel.textContent = state.customRange.from + " – " + state.customRange.to;
-      } else {
-        customLabel.textContent = "Custom";
-      }
-    }
-
-    // Helper: Validate date range
-    function validateDateRange() {
-      if (!dateFromInput.value || !dateToInput.value) {
-        dateError.classList.add("hidden");
-        return true;
-      }
-
-      var from = new Date(dateFromInput.value);
-      var to = new Date(dateToInput.value);
-
-      if (from > to) {
-        dateError.classList.remove("hidden");
-        return false;
-      }
-
-      dateError.classList.add("hidden");
-      return true;
-    }
-
-    // Helper: Clear zoom state from crosshair plugin
-    function clearZoomState() {
-      var charts = Object.values(chartInstances);
-      charts.forEach(function (chart) {
-        if (chart.crosshair && chart.crosshair.originalXRange) {
-          chart.crosshair.originalXRange = {};
-        }
-      });
-    }
-
-    // Helper: Check if date range is empty (no visible data)
-    function checkEmptyRange(minDate, maxDate) {
-      if (!chartsData.timeline || chartsData.timeline.length === 0) {
-        return true;
-      }
-
-      var hasVisibleData = chartsData.timeline.some(function (timestamp) {
-        var date = new Date(timestamp);
-        var min = new Date(minDate);
-        var max = new Date(maxDate);
-        return date >= min && date <= max;
-      });
-
-      return !hasVisibleData;
-    }
-
-    // Helper: Show "No data in selected range" overlay on charts
-    function showEmptyRangeOverlay() {
-      var chartContainers = document.querySelectorAll(".chart-container");
-      chartContainers.forEach(function (container) {
-        var existingOverlay = container.querySelector(".empty-range-overlay");
-        if (existingOverlay) return;
-
-        var overlay = document.createElement("div");
-        overlay.className =
-          "empty-range-overlay absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-900 bg-opacity-90 dark:bg-opacity-90 z-10";
-        overlay.innerHTML =
-          '<p class="text-gray-500 dark:text-gray-400 text-sm">No data in selected range</p>';
-        container.style.position = "relative";
-        container.appendChild(overlay);
-      });
-    }
-
-    // Helper: Hide empty range overlay
-    function hideEmptyRangeOverlay() {
-      var overlays = document.querySelectorAll(".empty-range-overlay");
-      overlays.forEach(function (overlay) {
-        overlay.remove();
-      });
-    }
-
-    // Apply preset date filter (7d/30d/90d/All)
-    function applyDateFilter(filterType) {
-      var charts = Object.values(chartInstances);
-
-      if (filterType === "all") {
-        // Clear all filters
-        charts.forEach(function (chart) {
-          delete chart.options.scales.x.min;
-          delete chart.options.scales.x.max;
-          chart.update("none");
-        });
-        hideEmptyRangeOverlay();
-      } else {
-        // Calculate date range relative to most recent build
-        var filterDays = { "7d": 7, "30d": 30, "90d": 90 };
-        var days = filterDays[filterType];
-        var maxDate =
-          chartsData.timeline[chartsData.timeline.length - 1] || new Date().toISOString();
-        var minDate = new Date(
-          new Date(maxDate).getTime() - days * 24 * 60 * 60 * 1000
-        ).toISOString();
-
-        // Apply filter to all charts
-        charts.forEach(function (chart) {
-          chart.options.scales.x.min = minDate;
-          chart.options.scales.x.max = maxDate;
-          chart.update("none");
-        });
-
-        // Check for empty range
-        if (checkEmptyRange(minDate, maxDate)) {
-          showEmptyRangeOverlay();
-        } else {
-          hideEmptyRangeOverlay();
-        }
-      }
-    }
-
-    // Apply custom date range
-    function applyCustomRange() {
-      if (!validateDateRange()) return;
-
-      if (dateFromInput.value && dateToInput.value) {
-        state.customRange.from = dateFromInput.value;
-        state.customRange.to = dateToInput.value;
-        state.activeFilter = "custom";
-
-        updateButtonStates("custom");
-        updateCustomButtonLabel();
-
-        // Convert YYYY-MM-DD to ISO timestamps
-        var minDate = new Date(state.customRange.from).toISOString();
-        var maxDate = new Date(state.customRange.to + "T23:59:59").toISOString();
-
-        // Apply to charts
-        var charts = Object.values(chartInstances);
-        charts.forEach(function (chart) {
-          chart.options.scales.x.min = minDate;
-          chart.options.scales.x.max = maxDate;
-          chart.update("none");
-        });
-
-        // Check for empty range
-        if (checkEmptyRange(minDate, maxDate)) {
-          showEmptyRangeOverlay();
-        } else {
-          hideEmptyRangeOverlay();
+        if (unit === "integer") {
+          return Math.round(value).toLocaleString("en-US", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          });
         }
 
-        // Close popover
-        popover.classList.add("hidden");
-      }
-    }
+        if (unit === "bytes") {
+          var absValue = Math.abs(value);
+          var sign = value < 0 ? "-" : "";
 
-    // Set min/max constraints on date inputs
-    function setDateConstraints() {
-      if (chartsData.availableDateRange) {
-        dateFromInput.min = chartsData.availableDateRange.min;
-        dateFromInput.max = chartsData.availableDateRange.max;
-        dateToInput.min = chartsData.availableDateRange.min;
-        dateToInput.max = chartsData.availableDateRange.max;
-      }
-    }
-
-    // Smart default date range when opening popover
-    function setDefaultDateRange() {
-      if (state.activeFilter === "custom" && state.customRange.from) {
-        // Show current custom range
-        dateFromInput.value = state.customRange.from;
-        dateToInput.value = state.customRange.to;
-      } else if (state.activeFilter !== "all" && chartsData.timeline.length > 0) {
-        // Show current preset range
-        var filterDays = { "7d": 7, "30d": 30, "90d": 90 };
-        var days = filterDays[state.activeFilter];
-        var maxDate = chartsData.timeline[chartsData.timeline.length - 1];
-        var minDate = new Date(new Date(maxDate).getTime() - days * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0];
-        var maxDateFormatted = maxDate.split("T")[0];
-
-        dateFromInput.value = minDate;
-        dateToInput.value = maxDateFormatted;
-      } else if (chartsData.availableDateRange) {
-        // Show full available range
-        dateFromInput.value = chartsData.availableDateRange.min;
-        dateToInput.value = chartsData.availableDateRange.max;
-      }
-    }
-
-    // Event: Preset filter buttons (7d, 30d, 90d, All, Custom)
-    filterButtons.forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var filter = this.dataset.filter;
-
-        if (filter === "custom") {
-          // Toggle popover
-          var isHidden = popover.classList.contains("hidden");
-          popover.classList.toggle("hidden");
-
-          if (isHidden) {
-            setDefaultDateRange();
-            setDateConstraints();
+          if (absValue < 1024) {
+            return sign + Math.round(absValue) + " B";
           }
-        } else {
-          // Preset filter clicked
-          state.activeFilter = filter;
-          state.customRange = { from: null, to: null };
-
-          updateButtonStates(filter);
-          updateCustomButtonLabel();
-
-          // Close popover if open
-          popover.classList.add("hidden");
-
-          // Clear zoom state
-          clearZoomState();
-
-          // Apply preset filter
-          applyDateFilter(filter);
+          if (absValue < 1024 * 1024) {
+            var kb = absValue / 1024;
+            var decimals = kb % 1 === 0 ? 0 : 1;
+            return (
+              sign +
+              kb.toLocaleString("en-US", {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: 1,
+              }) +
+              " KB"
+            );
+          }
+          if (absValue < 1024 * 1024 * 1024) {
+            var mb = absValue / (1024 * 1024);
+            var decimals = mb % 1 === 0 ? 0 : 1;
+            return (
+              sign +
+              mb.toLocaleString("en-US", {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: 1,
+              }) +
+              " MB"
+            );
+          }
+          var gb = absValue / (1024 * 1024 * 1024);
+          var decimals = gb % 1 === 0 ? 0 : 1;
+          return (
+            sign +
+            gb.toLocaleString("en-US", {
+              minimumFractionDigits: decimals,
+              maximumFractionDigits: 1,
+            }) +
+            " GB"
+          );
         }
-      });
-    });
 
-    // Event: Date input changes - apply immediately
-    dateFromInput.addEventListener("change", applyCustomRange);
-    dateToInput.addEventListener("change", applyCustomRange);
+        if (unit === "duration") {
+          var absSeconds = Math.abs(value);
+          var sign = value < 0 ? "-" : "";
 
-    // Event: Clear button
-    clearBtn.addEventListener("click", function () {
-      state.customRange = { from: null, to: null };
-      state.activeFilter = "all";
-      dateFromInput.value = "";
-      dateToInput.value = "";
-      dateError.classList.add("hidden");
+          if (absSeconds < 1) {
+            var ms = Math.round(absSeconds * 1000);
+            return sign + ms + "ms";
+          }
+          if (absSeconds < 60) {
+            var rounded = Math.round(absSeconds);
+            return sign + rounded + "s";
+          }
+          if (absSeconds < 3600) {
+            var minutes = Math.floor(absSeconds / 60);
+            var secs = Math.round(absSeconds % 60);
+            return sign + minutes + "m " + secs + "s";
+          }
+          var hours = Math.floor(absSeconds / 3600);
+          var mins = Math.round((absSeconds % 3600) / 60);
+          return sign + hours + "h " + mins + "m";
+        }
 
-      updateButtonStates("all");
-      updateCustomButtonLabel();
-      popover.classList.add("hidden");
+        if (unit === "decimal") {
+          return value.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        }
 
-      // Clear zoom and filters
-      clearZoomState();
-      applyDateFilter("all");
-    });
-
-    // Event: Close popover when clicking outside
-    document.addEventListener("click", function (event) {
-      var isClickInsidePopover = popover.contains(event.target);
-      var isClickOnCustomBtn = customBtn.contains(event.target);
-
-      if (!isClickInsidePopover && !isClickOnCustomBtn && !popover.classList.contains("hidden")) {
-        popover.classList.add("hidden");
+        // Legacy unit support (e.g., "%", "KB", etc.)
+        return value.toFixed(2) + (unit ? unit : "");
       }
-    });
 
-    // Event: Listen for zoom-sync from crosshair plugin (Sprint 2 integration)
-    window.addEventListener("zoom-sync", function (event) {
-      if (!event.start || !event.end) return;
+      function createTimeSeriesTooltip(metricName, unit, timeline, metadata) {
+        return {
+          callbacks: {
+            title: function (items) {
+              if (!items.length) return "";
+              var date = new Date(timeline[items[0].dataIndex]);
+              return date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              });
+            },
+            label: function (ctx) {
+              if (ctx.raw === null || ctx.raw === undefined) {
+                return "No data recorded for this build";
+              }
+              var meta = metadata && metadata[ctx.dataIndex];
+              var formattedValue = formatChartValue(ctx.raw, unit);
+              var label = metricName + ": " + formattedValue;
+              if (meta) {
+                label += " (Build #" + meta.run + ", " + meta.sha + ")";
+              }
+              return label;
+            },
+          },
+        };
+      }
 
-      // Convert timestamps to YYYY-MM-DD
-      var fromDate = new Date(event.start).toISOString().split("T")[0];
-      var toDate = new Date(event.end).toISOString().split("T")[0];
+      function buildLineChart(chart, timeline, metadata) {
+        return {
+          type: "line",
+          data: {
+            labels: timeline,
+            datasets: [
+              {
+                label: chart.name,
+                data: chart.values,
+                borderColor: LINE_STYLE.borderColor,
+                backgroundColor: LINE_STYLE.backgroundColor,
+                tension: LINE_STYLE.tension,
+                fill: LINE_STYLE.fill,
+                pointRadius: LINE_STYLE.pointRadius,
+                pointHoverRadius: LINE_STYLE.pointHoverRadius,
+                spanGaps: LINE_STYLE.spanGaps,
+              },
+            ],
+          },
+          options: {
+            responsive: COMMON_OPTIONS.responsive,
+            maintainAspectRatio: COMMON_OPTIONS.maintainAspectRatio,
+            interaction: COMMON_OPTIONS.interaction,
+            plugins: {
+              legend: COMMON_OPTIONS.plugins.legend,
+              tooltip: createTimeSeriesTooltip(chart.name, chart.unit, timeline, metadata),
+              crosshair: COMMON_OPTIONS.plugins.crosshair,
+            },
+            scales: {
+              x: {
+                type: "time",
+                time: { unit: "day", displayFormats: { day: "MMM d" } },
+                title: { display: true, text: "Build Date" },
+              },
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: chart.name },
+              },
+            },
+          },
+        };
+      }
 
-      // Update state
-      state.activeFilter = "custom";
-      state.customRange = { from: fromDate, to: toDate };
+      function buildBarChart(chart) {
+        return {
+          type: "bar",
+          data: {
+            labels: chart.labels,
+            datasets: [
+              {
+                label: "Occurrences",
+                data: chart.counts,
+                backgroundColor: BAR_STYLE.backgroundColor,
+                borderColor: BAR_STYLE.borderColor,
+                borderWidth: BAR_STYLE.borderWidth,
+              },
+            ],
+          },
+          options: {
+            responsive: COMMON_OPTIONS.responsive,
+            maintainAspectRatio: COMMON_OPTIONS.maintainAspectRatio,
+            interaction: COMMON_OPTIONS.interaction,
+            plugins: {
+              legend: COMMON_OPTIONS.plugins.legend,
+              crosshair: { enabled: false },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 },
+                title: { display: true, text: "Count" },
+              },
+            },
+          },
+        };
+      }
 
-      // Update UI
-      updateButtonStates("custom");
-      updateCustomButtonLabel();
+      function initializeCharts(
+        timeline,
+        metadata,
+        lineCharts,
+        barCharts,
+        previewLineCharts,
+        previewBarCharts,
+        showToggle,
+        previewData
+      ) {
+        var chartInstances = {};
 
-      // Close popover if open
-      popover.classList.add("hidden");
-    });
+        // Register crosshair plugin globally with Chart.js
+        Chart.register(crosshairPlugin);
 
-    // Initialize
-    updateButtonStates("all");
-    updateCustomButtonLabel();
-  }
+        // Render REAL charts
+        lineCharts.forEach(function (chart) {
+          var ctx = document.getElementById("chart-" + chart.id);
+          if (ctx) {
+            var chartInstance = new Chart(ctx, buildLineChart(chart, timeline, metadata));
+            chartInstances[chart.id] = chartInstance;
+          }
+        });
 
-  // Expose globally
-  window.initializeDateFilters = initializeDateFilters;
-})();
-</script><script>
-    var __chartData = {
-      timeline: [],
-      metadata: [],
-      lineCharts: [{"id":"lines-of-code","name":"Lines of code","unit":"integer","values":[]},{"id":"lines-of-test-code","name":"Lines of test code","unit":"integer","values":[]},{"id":"test-coverage","name":"coverage","unit":"percent","values":[]},{"id":"total-bundle-size","name":"Actions bundle size","unit":"bytes","values":[]},{"id":"specs-size","name":"Specs size (lines)","unit":"integer","values":[]}],
-      barCharts: [],
-      previewLineCharts: [{"id":"lines-of-code-preview","name":"Lines of code","unit":"integer","values":[47.81,51.23,45.35,48.82,45.38,46.9,48.84,47.07,47.23,53.96,56.32,50.93,47.19,52.21,48.72,49.9,51.15,55.32,56.14,58.78]},{"id":"lines-of-test-code-preview","name":"Lines of test code","unit":"integer","values":[48.25,45.7,42.04,42.48,47.53,44.85,42.46,43.84,43.21,39.94,45.05,43.6,43.76,42.11,39.6,38.2,42.78,39.74,46.07,49.35]},{"id":"test-coverage-preview","name":"coverage","unit":"percent","values":[55.36,52.94,51.65,54.76,52.4,59.15,59.17,58.26,53.44,57.6,50.32,59.36,62.15,58.5,55.56,47.04,48.65,53.31,50.46,51.79]},{"id":"total-bundle-size-preview","name":"Actions bundle size","unit":"bytes","values":[50.3,55.01,57.33,56.12,51.93,49.28,48.55,45.69,46.83,49.93,54.35,51.69,61.71,54.49,56.38,52.56,53.81,51.99,52.43,51.73]},{"id":"specs-size-preview","name":"Specs size (lines)","unit":"integer","values":[44.68,47.65,42.94,44.03,42.25,46.41,39.26,48.68,49.67,58.52,58.45,56.65,54.9,53.28,47.83,47.6,48.18,47.45,40.15,47.84]}],
-      previewBarCharts: [],
-      showToggle: true,
-      previewData: [{"metricId":"lines-of-code","timestamps":["2026-03-29T10:12:49.315Z","2026-04-01T10:12:49.315Z","2026-04-04T10:12:49.315Z","2026-04-07T10:12:49.315Z","2026-04-10T10:12:49.315Z","2026-04-13T10:12:49.315Z","2026-04-16T10:12:49.315Z","2026-04-19T10:12:49.315Z","2026-04-22T10:12:49.315Z","2026-04-25T10:12:49.315Z","2026-04-28T10:12:49.315Z","2026-05-01T10:12:49.315Z","2026-05-04T10:12:49.315Z","2026-05-07T10:12:49.315Z","2026-05-10T10:12:49.315Z","2026-05-13T10:12:49.315Z","2026-05-16T10:12:49.315Z","2026-05-19T10:12:49.315Z","2026-05-22T10:12:49.315Z","2026-05-25T10:12:49.315Z"],"values":[47.81,51.23,45.35,48.82,45.38,46.9,48.84,47.07,47.23,53.96,56.32,50.93,47.19,52.21,48.72,49.9,51.15,55.32,56.14,58.78],"stats":{"latest":58.78,"min":45.35,"max":58.78,"average":50.4625,"trendDirection":"up","trendPercent":22.944990587743145}},{"metricId":"lines-of-test-code","timestamps":["2026-03-29T10:12:49.315Z","2026-04-01T10:12:49.315Z","2026-04-04T10:12:49.315Z","2026-04-07T10:12:49.315Z","2026-04-10T10:12:49.315Z","2026-04-13T10:12:49.315Z","2026-04-16T10:12:49.315Z","2026-04-19T10:12:49.315Z","2026-04-22T10:12:49.315Z","2026-04-25T10:12:49.315Z","2026-04-28T10:12:49.315Z","2026-05-01T10:12:49.315Z","2026-05-04T10:12:49.315Z","2026-05-07T10:12:49.315Z","2026-05-10T10:12:49.315Z","2026-05-13T10:12:49.315Z","2026-05-16T10:12:49.315Z","2026-05-19T10:12:49.315Z","2026-05-22T10:12:49.315Z","2026-05-25T10:12:49.315Z"],"values":[48.25,45.7,42.04,42.48,47.53,44.85,42.46,43.84,43.21,39.94,45.05,43.6,43.76,42.11,39.6,38.2,42.78,39.74,46.07,49.35],"stats":{"latest":49.35,"min":38.2,"max":49.35,"average":43.528000000000006,"trendDirection":"up","trendPercent":2.279792746113993}},{"metricId":"test-coverage","timestamps":["2026-03-29T10:12:49.315Z","2026-04-01T10:12:49.315Z","2026-04-04T10:12:49.315Z","2026-04-07T10:12:49.315Z","2026-04-10T10:12:49.315Z","2026-04-13T10:12:49.315Z","2026-04-16T10:12:49.315Z","2026-04-19T10:12:49.315Z","2026-04-22T10:12:49.315Z","2026-04-25T10:12:49.315Z","2026-04-28T10:12:49.315Z","2026-05-01T10:12:49.315Z","2026-05-04T10:12:49.315Z","2026-05-07T10:12:49.315Z","2026-05-10T10:12:49.315Z","2026-05-13T10:12:49.315Z","2026-05-16T10:12:49.315Z","2026-05-19T10:12:49.315Z","2026-05-22T10:12:49.315Z","2026-05-25T10:12:49.315Z"],"values":[55.36,52.94,51.65,54.76,52.4,59.15,59.17,58.26,53.44,57.6,50.32,59.36,62.15,58.5,55.56,47.04,48.65,53.31,50.46,51.79],"stats":{"latest":51.79,"min":47.04,"max":62.15,"average":54.59349999999999,"trendDirection":"down","trendPercent":-6.448699421965319}},{"metricId":"total-bundle-size","timestamps":["2026-03-29T10:12:49.315Z","2026-04-01T10:12:49.315Z","2026-04-04T10:12:49.315Z","2026-04-07T10:12:49.315Z","2026-04-10T10:12:49.315Z","2026-04-13T10:12:49.315Z","2026-04-16T10:12:49.315Z","2026-04-19T10:12:49.315Z","2026-04-22T10:12:49.315Z","2026-04-25T10:12:49.315Z","2026-04-28T10:12:49.315Z","2026-05-01T10:12:49.315Z","2026-05-04T10:12:49.315Z","2026-05-07T10:12:49.315Z","2026-05-10T10:12:49.315Z","2026-05-13T10:12:49.315Z","2026-05-16T10:12:49.315Z","2026-05-19T10:12:49.315Z","2026-05-22T10:12:49.315Z","2026-05-25T10:12:49.315Z"],"values":[50.3,55.01,57.33,56.12,51.93,49.28,48.55,45.69,46.83,49.93,54.35,51.69,61.71,54.49,56.38,52.56,53.81,51.99,52.43,51.73],"stats":{"latest":51.73,"min":45.69,"max":61.71,"average":52.60549999999999,"trendDirection":"up","trendPercent":2.842942345924453}},{"metricId":"specs-size","timestamps":["2026-03-29T10:12:49.315Z","2026-04-01T10:12:49.315Z","2026-04-04T10:12:49.315Z","2026-04-07T10:12:49.315Z","2026-04-10T10:12:49.315Z","2026-04-13T10:12:49.315Z","2026-04-16T10:12:49.315Z","2026-04-19T10:12:49.315Z","2026-04-22T10:12:49.315Z","2026-04-25T10:12:49.315Z","2026-04-28T10:12:49.315Z","2026-05-01T10:12:49.315Z","2026-05-04T10:12:49.315Z","2026-05-07T10:12:49.315Z","2026-05-10T10:12:49.315Z","2026-05-13T10:12:49.315Z","2026-05-16T10:12:49.315Z","2026-05-19T10:12:49.315Z","2026-05-22T10:12:49.315Z","2026-05-25T10:12:49.315Z"],"values":[44.68,47.65,42.94,44.03,42.25,46.41,39.26,48.68,49.67,58.52,58.45,56.65,54.9,53.28,47.83,47.6,48.18,47.45,40.15,47.84],"stats":{"latest":47.84,"min":39.26,"max":58.52,"average":48.321,"trendDirection":"up","trendPercent":7.072515666965093}}],
-      availableDateRange: undefined
-    };
-    var __chartInstances = initializeCharts(
-      __chartData.timeline, 
-      __chartData.metadata, 
-      __chartData.lineCharts, 
-      __chartData.barCharts,
-      __chartData.previewLineCharts,
-      __chartData.previewBarCharts,
-      __chartData.showToggle, 
-      __chartData.previewData
-    );
-    
-    // Initialize date filters after charts are created
-    if (typeof initializeDateFilters === 'function') {
-      initializeDateFilters(__chartData, __chartInstances);
-    }
-  </script></body></html>
+        barCharts.forEach(function (chart) {
+          var ctx = document.getElementById("chart-" + chart.id);
+          if (ctx) {
+            var chartInstance = new Chart(ctx, buildBarChart(chart));
+            chartInstances[chart.id] = chartInstance;
+          }
+        });
+
+        // Render PREVIEW charts (if toggle enabled)
+        if (showToggle) {
+          previewLineCharts.forEach(function (chart, index) {
+            var ctx = document.getElementById("chart-" + chart.id);
+            if (ctx) {
+              var previewTimeline = previewData[index]?.timestamps || timeline;
+              var chartInstance = new Chart(ctx, buildLineChart(chart, previewTimeline, null));
+              chartInstances[chart.id] = chartInstance;
+            }
+          });
+
+          previewBarCharts.forEach(function (chart) {
+            var ctx = document.getElementById("chart-" + chart.id);
+            if (ctx) {
+              var chartInstance = new Chart(ctx, buildBarChart(chart));
+              chartInstances[chart.id] = chartInstance;
+            }
+          });
+        }
+
+        // Toggle handler - pure CSS visibility toggle
+        var toggle = document.getElementById("preview-toggle");
+        if (toggle && showToggle) {
+          toggle.addEventListener("change", function (e) {
+            var showPreview = e.target.checked;
+
+            // Toggle visibility of metric cards
+            document.querySelectorAll('[data-view="real"]').forEach(function (el) {
+              el.classList.toggle("hidden", showPreview);
+              el.setAttribute("aria-hidden", showPreview ? "true" : "false");
+            });
+            document.querySelectorAll('[data-view="preview"]').forEach(function (el) {
+              el.classList.toggle("hidden", !showPreview);
+              el.setAttribute("aria-hidden", showPreview ? "false" : "true");
+            });
+          });
+        }
+
+        // Return chart instances for date filter integration
+        return chartInstances;
+      }
+    </script>
+    <script>
+      (function () {
+        function initializeDateFilters(chartsData, chartInstances) {
+          // State
+          var state = {
+            activeFilter: "all",
+            customRange: { from: null, to: null },
+          };
+
+          // Elements
+          var customBtn = document.getElementById("custom-filter-btn");
+          var customLabel = document.getElementById("custom-filter-label");
+          var popover = document.getElementById("custom-date-popover");
+          var dateFromInput = document.getElementById("date-from");
+          var dateToInput = document.getElementById("date-to");
+          var clearBtn = document.getElementById("clear-custom-date");
+          var dateError = document.getElementById("date-error");
+          var filterButtons = document.querySelectorAll("[data-filter]");
+
+          // Helper: Update button states
+          function updateButtonStates(active) {
+            filterButtons.forEach(function (btn) {
+              var isActive = btn.dataset.filter === active;
+              if (isActive) {
+                btn.classList.remove(
+                  "bg-gray-200",
+                  "dark:bg-gray-700",
+                  "text-gray-700",
+                  "dark:text-gray-300"
+                );
+                btn.classList.add("bg-blue-600", "text-white");
+              } else {
+                btn.classList.remove("bg-blue-600", "text-white");
+                btn.classList.add(
+                  "bg-gray-200",
+                  "dark:bg-gray-700",
+                  "text-gray-700",
+                  "dark:text-gray-300"
+                );
+              }
+            });
+          }
+
+          // Helper: Update custom button label
+          function updateCustomButtonLabel() {
+            if (state.activeFilter === "custom" && state.customRange.from && state.customRange.to) {
+              customLabel.textContent = state.customRange.from + " – " + state.customRange.to;
+            } else {
+              customLabel.textContent = "Custom";
+            }
+          }
+
+          // Helper: Validate date range
+          function validateDateRange() {
+            if (!dateFromInput.value || !dateToInput.value) {
+              dateError.classList.add("hidden");
+              return true;
+            }
+
+            var from = new Date(dateFromInput.value);
+            var to = new Date(dateToInput.value);
+
+            if (from > to) {
+              dateError.classList.remove("hidden");
+              return false;
+            }
+
+            dateError.classList.add("hidden");
+            return true;
+          }
+
+          // Helper: Clear zoom state from crosshair plugin
+          function clearZoomState() {
+            var charts = Object.values(chartInstances);
+            charts.forEach(function (chart) {
+              if (chart.crosshair && chart.crosshair.originalXRange) {
+                chart.crosshair.originalXRange = {};
+              }
+            });
+          }
+
+          // Helper: Check if date range is empty (no visible data)
+          function checkEmptyRange(minDate, maxDate) {
+            if (!chartsData.timeline || chartsData.timeline.length === 0) {
+              return true;
+            }
+
+            var hasVisibleData = chartsData.timeline.some(function (timestamp) {
+              var date = new Date(timestamp);
+              var min = new Date(minDate);
+              var max = new Date(maxDate);
+              return date >= min && date <= max;
+            });
+
+            return !hasVisibleData;
+          }
+
+          // Helper: Show "No data in selected range" overlay on charts
+          function showEmptyRangeOverlay() {
+            var chartContainers = document.querySelectorAll(".chart-container");
+            chartContainers.forEach(function (container) {
+              var existingOverlay = container.querySelector(".empty-range-overlay");
+              if (existingOverlay) return;
+
+              var overlay = document.createElement("div");
+              overlay.className =
+                "empty-range-overlay absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-900 bg-opacity-90 dark:bg-opacity-90 z-10";
+              overlay.innerHTML =
+                '<p class="text-gray-500 dark:text-gray-400 text-sm">No data in selected range</p>';
+              container.style.position = "relative";
+              container.appendChild(overlay);
+            });
+          }
+
+          // Helper: Hide empty range overlay
+          function hideEmptyRangeOverlay() {
+            var overlays = document.querySelectorAll(".empty-range-overlay");
+            overlays.forEach(function (overlay) {
+              overlay.remove();
+            });
+          }
+
+          // Apply preset date filter (7d/30d/90d/All)
+          function applyDateFilter(filterType) {
+            var charts = Object.values(chartInstances);
+
+            if (filterType === "all") {
+              // Clear all filters
+              charts.forEach(function (chart) {
+                delete chart.options.scales.x.min;
+                delete chart.options.scales.x.max;
+                chart.update("none");
+              });
+              hideEmptyRangeOverlay();
+            } else {
+              // Calculate date range relative to most recent build
+              var filterDays = { "7d": 7, "30d": 30, "90d": 90 };
+              var days = filterDays[filterType];
+              var maxDate =
+                chartsData.timeline[chartsData.timeline.length - 1] || new Date().toISOString();
+              var minDate = new Date(
+                new Date(maxDate).getTime() - days * 24 * 60 * 60 * 1000
+              ).toISOString();
+
+              // Apply filter to all charts
+              charts.forEach(function (chart) {
+                chart.options.scales.x.min = minDate;
+                chart.options.scales.x.max = maxDate;
+                chart.update("none");
+              });
+
+              // Check for empty range
+              if (checkEmptyRange(minDate, maxDate)) {
+                showEmptyRangeOverlay();
+              } else {
+                hideEmptyRangeOverlay();
+              }
+            }
+          }
+
+          // Apply custom date range
+          function applyCustomRange() {
+            if (!validateDateRange()) return;
+
+            if (dateFromInput.value && dateToInput.value) {
+              state.customRange.from = dateFromInput.value;
+              state.customRange.to = dateToInput.value;
+              state.activeFilter = "custom";
+
+              updateButtonStates("custom");
+              updateCustomButtonLabel();
+
+              // Convert YYYY-MM-DD to ISO timestamps
+              var minDate = new Date(state.customRange.from).toISOString();
+              var maxDate = new Date(state.customRange.to + "T23:59:59").toISOString();
+
+              // Apply to charts
+              var charts = Object.values(chartInstances);
+              charts.forEach(function (chart) {
+                chart.options.scales.x.min = minDate;
+                chart.options.scales.x.max = maxDate;
+                chart.update("none");
+              });
+
+              // Check for empty range
+              if (checkEmptyRange(minDate, maxDate)) {
+                showEmptyRangeOverlay();
+              } else {
+                hideEmptyRangeOverlay();
+              }
+
+              // Close popover
+              popover.classList.add("hidden");
+            }
+          }
+
+          // Set min/max constraints on date inputs
+          function setDateConstraints() {
+            if (chartsData.availableDateRange) {
+              dateFromInput.min = chartsData.availableDateRange.min;
+              dateFromInput.max = chartsData.availableDateRange.max;
+              dateToInput.min = chartsData.availableDateRange.min;
+              dateToInput.max = chartsData.availableDateRange.max;
+            }
+          }
+
+          // Smart default date range when opening popover
+          function setDefaultDateRange() {
+            if (state.activeFilter === "custom" && state.customRange.from) {
+              // Show current custom range
+              dateFromInput.value = state.customRange.from;
+              dateToInput.value = state.customRange.to;
+            } else if (state.activeFilter !== "all" && chartsData.timeline.length > 0) {
+              // Show current preset range
+              var filterDays = { "7d": 7, "30d": 30, "90d": 90 };
+              var days = filterDays[state.activeFilter];
+              var maxDate = chartsData.timeline[chartsData.timeline.length - 1];
+              var minDate = new Date(new Date(maxDate).getTime() - days * 24 * 60 * 60 * 1000)
+                .toISOString()
+                .split("T")[0];
+              var maxDateFormatted = maxDate.split("T")[0];
+
+              dateFromInput.value = minDate;
+              dateToInput.value = maxDateFormatted;
+            } else if (chartsData.availableDateRange) {
+              // Show full available range
+              dateFromInput.value = chartsData.availableDateRange.min;
+              dateToInput.value = chartsData.availableDateRange.max;
+            }
+          }
+
+          // Event: Preset filter buttons (7d, 30d, 90d, All, Custom)
+          filterButtons.forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              var filter = this.dataset.filter;
+
+              if (filter === "custom") {
+                // Toggle popover
+                var isHidden = popover.classList.contains("hidden");
+                popover.classList.toggle("hidden");
+
+                if (isHidden) {
+                  setDefaultDateRange();
+                  setDateConstraints();
+                }
+              } else {
+                // Preset filter clicked
+                state.activeFilter = filter;
+                state.customRange = { from: null, to: null };
+
+                updateButtonStates(filter);
+                updateCustomButtonLabel();
+
+                // Close popover if open
+                popover.classList.add("hidden");
+
+                // Clear zoom state
+                clearZoomState();
+
+                // Apply preset filter
+                applyDateFilter(filter);
+              }
+            });
+          });
+
+          // Event: Date input changes - apply immediately
+          dateFromInput.addEventListener("change", applyCustomRange);
+          dateToInput.addEventListener("change", applyCustomRange);
+
+          // Event: Clear button
+          clearBtn.addEventListener("click", function () {
+            state.customRange = { from: null, to: null };
+            state.activeFilter = "all";
+            dateFromInput.value = "";
+            dateToInput.value = "";
+            dateError.classList.add("hidden");
+
+            updateButtonStates("all");
+            updateCustomButtonLabel();
+            popover.classList.add("hidden");
+
+            // Clear zoom and filters
+            clearZoomState();
+            applyDateFilter("all");
+          });
+
+          // Event: Close popover when clicking outside
+          document.addEventListener("click", function (event) {
+            var isClickInsidePopover = popover.contains(event.target);
+            var isClickOnCustomBtn = customBtn.contains(event.target);
+
+            if (
+              !isClickInsidePopover &&
+              !isClickOnCustomBtn &&
+              !popover.classList.contains("hidden")
+            ) {
+              popover.classList.add("hidden");
+            }
+          });
+
+          // Event: Listen for zoom-sync from crosshair plugin (Sprint 2 integration)
+          window.addEventListener("zoom-sync", function (event) {
+            if (!event.start || !event.end) return;
+
+            // Convert timestamps to YYYY-MM-DD
+            var fromDate = new Date(event.start).toISOString().split("T")[0];
+            var toDate = new Date(event.end).toISOString().split("T")[0];
+
+            // Update state
+            state.activeFilter = "custom";
+            state.customRange = { from: fromDate, to: toDate };
+
+            // Update UI
+            updateButtonStates("custom");
+            updateCustomButtonLabel();
+
+            // Close popover if open
+            popover.classList.add("hidden");
+          });
+
+          // Initialize
+          updateButtonStates("all");
+          updateCustomButtonLabel();
+        }
+
+        // Expose globally
+        window.initializeDateFilters = initializeDateFilters;
+      })();
+    </script>
+    <script>
+      var __chartData = {
+        timeline: [],
+        metadata: [],
+        lineCharts: [
+          { id: "lines-of-code", name: "Lines of code", unit: "integer", values: [] },
+          { id: "lines-of-test-code", name: "Lines of test code", unit: "integer", values: [] },
+          { id: "test-coverage", name: "coverage", unit: "percent", values: [] },
+          { id: "total-bundle-size", name: "Actions bundle size", unit: "bytes", values: [] },
+          { id: "specs-size", name: "Specs size (lines)", unit: "integer", values: [] },
+        ],
+        barCharts: [],
+        previewLineCharts: [
+          {
+            id: "lines-of-code-preview",
+            name: "Lines of code",
+            unit: "integer",
+            values: [
+              47.81, 51.23, 45.35, 48.82, 45.38, 46.9, 48.84, 47.07, 47.23, 53.96, 56.32, 50.93,
+              47.19, 52.21, 48.72, 49.9, 51.15, 55.32, 56.14, 58.78,
+            ],
+          },
+          {
+            id: "lines-of-test-code-preview",
+            name: "Lines of test code",
+            unit: "integer",
+            values: [
+              48.25, 45.7, 42.04, 42.48, 47.53, 44.85, 42.46, 43.84, 43.21, 39.94, 45.05, 43.6,
+              43.76, 42.11, 39.6, 38.2, 42.78, 39.74, 46.07, 49.35,
+            ],
+          },
+          {
+            id: "test-coverage-preview",
+            name: "coverage",
+            unit: "percent",
+            values: [
+              55.36, 52.94, 51.65, 54.76, 52.4, 59.15, 59.17, 58.26, 53.44, 57.6, 50.32, 59.36,
+              62.15, 58.5, 55.56, 47.04, 48.65, 53.31, 50.46, 51.79,
+            ],
+          },
+          {
+            id: "total-bundle-size-preview",
+            name: "Actions bundle size",
+            unit: "bytes",
+            values: [
+              50.3, 55.01, 57.33, 56.12, 51.93, 49.28, 48.55, 45.69, 46.83, 49.93, 54.35, 51.69,
+              61.71, 54.49, 56.38, 52.56, 53.81, 51.99, 52.43, 51.73,
+            ],
+          },
+          {
+            id: "specs-size-preview",
+            name: "Specs size (lines)",
+            unit: "integer",
+            values: [
+              44.68, 47.65, 42.94, 44.03, 42.25, 46.41, 39.26, 48.68, 49.67, 58.52, 58.45, 56.65,
+              54.9, 53.28, 47.83, 47.6, 48.18, 47.45, 40.15, 47.84,
+            ],
+          },
+        ],
+        previewBarCharts: [],
+        showToggle: true,
+        previewData: [
+          {
+            metricId: "lines-of-code",
+            timestamps: [
+              "2026-03-29T10:12:49.315Z",
+              "2026-04-01T10:12:49.315Z",
+              "2026-04-04T10:12:49.315Z",
+              "2026-04-07T10:12:49.315Z",
+              "2026-04-10T10:12:49.315Z",
+              "2026-04-13T10:12:49.315Z",
+              "2026-04-16T10:12:49.315Z",
+              "2026-04-19T10:12:49.315Z",
+              "2026-04-22T10:12:49.315Z",
+              "2026-04-25T10:12:49.315Z",
+              "2026-04-28T10:12:49.315Z",
+              "2026-05-01T10:12:49.315Z",
+              "2026-05-04T10:12:49.315Z",
+              "2026-05-07T10:12:49.315Z",
+              "2026-05-10T10:12:49.315Z",
+              "2026-05-13T10:12:49.315Z",
+              "2026-05-16T10:12:49.315Z",
+              "2026-05-19T10:12:49.315Z",
+              "2026-05-22T10:12:49.315Z",
+              "2026-05-25T10:12:49.315Z",
+            ],
+            values: [
+              47.81, 51.23, 45.35, 48.82, 45.38, 46.9, 48.84, 47.07, 47.23, 53.96, 56.32, 50.93,
+              47.19, 52.21, 48.72, 49.9, 51.15, 55.32, 56.14, 58.78,
+            ],
+            stats: {
+              latest: 58.78,
+              min: 45.35,
+              max: 58.78,
+              average: 50.4625,
+              trendDirection: "up",
+              trendPercent: 22.944990587743145,
+            },
+          },
+          {
+            metricId: "lines-of-test-code",
+            timestamps: [
+              "2026-03-29T10:12:49.315Z",
+              "2026-04-01T10:12:49.315Z",
+              "2026-04-04T10:12:49.315Z",
+              "2026-04-07T10:12:49.315Z",
+              "2026-04-10T10:12:49.315Z",
+              "2026-04-13T10:12:49.315Z",
+              "2026-04-16T10:12:49.315Z",
+              "2026-04-19T10:12:49.315Z",
+              "2026-04-22T10:12:49.315Z",
+              "2026-04-25T10:12:49.315Z",
+              "2026-04-28T10:12:49.315Z",
+              "2026-05-01T10:12:49.315Z",
+              "2026-05-04T10:12:49.315Z",
+              "2026-05-07T10:12:49.315Z",
+              "2026-05-10T10:12:49.315Z",
+              "2026-05-13T10:12:49.315Z",
+              "2026-05-16T10:12:49.315Z",
+              "2026-05-19T10:12:49.315Z",
+              "2026-05-22T10:12:49.315Z",
+              "2026-05-25T10:12:49.315Z",
+            ],
+            values: [
+              48.25, 45.7, 42.04, 42.48, 47.53, 44.85, 42.46, 43.84, 43.21, 39.94, 45.05, 43.6,
+              43.76, 42.11, 39.6, 38.2, 42.78, 39.74, 46.07, 49.35,
+            ],
+            stats: {
+              latest: 49.35,
+              min: 38.2,
+              max: 49.35,
+              average: 43.528000000000006,
+              trendDirection: "up",
+              trendPercent: 2.279792746113993,
+            },
+          },
+          {
+            metricId: "test-coverage",
+            timestamps: [
+              "2026-03-29T10:12:49.315Z",
+              "2026-04-01T10:12:49.315Z",
+              "2026-04-04T10:12:49.315Z",
+              "2026-04-07T10:12:49.315Z",
+              "2026-04-10T10:12:49.315Z",
+              "2026-04-13T10:12:49.315Z",
+              "2026-04-16T10:12:49.315Z",
+              "2026-04-19T10:12:49.315Z",
+              "2026-04-22T10:12:49.315Z",
+              "2026-04-25T10:12:49.315Z",
+              "2026-04-28T10:12:49.315Z",
+              "2026-05-01T10:12:49.315Z",
+              "2026-05-04T10:12:49.315Z",
+              "2026-05-07T10:12:49.315Z",
+              "2026-05-10T10:12:49.315Z",
+              "2026-05-13T10:12:49.315Z",
+              "2026-05-16T10:12:49.315Z",
+              "2026-05-19T10:12:49.315Z",
+              "2026-05-22T10:12:49.315Z",
+              "2026-05-25T10:12:49.315Z",
+            ],
+            values: [
+              55.36, 52.94, 51.65, 54.76, 52.4, 59.15, 59.17, 58.26, 53.44, 57.6, 50.32, 59.36,
+              62.15, 58.5, 55.56, 47.04, 48.65, 53.31, 50.46, 51.79,
+            ],
+            stats: {
+              latest: 51.79,
+              min: 47.04,
+              max: 62.15,
+              average: 54.59349999999999,
+              trendDirection: "down",
+              trendPercent: -6.448699421965319,
+            },
+          },
+          {
+            metricId: "total-bundle-size",
+            timestamps: [
+              "2026-03-29T10:12:49.315Z",
+              "2026-04-01T10:12:49.315Z",
+              "2026-04-04T10:12:49.315Z",
+              "2026-04-07T10:12:49.315Z",
+              "2026-04-10T10:12:49.315Z",
+              "2026-04-13T10:12:49.315Z",
+              "2026-04-16T10:12:49.315Z",
+              "2026-04-19T10:12:49.315Z",
+              "2026-04-22T10:12:49.315Z",
+              "2026-04-25T10:12:49.315Z",
+              "2026-04-28T10:12:49.315Z",
+              "2026-05-01T10:12:49.315Z",
+              "2026-05-04T10:12:49.315Z",
+              "2026-05-07T10:12:49.315Z",
+              "2026-05-10T10:12:49.315Z",
+              "2026-05-13T10:12:49.315Z",
+              "2026-05-16T10:12:49.315Z",
+              "2026-05-19T10:12:49.315Z",
+              "2026-05-22T10:12:49.315Z",
+              "2026-05-25T10:12:49.315Z",
+            ],
+            values: [
+              50.3, 55.01, 57.33, 56.12, 51.93, 49.28, 48.55, 45.69, 46.83, 49.93, 54.35, 51.69,
+              61.71, 54.49, 56.38, 52.56, 53.81, 51.99, 52.43, 51.73,
+            ],
+            stats: {
+              latest: 51.73,
+              min: 45.69,
+              max: 61.71,
+              average: 52.60549999999999,
+              trendDirection: "up",
+              trendPercent: 2.842942345924453,
+            },
+          },
+          {
+            metricId: "specs-size",
+            timestamps: [
+              "2026-03-29T10:12:49.315Z",
+              "2026-04-01T10:12:49.315Z",
+              "2026-04-04T10:12:49.315Z",
+              "2026-04-07T10:12:49.315Z",
+              "2026-04-10T10:12:49.315Z",
+              "2026-04-13T10:12:49.315Z",
+              "2026-04-16T10:12:49.315Z",
+              "2026-04-19T10:12:49.315Z",
+              "2026-04-22T10:12:49.315Z",
+              "2026-04-25T10:12:49.315Z",
+              "2026-04-28T10:12:49.315Z",
+              "2026-05-01T10:12:49.315Z",
+              "2026-05-04T10:12:49.315Z",
+              "2026-05-07T10:12:49.315Z",
+              "2026-05-10T10:12:49.315Z",
+              "2026-05-13T10:12:49.315Z",
+              "2026-05-16T10:12:49.315Z",
+              "2026-05-19T10:12:49.315Z",
+              "2026-05-22T10:12:49.315Z",
+              "2026-05-25T10:12:49.315Z",
+            ],
+            values: [
+              44.68, 47.65, 42.94, 44.03, 42.25, 46.41, 39.26, 48.68, 49.67, 58.52, 58.45, 56.65,
+              54.9, 53.28, 47.83, 47.6, 48.18, 47.45, 40.15, 47.84,
+            ],
+            stats: {
+              latest: 47.84,
+              min: 39.26,
+              max: 58.52,
+              average: 48.321,
+              trendDirection: "up",
+              trendPercent: 7.072515666965093,
+            },
+          },
+        ],
+        availableDateRange: undefined,
+      };
+      var __chartInstances = initializeCharts(
+        __chartData.timeline,
+        __chartData.metadata,
+        __chartData.lineCharts,
+        __chartData.barCharts,
+        __chartData.previewLineCharts,
+        __chartData.previewBarCharts,
+        __chartData.showToggle,
+        __chartData.previewData
+      );
+
+      // Initialize date filters after charts are created
+      if (typeof initializeDateFilters === "function") {
+        initializeDateFilters(__chartData, __chartInstances);
+      }
+    </script>
+  </body>
+</html>
