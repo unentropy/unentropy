@@ -359,7 +359,11 @@ function buildMultiMetricLineChart(chartConfig, lineChartsData, timeline, metada
       maintainAspectRatio: COMMON_OPTIONS.maintainAspectRatio,
       interaction: COMMON_OPTIONS.interaction,
       plugins: {
-        legend: { display: true, position: "top" },
+        legend: {
+          display: true,
+          position: "top",
+          labels: { boxWidth: 20, boxHeight: 3, font: { size: 11 } },
+        },
         tooltip: createTimeSeriesTooltip(chartConfig.title, null, timeline, metadata, true),
         crosshair: COMMON_OPTIONS.plugins.crosshair,
       },

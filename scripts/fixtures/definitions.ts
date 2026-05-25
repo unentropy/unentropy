@@ -78,18 +78,43 @@ const FULL_FEATURED_METRICS: MetricGenerator[] = [
       ["TypeScript", "JavaScript", "TypeScript", "TypeScript", "Python"][i % 5] || "TypeScript",
   },
   {
-    id: "api-response-time",
-    name: "API Response Time",
+    id: "lines-of-code-typescript",
+    name: "TypeScript LOC",
     type: "numeric",
-    description: "Average API response time (sparse data - only collected on some builds)",
-    unit: "duration",
+    description: "Lines of TypeScript/TSX source code",
+    unit: "integer",
     valueGenerator: (i) => {
-      const sparseBuilds = [0, 1, 2, 3, 7, 8, 9, 10, 14, 15, 16, 17, 21, 22, 23, 24];
-      if (!sparseBuilds.includes(i)) return null;
-      const baseline = 0.12;
-      const oscillation = Math.sin(i * 0.7) * 0.015;
-      const spike = i % 9 === 3 ? 0.04 : 0;
-      return Math.round((baseline + oscillation + spike) * 1000) / 1000;
+      const base = 3000;
+      const growth = i * 380;
+      const oscillation = Math.sin(i * 0.4) * 120;
+      return Math.round(base + growth + oscillation);
+    },
+  },
+  {
+    id: "lines-of-code-go",
+    name: "Go LOC",
+    type: "numeric",
+    description: "Lines of Go source code",
+    unit: "integer",
+    valueGenerator: (i) => {
+      const base = 500;
+      const growth = i * 85;
+      const oscillation = Math.cos(i * 0.7) * 40;
+      return Math.round(base + growth + oscillation);
+    },
+  },
+  {
+    id: "linter-violations",
+    name: "Linter Violations",
+    type: "numeric",
+    description: "Number of active linter warnings and errors",
+    unit: "integer",
+    valueGenerator: (i) => {
+      const start = 200;
+      const end = 2;
+      const decay = Math.exp(-i * 0.15);
+      const noise = Math.sin(i * 0.8) * 5;
+      return Math.max(0, Math.round(start * decay + noise + end));
     },
   },
 ];
@@ -136,7 +161,11 @@ export const FIXTURES: Record<string, FixtureConfig> = {
           charts: [
             { metrics: "test-coverage" },
             { metrics: "bundle-size" },
-            { metrics: "api-response-time" },
+            {
+              metrics: ["lines-of-code-typescript", "lines-of-code-go"],
+              title: "Lines of Code by Language",
+            },
+            { metrics: "linter-violations" },
           ],
         },
         {
