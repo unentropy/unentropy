@@ -79,12 +79,12 @@ export async function generateEmptyReport(
       latest: null,
       min: null,
       max: null,
-      average: 50,
+      average: null,
       trendDirection: null,
       trendPercent: null,
     } as const;
 
-    const syntheticValues = generateSyntheticData(chart.name, defaultStats, chart.unit);
+    const syntheticValues = generateSyntheticData(chart.name, defaultStats, chart.unit, chart.id);
     const syntheticStats = calculateSyntheticStats(syntheticValues);
 
     return {

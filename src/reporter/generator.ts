@@ -267,7 +267,12 @@ export function generateReport(
     previewData = metrics
       .filter((m) => m.chartType === "line")
       .map((metric) => {
-        const syntheticValues = generateSyntheticData(metric.name, metric.stats, metric.unit);
+        const syntheticValues = generateSyntheticData(
+          metric.name,
+          metric.stats,
+          metric.unit,
+          metric.id
+        );
         const syntheticStats = calculateSyntheticStats(syntheticValues);
 
         return {

@@ -38,7 +38,15 @@ const FULL_FEATURED_METRICS: MetricGenerator[] = [
     type: "numeric",
     description: "Percentage of code covered by tests",
     unit: "percent",
-    valueGenerator: (i) => 75 + Math.sin(i * 0.3) * 10 + i * 0.4,
+    valueGenerator: (i) => {
+      const asymptote = 85;
+      const start = 55;
+      const rate = 0.08;
+      const noise = Math.sin(i * 0.5) * 2;
+      return (
+        Math.round((start + (asymptote - start) * (1 - Math.exp(-i * rate)) + noise) * 10) / 10
+      );
+    },
   },
   {
     id: "bundle-size",
@@ -46,7 +54,13 @@ const FULL_FEATURED_METRICS: MetricGenerator[] = [
     type: "numeric",
     description: "JavaScript bundle size in KB",
     unit: "bytes",
-    valueGenerator: (i) => (250 - Math.cos(i * 0.2) * 20 - i * 0.5) * 1024,
+    valueGenerator: (i) => {
+      const base = 180;
+      const growth = i * 1.8;
+      const oscillation = Math.sin(i * 0.3) * 10;
+      const drop = i > 5 && i % 6 === 2 ? -25 : 0;
+      return Math.round(base + growth + oscillation + drop) * 1024;
+    },
   },
   {
     id: "build-status",
@@ -72,7 +86,10 @@ const FULL_FEATURED_METRICS: MetricGenerator[] = [
     valueGenerator: (i) => {
       const sparseBuilds = [0, 1, 2, 3, 7, 8, 9, 10, 14, 15, 16, 17, 21, 22, 23, 24];
       if (!sparseBuilds.includes(i)) return null;
-      return (140 - i * 1.2 + Math.sin(i * 0.5) * 8) / 1000;
+      const baseline = 0.12;
+      const oscillation = Math.sin(i * 0.7) * 0.015;
+      const spike = i % 9 === 3 ? 0.04 : 0;
+      return Math.round((baseline + oscillation + spike) * 1000) / 1000;
     },
   },
 ];
@@ -179,6 +196,14 @@ export const FIXTURES: Record<string, FixtureConfig> = {
         valueGenerator: () => 250 * 1024,
       },
       {
+        id: "lines-of-code",
+        name: "Lines of Code",
+        type: "numeric",
+        description: "Total lines of TypeScript/TSX code",
+        unit: "integer",
+        valueGenerator: () => 5000,
+      },
+      {
         id: "build-status",
         name: "Build Status",
         type: "label",
@@ -274,7 +299,7 @@ export const FIXTURES: Record<string, FixtureConfig> = {
         type: "numeric",
         description: "Lines of TypeScript code",
         unit: "integer",
-        valueGenerator: (i) => 1200 + i * 15 + Math.sin(i * 0.4) * 50,
+        valueGenerator: (i) => Math.round(4500 + i * 20 + Math.sin(i * 0.4) * 80),
       },
       {
         id: "javascript-loc",
@@ -282,7 +307,7 @@ export const FIXTURES: Record<string, FixtureConfig> = {
         type: "numeric",
         description: "Lines of JavaScript code",
         unit: "integer",
-        valueGenerator: (i) => 800 - i * 8 + Math.cos(i * 0.3) * 30,
+        valueGenerator: (i) => Math.round(800 - i * 8 + Math.cos(i * 0.3) * 30),
       },
       {
         id: "css-loc",
@@ -290,7 +315,7 @@ export const FIXTURES: Record<string, FixtureConfig> = {
         type: "numeric",
         description: "Lines of CSS code",
         unit: "integer",
-        valueGenerator: (i) => 400 + i * 3 + Math.sin(i * 0.2) * 20,
+        valueGenerator: (i) => Math.round(400 + i * 3 + Math.sin(i * 0.2) * 20),
       },
       {
         id: "bundle-size",
@@ -298,7 +323,7 @@ export const FIXTURES: Record<string, FixtureConfig> = {
         type: "numeric",
         description: "Production bundle size",
         unit: "bytes",
-        valueGenerator: (i) => (180 + i * 2 + Math.sin(i * 0.15) * 10) * 1024,
+        valueGenerator: (i) => Math.round((180 + i * 2 + Math.sin(i * 0.15) * 10) * 1024),
       },
       {
         id: "test-coverage",
@@ -314,7 +339,12 @@ export const FIXTURES: Record<string, FixtureConfig> = {
         type: "numeric",
         description: "Average API response time in seconds",
         unit: "duration",
-        valueGenerator: (i) => (120 - i * 1.5 + Math.sin(i * 0.5) * 8) / 1000,
+        valueGenerator: (i) => {
+          const baseline = 0.095;
+          const oscillation = Math.sin(i * 0.6) * 0.012;
+          const spike = i % 7 === 2 ? 0.035 : 0;
+          return Math.round((baseline + oscillation + spike) * 1000) / 1000;
+        },
       },
       {
         id: "heap-usage",
