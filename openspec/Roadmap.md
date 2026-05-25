@@ -46,22 +46,26 @@
 - [x] Inline LOC calculation
 - [x] Support for Clover coverage format
 - [x] Merging XML coverage reports
+- [x] Metric groups
+  - [ ] Separate crosshair and timeline per section
 - [ ] Public config schema
 - [ ] Non-trackable metrics (affecting quality gate only)
-- [ ] Configurable "Main branch"
 - [ ] Allow replacing existing build context
-- [ ] Cleanup database structure
-  - Simplify objects used for data retrieval
-  - Q: do we need the "metric_definitions" table at all?
-- [ ] Collecting metrics from JSON files
+- [x] Themes
+
 
 ## 0.5 - Alpha
 
 - [ ] Importing metric history
+- [ ] Defining sources (whitelist/blacklist)
+- [ ] Configurable "Main branch"
 - [ ] Collectors and metrics gallery / showcase / examples
 - [ ] Support for more robust, cloud databases (Postgres, MySQL, ...)
 - [ ] Improve graph performance for large datasets
 - [ ] Minify JS chart code
+- [ ] Cleanup database structure
+  - Simplify objects used for data retrieval
+  - Q: do we need the "metric_definitions" table at all?
 
 ## TBD
 

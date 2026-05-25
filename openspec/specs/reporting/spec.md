@@ -3,7 +3,6 @@
 ## Purpose
 
 Generate interactive HTML metric reports with charts, synchronized crosshair tooltips, drag-to-zoom, preset and custom date range filtering, preview data toggle, and chart PNG export.
-
 ## Requirements
 ### Requirement: Report Structure
 The system SHALL generate a self-contained HTML report with a header, metric sections in a responsive grid, summary statistics per metric, and a footer.
@@ -29,14 +28,37 @@ The system SHALL generate a self-contained HTML report with a header, metric sec
 
 ---
 
+### Requirement: Optional Report Configuration
+The system SHALL accept an optional `report` configuration object and use it to control report generation. When absent, the system SHALL behave exactly as before.
+
+#### Scenario: Report configuration present
+- **GIVEN** a `unentropy.json` with a `report` configuration block defining sections and charts
+- **WHEN** the report is generated
+- **THEN** the report follows the configured layout with sections and multi-metric charts
+
+#### Scenario: No report configuration
+- **GIVEN** a `unentropy.json` without a `report` configuration block
+- **WHEN** the report is generated
+- **THEN** the report uses the default flat layout with all metrics in a single grid
+- **THEN** the report behavior is identical to pre-change behavior
+
+---
+
 ### Requirement: Chart Types
-The system SHALL render numeric metrics as line charts with smooth curves and filled area, and label metrics as bar charts showing occurrence counts.
+The system SHALL render numeric metrics as line charts with smooth curves and filled area, and label metrics as bar charts showing occurrence counts. The system SHALL additionally support multi-metric line charts where multiple numeric metrics are plotted as distinct series on a single chart.
 
 #### Scenario: Numeric metric line chart
 - **GIVEN** a metric with numeric values
 - **WHEN** the report is generated
 - **THEN** the metric is displayed as a line chart with a smooth curve and filled area under the line
 - **THEN** axes are clearly labeled (X-axis: build date, Y-axis: metric value)
+
+#### Scenario: Multi-metric line chart
+- **GIVEN** a chart configuration referencing two numeric metrics
+- **WHEN** the report is generated
+- **THEN** both metrics are rendered as separate lines on the same chart
+- **THEN** each line has a distinct color
+- **THEN** a legend identifies each metric
 
 #### Scenario: Label metric bar chart
 - **GIVEN** a metric with label values
@@ -302,17 +324,44 @@ The report SHALL render correctly on mobile (320px+), tablet (640px+), and deskt
 ---
 
 ### Requirement: Dark Mode
-The report SHALL support both light and dark modes based on user's system preference via `prefers-color-scheme`.
+
+As a user viewing reports in different environments, I want the report to adapt to my system preference or stay locked to a specific mode so that it is readable in any context.
+
+The report SHALL support both light and dark modes. When `report.mode` is "auto" or unset, the mode SHALL follow the user's system preference via `prefers-color-scheme`. When `report.mode` is "light" or "dark", the report SHALL lock to that mode by setting `data-theme` on the `<html>` element, overriding `prefers-color-scheme`. The active palette (determined by `report.theme`) SHALL provide both dark and light variants. Chart colors SHALL read from CSS variables at initialization time.
 
 #### Scenario: Dark mode rendering
-- **GIVEN** the user's system has dark mode enabled
+
+- **GIVEN** the user's system has dark mode enabled and `report.mode` is "auto"
 - **WHEN** the report is opened
+- **THEN** the active theme's dark palette is applied
 - **THEN** all text is readable on dark backgrounds
-- **THEN** chart colors are adjusted for dark background
-- **THEN** card backgrounds invert appropriately
+- **THEN** chart colors are adjusted for the dark background using the theme's variables
+- **THEN** card backgrounds use the theme's `--surface-card` value
 - **THEN** there are no white or light flashes
 
----
+#### Scenario: Light mode rendering
+
+- **GIVEN** the user's system has light mode enabled and `report.mode` is "auto"
+- **WHEN** the report is opened
+- **THEN** the active theme's light palette is applied
+- **THEN** dark text is readable on light backgrounds
+- **THEN** chart colors use the theme's light variant variables
+
+#### Scenario: Explicit dark mode override
+
+- **GIVEN** `report.mode` is "dark" regardless of system preference
+- **WHEN** the report is opened
+- **THEN** the `<html>` element has `data-theme="dark"`
+- **THEN** the active theme's dark palette is applied
+- **THEN** `prefers-color-scheme` is ignored
+
+#### Scenario: Chart colors from CSS variables
+
+- **GIVEN** a report is generated with the Lattice palette
+- **WHEN** charts initialize
+- **THEN** the default line color reads `--accent` from computed CSS variables
+- **THEN** trend up/down colors read `--up` and `--down`
+- **THEN** crosshair line color reads `--accent`
 
 ### Requirement: Accessibility
 The report SHALL meet WCAG 2.1 AA accessibility standards for color contrast, keyboard navigation, and screen reader support.
@@ -363,4 +412,24 @@ The report SHALL gracefully handle all empty or edge case data scenarios with ap
 - **THEN** the filter remains active
 
 ---
+
+### Requirement: Semantic Component Styling
+
+As a user, I want the report to have a consistent, distinctive visual identity that looks intentional rather than generic.
+
+The report SHALL use semantic CSS classes (prefixed `uent-*`) for all color, border, and text styling. These classes SHALL consume CSS variables only and SHALL NOT hard-code palette values. Layout primitives (flex, grid, spacing, responsive breakpoints) MAY continue to use Tailwind utilities.
+
+#### Scenario: Component colors use variables
+
+- **GIVEN** a report is generated with the Lattice palette
+- **WHEN** the HTML is inspected
+- **THEN** no Tailwind color utilities (e.g., `text-gray-900`, `bg-blue-600`) appear on theme-sensitive elements
+- **THEN** semantic classes like `uent-card`, `uent-section-head`, `uent-stat-v` are present
+
+#### Scenario: Typography uses designated stacks
+
+- **GIVEN** a report is generated
+- **WHEN** the page renders
+- **THEN** monospace text (stats, headings, status bar) uses a `JetBrains Mono` / system-mono stack
+- **THEN** sans-serif text (metric names, descriptions) uses an `Inter` / system-sans stack
 

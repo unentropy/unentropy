@@ -26,7 +26,7 @@
       "$ref": "loc",
       "name": "Specs size (lines)",
       "description": "Total lines of specification documentation",
-      "command": "@collect loc ./specs --language Markdown"
+      "command": "@collect loc ./openspecs --language Markdown"
     }
   },
   "storage": {
