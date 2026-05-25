@@ -31,40 +31,26 @@ export function Header({ metadata, buildCount }: HeaderProps) {
             aria-label="Unentropy homepage"
           >
             <svg
-              class="uent-logo h-4 w-8"
-              viewBox="0 0 120 60"
+              class="uent-logo h-4 w-11"
+              viewBox="0 0 280 100"
               fill="currentColor"
               aria-hidden="true"
               style="color: var(--accent)"
             >
-              <rect x="0" y="10" width="10" height="10" />
-              <rect x="10" y="10" width="10" height="10" />
-              <rect x="30" y="10" width="10" height="10" />
-              <rect x="40" y="10" width="10" height="10" />
-              <rect x="60" y="10" width="10" height="10" />
-              <rect x="70" y="10" width="10" height="10" />
-              <rect x="100" y="10" width="10" height="10" />
-              <rect x="110" y="10" width="10" height="10" />
-              <rect x="0" y="20" width="10" height="20" />
-              <rect x="10" y="20" width="10" height="20" />
-              <rect x="30" y="20" width="10" height="20" />
-              <rect x="40" y="20" width="10" height="20" />
-              <rect x="60" y="20" width="10" height="20" />
-              <rect x="70" y="20" width="10" height="20" />
-              <rect x="80" y="20" width="10" height="20" />
-              <rect x="90" y="30" width="10" height="10" />
-              <rect x="100" y="20" width="10" height="20" />
-              <rect x="110" y="20" width="10" height="20" />
-              <rect x="0" y="40" width="10" height="10" />
-              <rect x="10" y="40" width="10" height="20" />
-              <rect x="20" y="40" width="10" height="20" />
-              <rect x="30" y="40" width="10" height="20" />
-              <rect x="40" y="40" width="10" height="10" />
-              <rect x="60" y="40" width="10" height="20" />
-              <rect x="70" y="40" width="10" height="20" />
-              <rect x="90" y="40" width="10" height="10" />
-              <rect x="100" y="40" width="10" height="20" />
-              <rect x="110" y="40" width="10" height="20" />
+              <g>
+                <rect x="0" y="0" width="40" height="100" />
+                <rect x="80" y="0" width="40" height="100" />
+                <rect x="150" y="0" width="120" height="20" />
+                <rect x="150" y="20" width="40" height="80" />
+                <rect x="230" y="20" width="40" height="80" />
+                <rect x="40" y="80" width="40" height="20" />
+              </g>
+              <g opacity="0.35">
+                <rect x="40" y="0" width="10" height="80" />
+                <rect x="120" y="0" width="10" height="100" />
+                <rect x="270" y="0" width="10" height="100" />
+                <rect x="190" y="20" width="10" height="80" />
+              </g>
             </svg>
           </a>
           <span class="uent-path text-xs sm:text-sm flex-1 truncate">
