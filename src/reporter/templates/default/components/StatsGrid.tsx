@@ -20,14 +20,6 @@ export function StatsGrid({ stats, unit }: StatsGridProps) {
         <span class="uent-stat-v uent-mono text-base">{formatValue(stats.latest, unit)}</span>
       </div>
       <div class="flex flex-col">
-        <span class="uent-stat-l text-[10px]">min</span>
-        <span class="uent-stat-v uent-mono text-base">{formatValue(stats.min, unit)}</span>
-      </div>
-      <div class="flex flex-col">
-        <span class="uent-stat-l text-[10px]">max</span>
-        <span class="uent-stat-v uent-mono text-base">{formatValue(stats.max, unit)}</span>
-      </div>
-      <div class="flex flex-col">
         <span class="uent-stat-l text-[10px]">trend</span>
         <span class={`uent-stat-v uent-mono text-base ${trendColor}`}>
           {trendArrow}
