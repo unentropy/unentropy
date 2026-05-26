@@ -2,13 +2,17 @@ import { Argv } from "yargs";
 import { existsSync, mkdirSync } from "fs";
 import { writeFile } from "fs/promises";
 import { spawn } from "child_process";
+import { basename } from "path";
 import { loadConfig } from "../../config/loader.js";
 import { generateEmptyReport } from "../../reporter/empty-report.js";
+import { generateReport } from "../../reporter/generator.js";
+import { Storage } from "../../storage/storage.js";
 import { cmd } from "./cmd";
 
 export interface PreviewArgs {
   config?: string;
   output?: string;
+  db?: string;
 }
 
 function openInBrowser(filePath: string): void {
@@ -28,7 +32,7 @@ function openInBrowser(filePath: string): void {
 
 export const PreviewCommand = cmd({
   command: "preview",
-  describe: "generate HTML report preview from config (no data)",
+  describe: "generate HTML report preview from config (or local database with --db)",
   builder: (yargs: Argv<PreviewArgs>) =>
     yargs
       .option("config", {
@@ -42,10 +46,15 @@ export const PreviewCommand = cmd({
         type: "string",
         default: "unentropy-preview",
         description: "Output directory for report",
+      })
+      .option("db", {
+        type: "string",
+        description: "Path to local SQLite database for real data report",
       }),
   async handler(argv: PreviewArgs) {
     const configPath = argv.config || "unentropy.json";
     const outputDir = argv.output || "unentropy-preview";
+    const dbPath = argv.db;
     const reportPath = `${outputDir}/index.html`;
 
     console.log(`Checking ${configPath}...\n`);
@@ -84,15 +93,45 @@ export const PreviewCommand = cmd({
       mkdirSync(outputDir, { recursive: true });
     }
 
-    // Generate empty report
+    // Generate report (real data from DB or synthetic preview)
     let reportHtml;
-    try {
-      reportHtml = await generateEmptyReport(config);
-    } catch (error) {
-      console.log(
-        `Error: Report generation failed: ${error instanceof Error ? error.message : String(error)}`
-      );
-      process.exit(1);
+
+    if (dbPath) {
+      if (!existsSync(dbPath)) {
+        console.log(`Error: Database not found: ${dbPath}`);
+        console.log(`Run metric collection first, or check the path.`);
+        process.exit(1);
+      }
+
+      console.log(`Reading database: ${dbPath}\n`);
+
+      const storage = new Storage({
+        type: "sqlite-local",
+        path: dbPath,
+        readonly: true,
+      });
+
+      try {
+        await storage.ready();
+        const repoName = basename(process.cwd());
+        reportHtml = generateReport(repoName, storage, config);
+      } catch (error) {
+        console.log(
+          `Error: Report generation failed: ${error instanceof Error ? error.message : String(error)}`
+        );
+        process.exit(1);
+      } finally {
+        await storage.close();
+      }
+    } else {
+      try {
+        reportHtml = await generateEmptyReport(config);
+      } catch (error) {
+        console.log(
+          `Error: Report generation failed: ${error instanceof Error ? error.message : String(error)}`
+        );
+        process.exit(1);
+      }
     }
 
     // Write report to file

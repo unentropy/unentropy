@@ -13,5 +13,6 @@ coverage/
 tests/fixtures/visual-review/*/report.html
 test-artifacts/
 .unentropy/
+unentropy-preview/index.html
 .opencode/package-lock.json
 .superpowers/
