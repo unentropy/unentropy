@@ -246,6 +246,11 @@ function buildLineChart(chart, timeline, metadata) {
           type: "time",
           time: { unit: "day", displayFormats: { day: "MMM d" } },
           title: { display: true, text: "Build Date" },
+          ticks: {
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 10,
+          },
         },
         y: {
           beginAtZero: true,
@@ -372,6 +377,11 @@ function buildMultiMetricLineChart(chartConfig, lineChartsData, timeline, metada
           type: "time",
           time: { unit: "day", displayFormats: { day: "MMM d" } },
           title: { display: true, text: "Build Date" },
+          ticks: {
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 10,
+          },
         },
         ...yAxes,
       },
