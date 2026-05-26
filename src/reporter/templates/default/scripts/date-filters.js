@@ -109,10 +109,15 @@
       var charts = Object.values(chartInstances);
 
       if (filterType === "all") {
-        // Clear all filters
+        // Restore per-section date ranges (or clear if no section default)
         charts.forEach(function (chart) {
-          delete chart.options.scales.x.min;
-          delete chart.options.scales.x.max;
+          if (chart.crosshair.sectionDateRange) {
+            chart.options.scales.x.min = chart.crosshair.sectionDateRange.min;
+            chart.options.scales.x.max = chart.crosshair.sectionDateRange.max;
+          } else {
+            delete chart.options.scales.x.min;
+            delete chart.options.scales.x.max;
+          }
           chart.update("none");
         });
         hideEmptyRangeOverlay();
@@ -153,6 +158,9 @@
 
         updateButtonStates("custom");
         updateCustomButtonLabel();
+
+        // Clear per-section zoom states before applying global custom range
+        clearZoomState();
 
         // Convert YYYY-MM-DD to ISO timestamps
         var minDate = new Date(state.customRange.from).toISOString();
@@ -278,25 +286,9 @@
       }
     });
 
-    // Event: Listen for zoom-sync from crosshair plugin (Sprint 2 integration)
-    window.addEventListener("zoom-sync", function (event) {
-      if (!event.start || !event.end) return;
-
-      // Convert timestamps to YYYY-MM-DD
-      var fromDate = new Date(event.start).toISOString().split("T")[0];
-      var toDate = new Date(event.end).toISOString().split("T")[0];
-
-      // Update state
-      state.activeFilter = "custom";
-      state.customRange = { from: fromDate, to: toDate };
-
-      // Update UI
-      updateButtonStates("custom");
-      updateCustomButtonLabel();
-
-      // Close popover if open
-      popover.classList.add("hidden");
-    });
+    // Event: Listen for zoom-sync from crosshair plugin (per-section zoom)
+    // Zoom is scoped per-section, so this no longer updates global filter state.
+    // Global presets remain as the top-level filter and will clear per-section zooms.
 
     // Initialize
     updateButtonStates("all");

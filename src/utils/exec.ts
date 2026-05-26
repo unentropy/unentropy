@@ -5,6 +5,7 @@ export async function execCapture(command: string, args: string[] = []): Promise
   let stderr = "";
 
   const exitCode = await exec(command, args, {
+    ignoreReturnCode: true,
     listeners: {
       stdout: (data: Buffer) => {
         stdout += data.toString();

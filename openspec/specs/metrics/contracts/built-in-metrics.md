@@ -120,7 +120,7 @@ This provides:
 
 #### `size` Options
 - Supports glob patterns (e.g., `./dist/*.js`, `.github/actions/*/dist/*.js`)
-- `--followSymlinks` - Follow symbolic links
+- Symbolic links are counted by their link entry size (via `lstat`) rather than being followed
 
 #### `coverage-lcov` Options
 - `--type <line|branch|function>` - Coverage type to extract (default: `line`)
