@@ -468,6 +468,39 @@ function initializeCharts(
     });
   }
 
+  // Preview multi-metric charts in section-based layout
+  if (showToggle && layout && layout.sections) {
+    layout.sections.forEach(function (section) {
+      section.charts.forEach(function (chartConfig) {
+        if (chartConfig.type === "multi" && chartConfig.metricIds) {
+          var previewElementId = chartConfig.metricIds
+            .map(function (id) {
+              return id + "-preview";
+            })
+            .join("-");
+          var ctx = document.getElementById("chart-" + previewElementId);
+          if (!ctx) return;
+
+          var previewMetricIds = chartConfig.metricIds.map(function (id) {
+            return id + "-preview";
+          });
+          var previewConfig = {
+            type: "multi",
+            metricIds: previewMetricIds,
+            title: chartConfig.title,
+            chartType: "line",
+          };
+          var previewTimeline = previewData[0]?.timestamps || timeline;
+          var chartInstance = new Chart(
+            ctx,
+            buildMultiMetricLineChart(previewConfig, previewLineCharts, previewTimeline, null)
+          );
+          chartInstances[previewElementId] = chartInstance;
+        }
+      });
+    });
+  }
+
   // Toggle handler - pure CSS visibility toggle
   var toggle = document.getElementById("preview-toggle");
   if (toggle && showToggle) {

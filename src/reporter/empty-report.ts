@@ -102,9 +102,24 @@ export async function generateEmptyReport(
     values: previewData[index]?.values || [],
   }));
 
-  // Create preview bar charts with -preview suffix
-  const barCharts: BarChartData[] = [];
-  const previewBarCharts: BarChartData[] = [];
+  // Create bar charts for label-type metrics (empty real data)
+  const barCharts: BarChartData[] = Object.entries(config.metrics)
+    .filter(([, metric]) => metric.type !== "numeric")
+    .map(([key, metric]) => ({
+      id: key.replace(/[^a-zA-Z0-9-]/g, "-"),
+      name: metric.name || key,
+      unit: metric.unit ?? null,
+      labels: [],
+      counts: [],
+    }));
+
+  // Create preview bar charts with sample data
+  const previewBarCharts: BarChartData[] = barCharts.map((chart) => ({
+    ...chart,
+    id: `${chart.id}-preview`,
+    labels: ["stage-a", "stage-b", "stage-c"],
+    counts: [4, 2, 1],
+  }));
 
   // Create preview metrics array with synthetic stats
   const previewMetrics: MetricReportData[] = metrics.map((metric) => {
