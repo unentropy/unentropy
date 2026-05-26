@@ -4,13 +4,342 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Unentropy Metrics Report - preview/repository</title>
+    <script>
+      /* eslint-disable @typescript-eslint/no-unused-vars */
+      // Three-state theme cycle: system → light → dark → system.
+      // User choice persisted in localStorage; absent value = follow OS.
+      // Runs in <head> so data-theme is applied before any styled element paints.
+
+      (function () {
+        var KEY = "unentropy-theme";
+        var doc = document.documentElement;
+
+        function readStored() {
+          try {
+            var v = localStorage.getItem(KEY);
+            if (v === "light" || v === "dark") return v;
+          } catch (e) {}
+          return "system";
+        }
+
+        function applyMode(mode) {
+          if (mode === "system") {
+            doc.removeAttribute("data-theme");
+          } else {
+            doc.setAttribute("data-theme", mode);
+          }
+        }
+
+        // Apply stored choice immediately (head-time) to avoid flash.
+        applyMode(readStored());
+
+        function bind() {
+          var btn = document.getElementById("theme-toggle");
+          if (!btn) return;
+
+          var NEXT = { system: "light", light: "dark", dark: "system" };
+
+          function setMode(mode) {
+            applyMode(mode);
+            btn.setAttribute("data-mode", mode);
+            try {
+              if (mode === "system") {
+                localStorage.removeItem(KEY);
+              } else {
+                localStorage.setItem(KEY, mode);
+              }
+            } catch (e) {}
+          }
+
+          setMode(readStored());
+
+          btn.addEventListener("click", function () {
+            var current = btn.getAttribute("data-mode") || "system";
+            setMode(NEXT[current]);
+          });
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", bind);
+        } else {
+          bind();
+        }
+      })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
+      :root {
+        --bg: #1c2230;
+        --surface: #161b27;
+        --surface-card: #11151f;
+        --border: #2a3148;
+        --border-soft: #262d42;
+        --text: #cad3e0;
+        --text-dim: #9aa6bb;
+        --text-muted: #5a6680;
+        --accent: #6fb3d2;
+        --up: #8ec07c;
+        --down: #e08490;
+        --warn: #d4a663;
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f4f6fa;
+          --surface: #e8ecf2;
+          --surface-card: #ffffff;
+          --border: #d0d6e0;
+          --border-soft: #dde2ea;
+          --text: #2a3344;
+          --text-dim: #4f5a72;
+          --text-muted: #7c8699;
+          --accent: #2c7ea2;
+          --up: #4a8d3a;
+          --down: #b94656;
+          --warn: #a67224;
+        }
+      }
+
+      [data-theme="dark"] {
+        --bg: #1c2230;
+        --surface: #161b27;
+        --surface-card: #11151f;
+        --border: #2a3148;
+        --border-soft: #262d42;
+        --text: #cad3e0;
+        --text-dim: #9aa6bb;
+        --text-muted: #5a6680;
+        --accent: #6fb3d2;
+        --up: #8ec07c;
+        --down: #e08490;
+        --warn: #d4a663;
+      }
+
+      [data-theme="light"] {
+        --bg: #f4f6fa;
+        --surface: #e8ecf2;
+        --surface-card: #ffffff;
+        --border: #d0d6e0;
+        --border-soft: #dde2ea;
+        --text: #2a3344;
+        --text-dim: #4f5a72;
+        --text-muted: #7c8699;
+        --accent: #2c7ea2;
+        --up: #4a8d3a;
+        --down: #b94656;
+        --warn: #a67224;
+      }
+
+      /* ---- Component layer (consumes CSS variables) ---- */
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          "Inter",
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+      }
+      .uent-mono {
+        font-family:
+          "JetBrains Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      /* Title bar */
+      .uent-titlebar {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+      .uent-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .uent-path {
+        color: var(--text-dim);
+      }
+      .uent-path .uent-slash {
+        color: var(--accent);
+      }
+      .uent-path .uent-dim {
+        color: var(--text-muted);
+      }
+
+      /* Sub-toolbar */
+      .uent-toolbar {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+      .uent-toolbar-label {
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+      .uent-chip {
+        color: var(--text-dim);
+        background: transparent;
+        border: 1px solid transparent;
+        transition:
+          color 0.1s ease,
+          background 0.1s ease;
+      }
+      .uent-chip:hover {
+        color: var(--text);
+      }
+      .uent-chip.uent-chip-active {
+        background: var(--border);
+        color: var(--accent);
+      }
+      .uent-builds {
+        color: var(--text-muted);
+      }
+
+      /* Section heading */
+      .uent-section-head {
+        color: var(--text);
+      }
+      .uent-section-marker {
+        color: var(--accent);
+      }
+      .uent-section-comment {
+        color: var(--text-muted);
+      }
+
+      /* Cards */
+      .uent-card {
+        background: var(--surface-card);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+      .uent-metric-name {
+        color: var(--text);
+      }
+      .uent-metric-desc {
+        color: var(--text-muted);
+      }
+
+      /* Stats */
+      .uent-stats {
+        border-top: 1px dashed var(--border-soft);
+        border-bottom: 1px dashed var(--border-soft);
+      }
+      .uent-stat-l {
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+      .uent-stat-v {
+        color: var(--text);
+      }
+      .uent-trend-up {
+        color: var(--up);
+      }
+      .uent-trend-down {
+        color: var(--down);
+      }
+      .uent-trend-stable {
+        color: var(--text-dim);
+      }
+
+      /* Status bar */
+      .uent-statusbar {
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        color: var(--text-muted);
+      }
+      .uent-statusbar .uent-version {
+        color: var(--accent);
+      }
+
+      /* Preview banner */
+      .uent-preview-banner {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        color: var(--text-dim);
+      }
+      .uent-preview-banner .uent-preview-icon {
+        color: var(--warn);
+      }
+
+      /* Toggle switch (reuses var colors) */
+      .uent-toggle-track {
+        background: var(--border);
+      }
+      .uent-toggle-track.uent-toggle-on {
+        background: var(--accent);
+      }
+
+      /* Date picker popover */
+      .uent-popover {
+        background: var(--surface);
+        border: 1px solid var(--border);
+      }
+      .uent-input {
+        background: var(--surface-card);
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      .uent-input:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+      }
+
+      /* Empty state */
+      .uent-empty-flourish {
+        color: var(--text-muted);
+      }
+
+      /* Logo link */
+      .uent-logo-link {
+        transition: opacity 0.1s ease;
+      }
+      .uent-logo-link:hover {
+        opacity: 0.75;
+      }
+
+      /* Theme toggle */
+      .uent-theme-toggle {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--text-dim);
+        padding: 4px;
+        border-radius: 3px;
+        display: inline-flex;
+        align-items: center;
+        transition:
+          color 0.1s ease,
+          background 0.1s ease;
+      }
+      .uent-theme-toggle:hover {
+        color: var(--text);
+        background: var(--border);
+      }
+      .uent-theme-toggle .uent-theme-icon {
+        width: 14px;
+        height: 14px;
+        display: none;
+      }
+      .uent-theme-toggle[data-mode="light"] .uent-theme-icon-light {
+        display: block;
+      }
+      .uent-theme-toggle[data-mode="dark"] .uent-theme-icon-dark {
+        display: block;
+      }
+      .uent-theme-toggle[data-mode="system"] .uent-theme-icon-system {
+        display: block;
+      }
+
       @media print {
         body {
           background: white !important;
+          color: black !important;
         }
         .no-print {
           display: none !important;
@@ -25,167 +354,222 @@
       }
     </style>
   </head>
-  <body class="bg-gray-50 dark:bg-gray-900">
-    <header class="bg-white dark:bg-gray-800 shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-              Unentropy Metrics Report
-            </h1>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">preview/repository</p>
-          </div>
-          <div class="relative">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Date Range:</span>
-              <div class="flex gap-2 flex-wrap">
-                <button
-                  type="button"
-                  data-filter="all"
-                  class="px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                >
-                  All</button
-                ><button
-                  type="button"
-                  data-filter="7d"
-                  class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                >
-                  7 days</button
-                ><button
-                  type="button"
-                  data-filter="30d"
-                  class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                >
-                  30 days</button
-                ><button
-                  type="button"
-                  data-filter="90d"
-                  class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                >
-                  90 days</button
-                ><button
-                  type="button"
-                  data-filter="custom"
-                  id="custom-filter-btn"
-                  class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors relative whitespace-nowrap"
-                >
-                  <span id="custom-filter-label">Custom</span>
-                </button>
-              </div>
-            </div>
-            <div
-              id="custom-date-popover"
-              class="hidden absolute z-50 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[320px]"
-              style="right: 0"
+  <body>
+    <header class="uent-titlebar uent-mono">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
+        <a
+          href="https://unentropy.dev"
+          class="uent-logo-link flex-shrink-0 inline-flex items-center"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Unentropy homepage"
+          ><svg
+            class="uent-logo h-4 w-11"
+            viewBox="0 0 280 100"
+            fill="currentColor"
+            aria-hidden="true"
+            style="color: var(--accent)"
+          >
+            <g>
+              <rect x="0" y="0" width="40" height="100"></rect>
+              <rect x="80" y="0" width="40" height="100"></rect>
+              <rect x="150" y="0" width="120" height="20"></rect>
+              <rect x="150" y="20" width="40" height="80"></rect>
+              <rect x="230" y="20" width="40" height="80"></rect>
+              <rect x="40" y="80" width="40" height="20"></rect>
+            </g>
+            <g opacity="0.35">
+              <rect x="40" y="0" width="10" height="80"></rect>
+              <rect x="120" y="0" width="10" height="100"></rect>
+              <rect x="270" y="0" width="10" height="100"></rect>
+              <rect x="190" y="20" width="10" height="80"></rect>
+            </g></svg></a
+        ><span class="uent-path text-xs sm:text-sm flex-1 truncate"
+          ><span class="uent-dim">~/</span>preview<span class="uent-slash">/</span>repository<span
+            class="uent-dim"
+          >
+            · </span
+          >report.html</span
+        ><button
+          type="button"
+          id="theme-toggle"
+          class="uent-theme-toggle no-print flex-shrink-0"
+          data-mode="system"
+          aria-label="Toggle theme: system, light, or dark"
+          title="Toggle theme"
+        >
+          <svg
+            class="uent-theme-icon uent-theme-icon-system"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+            <path d="M8 21h8M12 17v4"></path></svg
+          ><svg
+            class="uent-theme-icon uent-theme-icon-light"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="4"></circle>
+            <path
+              d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+            ></path></svg
+          ><svg
+            class="uent-theme-icon uent-theme-icon-dark"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div class="uent-toolbar relative no-print">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-4 flex-wrap">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="uent-toolbar-label uent-mono text-[10px]">range</span>
+          <div class="flex gap-1 flex-wrap">
+            <button
+              type="button"
+              data-filter="all"
+              class="uent-mono uent-chip px-2.5 py-1 text-xs rounded uent-chip-active"
             >
-              <div class="space-y-4">
-                <div>
-                  <label
-                    for="date-from"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >From Date</label
-                  ><input
-                    type="date"
-                    id="date-from"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    aria-label="From date"
-                  />
-                </div>
-                <div>
-                  <label
-                    for="date-to"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >To Date</label
-                  ><input
-                    type="date"
-                    id="date-to"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    aria-label="To date"
-                  />
-                </div>
-                <div id="date-error" class="hidden text-sm text-red-600 dark:text-red-400">
-                  Invalid date range: &quot;From&quot; date must be before or equal to
-                  &quot;To&quot; date.
-                </div>
-                <div class="pt-2">
-                  <button
-                    type="button"
-                    id="clear-custom-date"
-                    class="w-full px-4 py-2 text-sm font-medium rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-            </div>
+              all</button
+            ><button
+              type="button"
+              data-filter="7d"
+              class="uent-mono uent-chip px-2.5 py-1 text-xs rounded"
+            >
+              7d</button
+            ><button
+              type="button"
+              data-filter="30d"
+              class="uent-mono uent-chip px-2.5 py-1 text-xs rounded"
+            >
+              30d</button
+            ><button
+              type="button"
+              data-filter="90d"
+              class="uent-mono uent-chip px-2.5 py-1 text-xs rounded"
+            >
+              90d</button
+            ><button
+              type="button"
+              data-filter="custom"
+              id="custom-filter-btn"
+              class="uent-mono uent-chip px-2.5 py-1 text-xs rounded relative whitespace-nowrap"
+            >
+              <span id="custom-filter-label">custom…</span>
+            </button>
+          </div>
+        </div>
+        <span class="uent-builds uent-mono text-xs ml-auto">0 builds</span>
+      </div>
+      <div
+        id="custom-date-popover"
+        class="uent-popover hidden absolute z-50 mt-1 rounded p-4 min-w-[320px] no-print"
+        style="right: 0"
+      >
+        <div class="space-y-4 uent-mono">
+          <div>
+            <label for="date-from" class="block text-xs uent-toolbar-label mb-1">From</label
+            ><input
+              type="date"
+              id="date-from"
+              class="uent-input w-full px-3 py-2 rounded text-sm"
+              aria-label="From date"
+            />
+          </div>
+          <div>
+            <label for="date-to" class="block text-xs uent-toolbar-label mb-1">To</label
+            ><input
+              type="date"
+              id="date-to"
+              class="uent-input w-full px-3 py-2 rounded text-sm"
+              aria-label="To date"
+            />
+          </div>
+          <div id="date-error" class="hidden text-sm uent-trend-down">
+            Invalid date range: &quot;From&quot; date must be before or equal to &quot;To&quot;
+            date.
+          </div>
+          <div class="pt-2">
+            <button
+              type="button"
+              id="clear-custom-date"
+              class="uent-mono uent-chip w-full px-3 py-2 text-sm rounded"
+              style="background: var(--surface-card)"
+            >
+              clear
+            </button>
           </div>
         </div>
       </div>
-    </header>
-    <div class="bg-blue-50 dark:bg-blue-900 border-b border-blue-200 dark:border-blue-800">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div class="flex items-start gap-3">
-            <svg
-              class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clip-rule="evenodd"
-              ></path>
-            </svg>
-            <div class="text-sm text-blue-800 dark:text-blue-200">
-              <span class="font-medium">Limited data available.</span> Preview data is displayed to
-              help visualize trends. Toggle to view your actual data.
-            </div>
-          </div>
-          <label class="inline-flex items-center cursor-pointer flex-shrink-0"
-            ><input
-              type="checkbox"
-              id="preview-toggle"
-              class="sr-only peer"
-              role="switch"
-              checked
-            />
-            <div
-              class="relative w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"
-            ></div>
-            <span class="ms-3 text-sm font-medium text-blue-900 dark:text-blue-100"
-              >Show preview data</span
-            ></label
+    </div>
+    <div class="uent-preview-banner no-print">
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+      >
+        <div class="flex items-center gap-2">
+          <svg
+            class="uent-preview-icon w-4 h-4 flex-shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+            aria-hidden="true"
           >
+            <path
+              fill-rule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <div class="text-xs">
+            <span class="font-medium" style="color: var(--text)">Limited data available.</span>
+            Preview data is displayed to help visualize trends.
+          </div>
         </div>
+        <label class="inline-flex items-center cursor-pointer flex-shrink-0"
+          ><input type="checkbox" id="preview-toggle" class="sr-only peer" role="switch" checked />
+          <div
+            class="uent-toggle-track uent-toggle-on relative w-10 h-5 rounded-full peer transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-full"
+          ></div>
+          <span class="ms-2 uent-mono text-xs" style="color: var(--text)">show preview</span></label
+        >
       </div>
     </div>
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div data-view="real" class="hidden" aria-hidden="true">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Lines of code</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="uent-card metric-card p-4">
+            <div class="mb-2">
+              <h3 class="uent-metric-name text-sm font-medium">Lines of code</h3>
+              <p class="uent-metric-desc text-xs mt-0.5">
                 total lines of typescript/tsx code in src/ directory
               </p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+            <div class="uent-stats flex flex-wrap gap-x-6 gap-y-2 py-2 my-3">
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">latest</span
+                ><span class="uent-stat-v uent-mono text-base">N/A</span>
               </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">trend</span
+                ><span class="uent-stat-v uent-mono text-base uent-trend-stable">—0.0%</span>
               </div>
             </div>
             <div class="chart-container">
@@ -199,31 +583,21 @@
           </div>
         </div>
         <div data-view="real" class="hidden" aria-hidden="true">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                Lines of test code
-              </h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="uent-card metric-card p-4">
+            <div class="mb-2">
+              <h3 class="uent-metric-name text-sm font-medium">Lines of test code</h3>
+              <p class="uent-metric-desc text-xs mt-0.5">
                 Total lines of TypeScript/TSX code in tests/ directory
               </p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+            <div class="uent-stats flex flex-wrap gap-x-6 gap-y-2 py-2 my-3">
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">latest</span
+                ><span class="uent-stat-v uent-mono text-base">N/A</span>
               </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">trend</span
+                ><span class="uent-stat-v uent-mono text-base uent-trend-stable">—0.0%</span>
               </div>
             </div>
             <div class="chart-container">
@@ -237,29 +611,21 @@
           </div>
         </div>
         <div data-view="real" class="hidden" aria-hidden="true">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">coverage</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="uent-card metric-card p-4">
+            <div class="mb-2">
+              <h3 class="uent-metric-name text-sm font-medium">coverage</h3>
+              <p class="uent-metric-desc text-xs mt-0.5">
                 Overall test coverage percentage across the codebase
               </p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+            <div class="uent-stats flex flex-wrap gap-x-6 gap-y-2 py-2 my-3">
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">latest</span
+                ><span class="uent-stat-v uent-mono text-base">N/A</span>
               </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">trend</span
+                ><span class="uent-stat-v uent-mono text-base uent-trend-stable">—0.0%</span>
               </div>
             </div>
             <div class="chart-container">
@@ -273,31 +639,21 @@
           </div>
         </div>
         <div data-view="real" class="hidden" aria-hidden="true">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                Actions bundle size
-              </h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="uent-card metric-card p-4">
+            <div class="mb-2">
+              <h3 class="uent-metric-name text-sm font-medium">Actions bundle size</h3>
+              <p class="uent-metric-desc text-xs mt-0.5">
                 Total size of all compiled GitHub Actions
               </p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+            <div class="uent-stats flex flex-wrap gap-x-6 gap-y-2 py-2 my-3">
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">latest</span
+                ><span class="uent-stat-v uent-mono text-base">N/A</span>
               </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">trend</span
+                ><span class="uent-stat-v uent-mono text-base uent-trend-stable">—0.0%</span>
               </div>
             </div>
             <div class="chart-container">
@@ -311,31 +667,21 @@
           </div>
         </div>
         <div data-view="real" class="hidden" aria-hidden="true">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                Specs size (lines)
-              </h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="uent-card metric-card p-4">
+            <div class="mb-2">
+              <h3 class="uent-metric-name text-sm font-medium">Specs size (lines)</h3>
+              <p class="uent-metric-desc text-xs mt-0.5">
                 Total lines of specification documentation
               </p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+            <div class="uent-stats flex flex-wrap gap-x-6 gap-y-2 py-2 my-3">
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">latest</span
+                ><span class="uent-stat-v uent-mono text-base">N/A</span>
               </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">N/A</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">— 0.0%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">trend</span
+                ><span class="uent-stat-v uent-mono text-base uent-trend-stable">—0.0%</span>
               </div>
             </div>
             <div class="chart-container">
@@ -349,29 +695,21 @@
           </div>
         </div>
         <div data-view="preview">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Lines of code</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="uent-card metric-card p-4">
+            <div class="mb-2">
+              <h3 class="uent-metric-name text-sm font-medium">Lines of code</h3>
+              <p class="uent-metric-desc text-xs mt-0.5">
                 total lines of typescript/tsx code in src/ directory
               </p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">59</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+            <div class="uent-stats flex flex-wrap gap-x-6 gap-y-2 py-2 my-3">
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">latest</span
+                ><span class="uent-stat-v uent-mono text-base">5,585</span>
               </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">45</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">59</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 22.9%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">trend</span
+                ><span class="uent-stat-v uent-mono text-base uent-trend-up">↑11.5%</span>
               </div>
             </div>
             <div class="chart-container">
@@ -385,31 +723,21 @@
           </div>
         </div>
         <div data-view="preview">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                Lines of test code
-              </h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="uent-card metric-card p-4">
+            <div class="mb-2">
+              <h3 class="uent-metric-name text-sm font-medium">Lines of test code</h3>
+              <p class="uent-metric-desc text-xs mt-0.5">
                 Total lines of TypeScript/TSX code in tests/ directory
               </p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">49</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+            <div class="uent-stats flex flex-wrap gap-x-6 gap-y-2 py-2 my-3">
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">latest</span
+                ><span class="uent-stat-v uent-mono text-base">6,362</span>
               </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">38</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">49</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 2.3%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">trend</span
+                ><span class="uent-stat-v uent-mono text-base uent-trend-up">↑23.2%</span>
               </div>
             </div>
             <div class="chart-container">
@@ -423,29 +751,21 @@
           </div>
         </div>
         <div data-view="preview">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">coverage</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="uent-card metric-card p-4">
+            <div class="mb-2">
+              <h3 class="uent-metric-name text-sm font-medium">coverage</h3>
+              <p class="uent-metric-desc text-xs mt-0.5">
                 Overall test coverage percentage across the codebase
               </p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">51.8%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+            <div class="uent-stats flex flex-wrap gap-x-6 gap-y-2 py-2 my-3">
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">latest</span
+                ><span class="uent-stat-v uent-mono text-base">72.5%</span>
               </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">47.0%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">62.2%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-red-600 dark:text-red-400">↓ 6.4%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">trend</span
+                ><span class="uent-stat-v uent-mono text-base uent-trend-up">↑31.3%</span>
               </div>
             </div>
             <div class="chart-container">
@@ -459,31 +779,21 @@
           </div>
         </div>
         <div data-view="preview">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                Actions bundle size
-              </h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="uent-card metric-card p-4">
+            <div class="mb-2">
+              <h3 class="uent-metric-name text-sm font-medium">Actions bundle size</h3>
+              <p class="uent-metric-desc text-xs mt-0.5">
                 Total size of all compiled GitHub Actions
               </p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">52 B</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+            <div class="uent-stats flex flex-wrap gap-x-6 gap-y-2 py-2 my-3">
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">latest</span
+                ><span class="uent-stat-v uent-mono text-base">244.2 KB</span>
               </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">46 B</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">62 B</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 2.8%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">trend</span
+                ><span class="uent-stat-v uent-mono text-base uent-trend-down">↓1.1%</span>
               </div>
             </div>
             <div class="chart-container">
@@ -497,31 +807,21 @@
           </div>
         </div>
         <div data-view="preview">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 metric-card">
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                Specs size (lines)
-              </h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="uent-card metric-card p-4">
+            <div class="mb-2">
+              <h3 class="uent-metric-name text-sm font-medium">Specs size (lines)</h3>
+              <p class="uent-metric-desc text-xs mt-0.5">
                 Total lines of specification documentation
               </p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">48</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Latest</div>
+            <div class="uent-stats flex flex-wrap gap-x-6 gap-y-2 py-2 my-3">
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">latest</span
+                ><span class="uent-stat-v uent-mono text-base">5,878</span>
               </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">39</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Min</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">59</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Max</div>
-              </div>
-              <div class="text-center">
-                <div class="text-2xl font-bold text-green-600 dark:text-green-400">↑ 7.1%</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Trend</div>
+              <div class="flex flex-col">
+                <span class="uent-stat-l text-[10px]">trend</span
+                ><span class="uent-stat-v uent-mono text-base uent-trend-up">↑16.1%</span>
               </div>
             </div>
             <div class="chart-container">
@@ -536,26 +836,19 @@
         </div>
       </div>
     </main>
-    <footer
-      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-8 border-t border-gray-200 dark:border-gray-700"
-    >
-      <div class="space-y-3 text-sm text-gray-600 dark:text-gray-400">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>Builds: 0 · May 25, 2026, 12:12 PM – May 25, 2026, 12:12 PM</div>
-        </div>
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            Generated by <span class="font-semibold">Unentropy</span> v0.1.0 on May 25, 2026, 12:12
-            PM
-          </div>
-          <div class="mt-2 sm:mt-0">
-            <a
-              href="https://unentropy.dev/getting-started/"
-              class="hover:text-gray-900 dark:hover:text-white"
-              >View Documentation</a
-            >
-          </div>
-        </div>
+    <footer class="uent-statusbar uent-mono">
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]"
+      >
+        <span class="uent-version">unentropy v0.3.9</span><span>0 builds</span
+        ><span>May 26, 2026 at 02:14 PM — May 26, 2026 at 02:14 PM</span
+        ><span class="ml-auto">generated May 26, 2026 at 02:14 PM</span
+        ><a
+          href="https://unentropy.dev/getting-started/"
+          class="hover:underline"
+          style="color: var(--text-dim)"
+          >docs</a
+        >
       </div>
     </footer>
     <script>
@@ -1001,46 +1294,91 @@
       // This script is inlined into generated HTML reports and runs in the browser.
       // Variables are used by the initializeCharts function called from the data script.
 
-      var LINE_STYLE = {
-        borderColor: "rgb(59, 130, 246)",
-        backgroundColor: "rgba(59, 130, 246, 0.1)",
-        tension: 0.4,
-        fill: true,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        spanGaps: false,
-      };
+      function themeVar(name) {
+        if (typeof document === "undefined") return "";
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      }
 
-      var BAR_STYLE = {
-        backgroundColor: "rgba(59, 130, 246, 0.8)",
-        borderColor: "rgb(59, 130, 246)",
-        borderWidth: 1,
-      };
+      function hexToRgba(hex, alpha) {
+        if (!hex || hex[0] !== "#" || hex.length !== 7) return "rgba(0,0,0," + alpha + ")";
+        var r = parseInt(hex.slice(1, 3), 16);
+        var g = parseInt(hex.slice(3, 5), 16);
+        var b = parseInt(hex.slice(5, 7), 16);
+        return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+      }
 
-      var COMMON_OPTIONS = {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: "index", intersect: false },
-        plugins: {
-          legend: { display: false },
-          crosshair: {
-            enabled: true,
-            sync: {
+      function buildColorPalette() {
+        var accent = themeVar("--accent");
+        var up = themeVar("--up");
+        var down = themeVar("--down");
+        var warn = themeVar("--warn");
+        return [accent, up, warn, down, "#7fbbb3", "#a89bc8", "#7c9eb2", "#bab098"].map(
+          function (c) {
+            return c || "#888888";
+          }
+        );
+      }
+
+      var COLOR_PALETTE = [
+        "#6fb3d2",
+        "#8ec07c",
+        "#d4a663",
+        "#e08490",
+        "#7fbbb3",
+        "#a89bc8",
+        "#7c9eb2",
+        "#bab098",
+      ];
+      var COLOR_PALETTE_INITIALIZED = false;
+
+      function getColor(index) {
+        if (!COLOR_PALETTE_INITIALIZED) {
+          COLOR_PALETTE = buildColorPalette();
+          COLOR_PALETTE_INITIALIZED = true;
+        }
+        return COLOR_PALETTE[index % COLOR_PALETTE.length];
+      }
+
+      function getBackgroundColor(index) {
+        return hexToRgba(getColor(index), 0.1);
+      }
+
+      var LINE_STYLE = null;
+      var BAR_STYLE = null;
+      var COMMON_OPTIONS = null;
+
+      function ensureStyles() {
+        if (LINE_STYLE) return;
+        var accent = themeVar("--accent") || "#6fb3d2";
+        LINE_STYLE = {
+          borderColor: accent,
+          backgroundColor: hexToRgba(accent, 0.1),
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          spanGaps: false,
+        };
+        BAR_STYLE = {
+          backgroundColor: hexToRgba(accent, 0.8),
+          borderColor: accent,
+          borderWidth: 1,
+        };
+        COMMON_OPTIONS = {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { display: false },
+            crosshair: {
               enabled: true,
-              group: 1,
-            },
-            line: {
-              color: "rgba(59, 130, 246, 0.3)",
-              width: 1,
-            },
-            zoom: {
-              enabled: true,
-              minDataPoints: 10,
-              minZoomRange: 4,
+              sync: { enabled: true, group: 1 },
+              line: { color: hexToRgba(accent, 0.3), width: 1 },
+              zoom: { enabled: true, minDataPoints: 10, minZoomRange: 4 },
             },
           },
-        },
-      };
+        };
+      }
 
       /**
        * Format values for chart tooltips based on semantic unit types.
@@ -1154,7 +1492,7 @@
         return value.toFixed(2) + (unit ? unit : "");
       }
 
-      function createTimeSeriesTooltip(metricName, unit, timeline, metadata) {
+      function createTimeSeriesTooltip(metricName, unit, timeline, metadata, isMultiMetric) {
         return {
           callbacks: {
             title: function (items) {
@@ -1172,8 +1510,8 @@
               }
               var meta = metadata && metadata[ctx.dataIndex];
               var formattedValue = formatChartValue(ctx.raw, unit);
-              var label = metricName + ": " + formattedValue;
-              if (meta) {
+              var label = ctx.dataset.label + ": " + formattedValue;
+              if (meta && !isMultiMetric) {
                 label += " (Build #" + meta.run + ", " + meta.sha + ")";
               }
               return label;
@@ -1259,6 +1597,95 @@
         };
       }
 
+      function buildMultiMetricLineChart(chartConfig, lineChartsData, timeline, metadata) {
+        var datasets = chartConfig.metricIds.map(function (metricId, index) {
+          var chart = lineChartsData.find(function (c) {
+            return c.id === metricId;
+          });
+          return {
+            label: chart ? chart.name : metricId,
+            data: chart ? chart.values : [],
+            borderColor: getColor(index),
+            backgroundColor: getBackgroundColor(index),
+            tension: LINE_STYLE.tension,
+            fill: false,
+            pointRadius: LINE_STYLE.pointRadius,
+            pointHoverRadius: LINE_STYLE.pointHoverRadius,
+            spanGaps: LINE_STYLE.spanGaps,
+          };
+        });
+
+        var yAxes = {};
+        var hasMixedUnits = false;
+        var firstUnit = null;
+
+        chartConfig.metricIds.forEach(function (metricId) {
+          var chart = lineChartsData.find(function (c) {
+            return c.id === metricId;
+          });
+          if (chart) {
+            if (firstUnit === null) {
+              firstUnit = chart.unit;
+            } else if (firstUnit !== chart.unit) {
+              hasMixedUnits = true;
+            }
+          }
+        });
+
+        if (hasMixedUnits) {
+          chartConfig.metricIds.forEach(function (metricId, index) {
+            var chart = lineChartsData.find(function (c) {
+              return c.id === metricId;
+            });
+            if (chart) {
+              var axisKey = index === 0 ? "y" : "y" + index;
+              yAxes[axisKey] = {
+                type: "linear",
+                display: true,
+                position: index === 0 ? "left" : "right",
+                title: { display: true, text: chart.name },
+              };
+              datasets[index].yAxisID = axisKey;
+            }
+          });
+        } else {
+          yAxes.y = {
+            beginAtZero: true,
+            title: { display: true, text: chartConfig.title },
+          };
+        }
+
+        return {
+          type: "line",
+          data: {
+            labels: timeline,
+            datasets: datasets,
+          },
+          options: {
+            responsive: COMMON_OPTIONS.responsive,
+            maintainAspectRatio: COMMON_OPTIONS.maintainAspectRatio,
+            interaction: COMMON_OPTIONS.interaction,
+            plugins: {
+              legend: {
+                display: true,
+                position: "top",
+                labels: { boxWidth: 20, boxHeight: 3, font: { size: 11 } },
+              },
+              tooltip: createTimeSeriesTooltip(chartConfig.title, null, timeline, metadata, true),
+              crosshair: COMMON_OPTIONS.plugins.crosshair,
+            },
+            scales: {
+              x: {
+                type: "time",
+                time: { unit: "day", displayFormats: { day: "MMM d" } },
+                title: { display: true, text: "Build Date" },
+              },
+              ...yAxes,
+            },
+          },
+        };
+      }
+
       function initializeCharts(
         timeline,
         metadata,
@@ -1267,29 +1694,66 @@
         previewLineCharts,
         previewBarCharts,
         showToggle,
-        previewData
+        previewData,
+        layout
       ) {
+        ensureStyles();
         var chartInstances = {};
 
         // Register crosshair plugin globally with Chart.js
         Chart.register(crosshairPlugin);
 
-        // Render REAL charts
-        lineCharts.forEach(function (chart) {
-          var ctx = document.getElementById("chart-" + chart.id);
-          if (ctx) {
-            var chartInstance = new Chart(ctx, buildLineChart(chart, timeline, metadata));
-            chartInstances[chart.id] = chartInstance;
-          }
-        });
+        if (layout && layout.sections && layout.sections.length > 0) {
+          // Layout-based rendering with sections
+          layout.sections.forEach(function (section) {
+            section.charts.forEach(function (chartConfig) {
+              var chartElementId =
+                chartConfig.type === "multi" && chartConfig.metricIds
+                  ? chartConfig.metricIds.join("-")
+                  : chartConfig.metricId;
+              var ctx = document.getElementById("chart-" + chartElementId);
+              if (!ctx) return;
 
-        barCharts.forEach(function (chart) {
-          var ctx = document.getElementById("chart-" + chart.id);
-          if (ctx) {
-            var chartInstance = new Chart(ctx, buildBarChart(chart));
-            chartInstances[chart.id] = chartInstance;
-          }
-        });
+              if (chartConfig.type === "multi" && chartConfig.metricIds) {
+                var chartInstance = new Chart(
+                  ctx,
+                  buildMultiMetricLineChart(chartConfig, lineCharts, timeline, metadata)
+                );
+                chartInstances[chartConfig.metricIds.join("-")] = chartInstance;
+              } else if (chartConfig.type === "single" && chartConfig.metricId) {
+                var singleChart =
+                  lineCharts.find(function (c) {
+                    return c.id === chartConfig.metricId;
+                  }) ||
+                  barCharts.find(function (c) {
+                    return c.id === chartConfig.metricId;
+                  });
+                if (singleChart) {
+                  var builder = singleChart.values !== undefined ? buildLineChart : buildBarChart;
+                  var chartInstance = new Chart(ctx, builder(singleChart, timeline, metadata));
+                  chartInstances[chartConfig.metricId] = chartInstance;
+                }
+              }
+            });
+          });
+        } else {
+          // Render REAL charts (flat layout)
+          lineCharts.forEach(function (chart) {
+            var ctx = document.getElementById("chart-" + chart.id);
+            if (ctx) {
+              var chartInstance = new Chart(ctx, buildLineChart(chart, timeline, metadata));
+              chartInstances[chart.id] = chartInstance;
+            }
+          });
+
+          barCharts.forEach(function (chart) {
+            var ctx = document.getElementById("chart-" + chart.id);
+            if (ctx) {
+              var chartInstance = new Chart(ctx, buildBarChart(chart));
+              chartInstances[chart.id] = chartInstance;
+            }
+          });
+        }
 
         // Render PREVIEW charts (if toggle enabled)
         if (showToggle) {
@@ -1317,7 +1781,9 @@
           toggle.addEventListener("change", function (e) {
             var showPreview = e.target.checked;
 
-            // Toggle visibility of metric cards
+            var track = toggle.parentElement.querySelector(".uent-toggle-track");
+            if (track) track.classList.toggle("uent-toggle-on", showPreview);
+
             document.querySelectorAll('[data-view="real"]').forEach(function (el) {
               el.classList.toggle("hidden", showPreview);
               el.setAttribute("aria-hidden", showPreview ? "true" : "false");
@@ -1356,23 +1822,7 @@
           function updateButtonStates(active) {
             filterButtons.forEach(function (btn) {
               var isActive = btn.dataset.filter === active;
-              if (isActive) {
-                btn.classList.remove(
-                  "bg-gray-200",
-                  "dark:bg-gray-700",
-                  "text-gray-700",
-                  "dark:text-gray-300"
-                );
-                btn.classList.add("bg-blue-600", "text-white");
-              } else {
-                btn.classList.remove("bg-blue-600", "text-white");
-                btn.classList.add(
-                  "bg-gray-200",
-                  "dark:bg-gray-700",
-                  "text-gray-700",
-                  "dark:text-gray-300"
-                );
-              }
+              btn.classList.toggle("uent-chip-active", isActive);
             });
           }
 
@@ -1439,9 +1889,10 @@
 
               var overlay = document.createElement("div");
               overlay.className =
-                "empty-range-overlay absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-900 bg-opacity-90 dark:bg-opacity-90 z-10";
+                "empty-range-overlay absolute inset-0 flex items-center justify-center z-10";
+              overlay.style.background = "color-mix(in srgb, var(--bg) 90%, transparent)";
               overlay.innerHTML =
-                '<p class="text-gray-500 dark:text-gray-400 text-sm">No data in selected range</p>';
+                '<p class="uent-mono text-sm" style="color: var(--text-muted)">No data in selected range</p>';
               container.style.position = "relative";
               container.appendChild(overlay);
             });
@@ -1680,8 +2131,8 @@
             name: "Lines of code",
             unit: "integer",
             values: [
-              47.81, 51.23, 45.35, 48.82, 45.38, 46.9, 48.84, 47.07, 47.23, 53.96, 56.32, 50.93,
-              47.19, 52.21, 48.72, 49.9, 51.15, 55.32, 56.14, 58.78,
+              5011, 5113, 5239, 5206, 5307, 5338, 5294, 5466, 5565, 5700, 5444, 5545, 5533, 5550,
+              5634, 5611, 5568, 5513, 5590, 5585,
             ],
           },
           {
@@ -1689,8 +2140,8 @@
             name: "Lines of test code",
             unit: "integer",
             values: [
-              48.25, 45.7, 42.04, 42.48, 47.53, 44.85, 42.46, 43.84, 43.21, 39.94, 45.05, 43.6,
-              43.76, 42.11, 39.6, 38.2, 42.78, 39.74, 46.07, 49.35,
+              5163, 5269, 5349, 5437, 5497, 5583, 5746, 5777, 5829, 5917, 5766, 5801, 5835, 5958,
+              6091, 6185, 6419, 6196, 6295, 6362,
             ],
           },
           {
@@ -1698,8 +2149,8 @@
             name: "coverage",
             unit: "percent",
             values: [
-              55.36, 52.94, 51.65, 54.76, 52.4, 59.15, 59.17, 58.26, 53.44, 57.6, 50.32, 59.36,
-              62.15, 58.5, 55.56, 47.04, 48.65, 53.31, 50.46, 51.79,
+              55.2, 58.7, 61.8, 63, 65.6, 68.4, 69.2, 70.1, 71.9, 72.7, 73.4, 72.2, 71, 74.7, 72.8,
+              75.2, 73.6, 73.6, 73.4, 72.5,
             ],
           },
           {
@@ -1707,8 +2158,8 @@
             name: "Actions bundle size",
             unit: "bytes",
             values: [
-              50.3, 55.01, 57.33, 56.12, 51.93, 49.28, 48.55, 45.69, 46.83, 49.93, 54.35, 51.69,
-              61.71, 54.49, 56.38, 52.56, 53.81, 51.99, 52.43, 51.73,
+              252886, 259417, 254729, 251594, 247906, 246402, 244219, 248748, 231395, 226113,
+              225071, 223216, 228904, 236699, 234604, 245032, 248481, 248177, 251082, 250047,
             ],
           },
           {
@@ -1716,8 +2167,8 @@
             name: "Specs size (lines)",
             unit: "integer",
             values: [
-              44.68, 47.65, 42.94, 44.03, 42.25, 46.41, 39.26, 48.68, 49.67, 58.52, 58.45, 56.65,
-              54.9, 53.28, 47.83, 47.6, 48.18, 47.45, 40.15, 47.84,
+              5061, 5146, 5235, 5202, 5174, 5174, 5338, 5276, 5446, 5477, 5486, 5704, 5777, 5812,
+              5923, 5969, 5902, 5784, 5847, 5878,
             ],
           },
         ],
@@ -1727,190 +2178,191 @@
           {
             metricId: "lines-of-code",
             timestamps: [
-              "2026-03-29T10:12:49.315Z",
-              "2026-04-01T10:12:49.315Z",
-              "2026-04-04T10:12:49.315Z",
-              "2026-04-07T10:12:49.315Z",
-              "2026-04-10T10:12:49.315Z",
-              "2026-04-13T10:12:49.315Z",
-              "2026-04-16T10:12:49.315Z",
-              "2026-04-19T10:12:49.315Z",
-              "2026-04-22T10:12:49.315Z",
-              "2026-04-25T10:12:49.315Z",
-              "2026-04-28T10:12:49.315Z",
-              "2026-05-01T10:12:49.315Z",
-              "2026-05-04T10:12:49.315Z",
-              "2026-05-07T10:12:49.315Z",
-              "2026-05-10T10:12:49.315Z",
-              "2026-05-13T10:12:49.315Z",
-              "2026-05-16T10:12:49.315Z",
-              "2026-05-19T10:12:49.315Z",
-              "2026-05-22T10:12:49.315Z",
-              "2026-05-25T10:12:49.315Z",
+              "2026-03-30T12:14:20.603Z",
+              "2026-04-02T12:14:20.603Z",
+              "2026-04-05T12:14:20.603Z",
+              "2026-04-08T12:14:20.603Z",
+              "2026-04-11T12:14:20.603Z",
+              "2026-04-14T12:14:20.603Z",
+              "2026-04-17T12:14:20.603Z",
+              "2026-04-20T12:14:20.603Z",
+              "2026-04-23T12:14:20.603Z",
+              "2026-04-26T12:14:20.603Z",
+              "2026-04-29T12:14:20.603Z",
+              "2026-05-02T12:14:20.603Z",
+              "2026-05-05T12:14:20.603Z",
+              "2026-05-08T12:14:20.603Z",
+              "2026-05-11T12:14:20.603Z",
+              "2026-05-14T12:14:20.603Z",
+              "2026-05-17T12:14:20.603Z",
+              "2026-05-20T12:14:20.603Z",
+              "2026-05-23T12:14:20.603Z",
+              "2026-05-26T12:14:20.603Z",
             ],
             values: [
-              47.81, 51.23, 45.35, 48.82, 45.38, 46.9, 48.84, 47.07, 47.23, 53.96, 56.32, 50.93,
-              47.19, 52.21, 48.72, 49.9, 51.15, 55.32, 56.14, 58.78,
+              5011, 5113, 5239, 5206, 5307, 5338, 5294, 5466, 5565, 5700, 5444, 5545, 5533, 5550,
+              5634, 5611, 5568, 5513, 5590, 5585,
             ],
             stats: {
-              latest: 58.78,
-              min: 45.35,
-              max: 58.78,
-              average: 50.4625,
+              latest: 5585,
+              min: 5011,
+              max: 5700,
+              average: 5440.6,
               trendDirection: "up",
-              trendPercent: 22.944990587743145,
+              trendPercent: 11.454799441229294,
             },
           },
           {
             metricId: "lines-of-test-code",
             timestamps: [
-              "2026-03-29T10:12:49.315Z",
-              "2026-04-01T10:12:49.315Z",
-              "2026-04-04T10:12:49.315Z",
-              "2026-04-07T10:12:49.315Z",
-              "2026-04-10T10:12:49.315Z",
-              "2026-04-13T10:12:49.315Z",
-              "2026-04-16T10:12:49.315Z",
-              "2026-04-19T10:12:49.315Z",
-              "2026-04-22T10:12:49.315Z",
-              "2026-04-25T10:12:49.315Z",
-              "2026-04-28T10:12:49.315Z",
-              "2026-05-01T10:12:49.315Z",
-              "2026-05-04T10:12:49.315Z",
-              "2026-05-07T10:12:49.315Z",
-              "2026-05-10T10:12:49.315Z",
-              "2026-05-13T10:12:49.315Z",
-              "2026-05-16T10:12:49.315Z",
-              "2026-05-19T10:12:49.315Z",
-              "2026-05-22T10:12:49.315Z",
-              "2026-05-25T10:12:49.315Z",
+              "2026-03-30T12:14:20.603Z",
+              "2026-04-02T12:14:20.603Z",
+              "2026-04-05T12:14:20.603Z",
+              "2026-04-08T12:14:20.603Z",
+              "2026-04-11T12:14:20.603Z",
+              "2026-04-14T12:14:20.603Z",
+              "2026-04-17T12:14:20.603Z",
+              "2026-04-20T12:14:20.603Z",
+              "2026-04-23T12:14:20.603Z",
+              "2026-04-26T12:14:20.603Z",
+              "2026-04-29T12:14:20.603Z",
+              "2026-05-02T12:14:20.603Z",
+              "2026-05-05T12:14:20.603Z",
+              "2026-05-08T12:14:20.603Z",
+              "2026-05-11T12:14:20.603Z",
+              "2026-05-14T12:14:20.603Z",
+              "2026-05-17T12:14:20.603Z",
+              "2026-05-20T12:14:20.603Z",
+              "2026-05-23T12:14:20.603Z",
+              "2026-05-26T12:14:20.603Z",
             ],
             values: [
-              48.25, 45.7, 42.04, 42.48, 47.53, 44.85, 42.46, 43.84, 43.21, 39.94, 45.05, 43.6,
-              43.76, 42.11, 39.6, 38.2, 42.78, 39.74, 46.07, 49.35,
+              5163, 5269, 5349, 5437, 5497, 5583, 5746, 5777, 5829, 5917, 5766, 5801, 5835, 5958,
+              6091, 6185, 6419, 6196, 6295, 6362,
             ],
             stats: {
-              latest: 49.35,
-              min: 38.2,
-              max: 49.35,
-              average: 43.528000000000006,
+              latest: 6362,
+              min: 5163,
+              max: 6419,
+              average: 5823.75,
               trendDirection: "up",
-              trendPercent: 2.279792746113993,
+              trendPercent: 23.222932403641295,
             },
           },
           {
             metricId: "test-coverage",
             timestamps: [
-              "2026-03-29T10:12:49.315Z",
-              "2026-04-01T10:12:49.315Z",
-              "2026-04-04T10:12:49.315Z",
-              "2026-04-07T10:12:49.315Z",
-              "2026-04-10T10:12:49.315Z",
-              "2026-04-13T10:12:49.315Z",
-              "2026-04-16T10:12:49.315Z",
-              "2026-04-19T10:12:49.315Z",
-              "2026-04-22T10:12:49.315Z",
-              "2026-04-25T10:12:49.315Z",
-              "2026-04-28T10:12:49.315Z",
-              "2026-05-01T10:12:49.315Z",
-              "2026-05-04T10:12:49.315Z",
-              "2026-05-07T10:12:49.315Z",
-              "2026-05-10T10:12:49.315Z",
-              "2026-05-13T10:12:49.315Z",
-              "2026-05-16T10:12:49.315Z",
-              "2026-05-19T10:12:49.315Z",
-              "2026-05-22T10:12:49.315Z",
-              "2026-05-25T10:12:49.315Z",
+              "2026-03-30T12:14:20.603Z",
+              "2026-04-02T12:14:20.603Z",
+              "2026-04-05T12:14:20.603Z",
+              "2026-04-08T12:14:20.603Z",
+              "2026-04-11T12:14:20.603Z",
+              "2026-04-14T12:14:20.603Z",
+              "2026-04-17T12:14:20.603Z",
+              "2026-04-20T12:14:20.603Z",
+              "2026-04-23T12:14:20.603Z",
+              "2026-04-26T12:14:20.603Z",
+              "2026-04-29T12:14:20.603Z",
+              "2026-05-02T12:14:20.603Z",
+              "2026-05-05T12:14:20.603Z",
+              "2026-05-08T12:14:20.603Z",
+              "2026-05-11T12:14:20.603Z",
+              "2026-05-14T12:14:20.603Z",
+              "2026-05-17T12:14:20.603Z",
+              "2026-05-20T12:14:20.603Z",
+              "2026-05-23T12:14:20.603Z",
+              "2026-05-26T12:14:20.603Z",
             ],
             values: [
-              55.36, 52.94, 51.65, 54.76, 52.4, 59.15, 59.17, 58.26, 53.44, 57.6, 50.32, 59.36,
-              62.15, 58.5, 55.56, 47.04, 48.65, 53.31, 50.46, 51.79,
+              55.2, 58.7, 61.8, 63, 65.6, 68.4, 69.2, 70.1, 71.9, 72.7, 73.4, 72.2, 71, 74.7, 72.8,
+              75.2, 73.6, 73.6, 73.4, 72.5,
             ],
             stats: {
-              latest: 51.79,
-              min: 47.04,
-              max: 62.15,
-              average: 54.59349999999999,
-              trendDirection: "down",
-              trendPercent: -6.448699421965319,
+              latest: 72.5,
+              min: 55.2,
+              max: 75.2,
+              average: 69.44999999999999,
+              trendDirection: "up",
+              trendPercent: 31.340579710144922,
             },
           },
           {
             metricId: "total-bundle-size",
             timestamps: [
-              "2026-03-29T10:12:49.315Z",
-              "2026-04-01T10:12:49.315Z",
-              "2026-04-04T10:12:49.315Z",
-              "2026-04-07T10:12:49.315Z",
-              "2026-04-10T10:12:49.315Z",
-              "2026-04-13T10:12:49.315Z",
-              "2026-04-16T10:12:49.315Z",
-              "2026-04-19T10:12:49.315Z",
-              "2026-04-22T10:12:49.315Z",
-              "2026-04-25T10:12:49.315Z",
-              "2026-04-28T10:12:49.315Z",
-              "2026-05-01T10:12:49.315Z",
-              "2026-05-04T10:12:49.315Z",
-              "2026-05-07T10:12:49.315Z",
-              "2026-05-10T10:12:49.315Z",
-              "2026-05-13T10:12:49.315Z",
-              "2026-05-16T10:12:49.315Z",
-              "2026-05-19T10:12:49.315Z",
-              "2026-05-22T10:12:49.315Z",
-              "2026-05-25T10:12:49.315Z",
+              "2026-03-30T12:14:20.603Z",
+              "2026-04-02T12:14:20.603Z",
+              "2026-04-05T12:14:20.603Z",
+              "2026-04-08T12:14:20.603Z",
+              "2026-04-11T12:14:20.603Z",
+              "2026-04-14T12:14:20.603Z",
+              "2026-04-17T12:14:20.603Z",
+              "2026-04-20T12:14:20.603Z",
+              "2026-04-23T12:14:20.603Z",
+              "2026-04-26T12:14:20.603Z",
+              "2026-04-29T12:14:20.603Z",
+              "2026-05-02T12:14:20.603Z",
+              "2026-05-05T12:14:20.603Z",
+              "2026-05-08T12:14:20.603Z",
+              "2026-05-11T12:14:20.603Z",
+              "2026-05-14T12:14:20.603Z",
+              "2026-05-17T12:14:20.603Z",
+              "2026-05-20T12:14:20.603Z",
+              "2026-05-23T12:14:20.603Z",
+              "2026-05-26T12:14:20.603Z",
             ],
             values: [
-              50.3, 55.01, 57.33, 56.12, 51.93, 49.28, 48.55, 45.69, 46.83, 49.93, 54.35, 51.69,
-              61.71, 54.49, 56.38, 52.56, 53.81, 51.99, 52.43, 51.73,
+              252886, 259417, 254729, 251594, 247906, 246402, 244219, 248748, 231395, 226113,
+              225071, 223216, 228904, 236699, 234604, 245032, 248481, 248177, 251082, 250047,
             ],
             stats: {
-              latest: 51.73,
-              min: 45.69,
-              max: 61.71,
-              average: 52.60549999999999,
-              trendDirection: "up",
-              trendPercent: 2.842942345924453,
+              latest: 250047,
+              min: 223216,
+              max: 259417,
+              average: 242736.1,
+              trendDirection: "down",
+              trendPercent: -1.1226402410572351,
             },
           },
           {
             metricId: "specs-size",
             timestamps: [
-              "2026-03-29T10:12:49.315Z",
-              "2026-04-01T10:12:49.315Z",
-              "2026-04-04T10:12:49.315Z",
-              "2026-04-07T10:12:49.315Z",
-              "2026-04-10T10:12:49.315Z",
-              "2026-04-13T10:12:49.315Z",
-              "2026-04-16T10:12:49.315Z",
-              "2026-04-19T10:12:49.315Z",
-              "2026-04-22T10:12:49.315Z",
-              "2026-04-25T10:12:49.315Z",
-              "2026-04-28T10:12:49.315Z",
-              "2026-05-01T10:12:49.315Z",
-              "2026-05-04T10:12:49.315Z",
-              "2026-05-07T10:12:49.315Z",
-              "2026-05-10T10:12:49.315Z",
-              "2026-05-13T10:12:49.315Z",
-              "2026-05-16T10:12:49.315Z",
-              "2026-05-19T10:12:49.315Z",
-              "2026-05-22T10:12:49.315Z",
-              "2026-05-25T10:12:49.315Z",
+              "2026-03-30T12:14:20.603Z",
+              "2026-04-02T12:14:20.603Z",
+              "2026-04-05T12:14:20.603Z",
+              "2026-04-08T12:14:20.603Z",
+              "2026-04-11T12:14:20.603Z",
+              "2026-04-14T12:14:20.603Z",
+              "2026-04-17T12:14:20.603Z",
+              "2026-04-20T12:14:20.603Z",
+              "2026-04-23T12:14:20.603Z",
+              "2026-04-26T12:14:20.603Z",
+              "2026-04-29T12:14:20.603Z",
+              "2026-05-02T12:14:20.603Z",
+              "2026-05-05T12:14:20.603Z",
+              "2026-05-08T12:14:20.603Z",
+              "2026-05-11T12:14:20.603Z",
+              "2026-05-14T12:14:20.603Z",
+              "2026-05-17T12:14:20.603Z",
+              "2026-05-20T12:14:20.603Z",
+              "2026-05-23T12:14:20.603Z",
+              "2026-05-26T12:14:20.603Z",
             ],
             values: [
-              44.68, 47.65, 42.94, 44.03, 42.25, 46.41, 39.26, 48.68, 49.67, 58.52, 58.45, 56.65,
-              54.9, 53.28, 47.83, 47.6, 48.18, 47.45, 40.15, 47.84,
+              5061, 5146, 5235, 5202, 5174, 5174, 5338, 5276, 5446, 5477, 5486, 5704, 5777, 5812,
+              5923, 5969, 5902, 5784, 5847, 5878,
             ],
             stats: {
-              latest: 47.84,
-              min: 39.26,
-              max: 58.52,
-              average: 48.321,
+              latest: 5878,
+              min: 5061,
+              max: 5969,
+              average: 5530.55,
               trendDirection: "up",
-              trendPercent: 7.072515666965093,
+              trendPercent: 16.14305473226635,
             },
           },
         ],
         availableDateRange: undefined,
+        layout: undefined,
       };
       var __chartInstances = initializeCharts(
         __chartData.timeline,
@@ -1920,7 +2372,8 @@
         __chartData.previewLineCharts,
         __chartData.previewBarCharts,
         __chartData.showToggle,
-        __chartData.previewData
+        __chartData.previewData,
+        __chartData.layout
       );
 
       // Initialize date filters after charts are created
