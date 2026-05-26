@@ -13,6 +13,7 @@
         "drizzle-orm": "^0.45.1",
         "fast-glob": "^3.3.3",
         "fast-xml-parser": "^5.3.2",
+        "get-folder-size": "^5.0.0",
         "preact": "^10.27.2",
         "preact-render-to-string": "^6.6.3",
         "serialize-javascript": "^7.0.0",
@@ -307,6 +308,8 @@
     "get-caller-file": ["get-caller-file@2.0.5", "", {}, "sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg=="],
 
     "get-east-asian-width": ["get-east-asian-width@1.4.0", "", {}, "sha512-QZjmEOC+IT1uk6Rx0sX22V6uHWVwbdbxf1faPqJ1QhLdGgsRGCZoyaQBm/piRdJy/D2um6hM1UP7ZEeQ4EkP+Q=="],
+
+    "get-folder-size": ["get-folder-size@5.0.0", "", { "bin": { "get-folder-size": "bin/get-folder-size.js" } }, "sha512-+fgtvbL83tSDypEK+T411GDBQVQtxv+qtQgbV+HVa/TYubqDhNd5ghH/D6cOHY9iC5/88GtOZB7WI8PXy2A3bg=="],
 
     "get-tsconfig": ["get-tsconfig@4.13.0", "", { "dependencies": { "resolve-pkg-maps": "^1.0.0" } }, "sha512-1VKTZJCwBrvbd+Wn3AOgQP/2Av+TfTCOlE4AcRJE72W1ksZXbAx8PPBR9RzgTeSPzlPMHrbANMH3LbltH73wxQ=="],
 

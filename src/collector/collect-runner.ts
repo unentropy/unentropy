@@ -59,10 +59,7 @@ export async function executeCollect(collectArgs: string): Promise<CollectResult
       .command(
         "size <paths..>",
         "calculate size of files",
-        (y) =>
-          y
-            .positional("paths", { type: "string", array: true, demandOption: true })
-            .option("followSymlinks", { type: "boolean", default: false }),
+        (y) => y.positional("paths", { type: "string", array: true, demandOption: true }),
         async (argv) => {
           const paths = argv.paths ?? [];
           if (paths.length === 0) {
@@ -70,7 +67,7 @@ export async function executeCollect(collectArgs: string): Promise<CollectResult
           }
           let totalSize = 0;
           for (const path of paths) {
-            totalSize += await parseSize(path, { followSymlinks: argv.followSymlinks });
+            totalSize += await parseSize(path);
           }
           result = { success: true, value: String(totalSize) };
         }

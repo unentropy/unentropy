@@ -352,7 +352,8 @@ export const FIXTURES: Record<string, FixtureConfig> = {
         type: "numeric",
         description: "Production bundle size",
         unit: "bytes",
-        valueGenerator: (i) => Math.round((180 + i * 2 + Math.sin(i * 0.15) * 10) * 1024),
+        valueGenerator: (i) =>
+          i < 20 ? null : Math.round((180 + i * 2 + Math.sin(i * 0.15) * 10) * 1024),
       },
       {
         id: "test-coverage",
@@ -360,7 +361,8 @@ export const FIXTURES: Record<string, FixtureConfig> = {
         type: "numeric",
         description: "Percentage of code covered by tests",
         unit: "percent",
-        valueGenerator: (i) => 65 + 25 * (1 - Math.exp(-i / 8)) + Math.sin(i * 0.3) * 3,
+        valueGenerator: (i) =>
+          i < 20 ? null : 65 + 25 * (1 - Math.exp(-i / 8)) + Math.sin(i * 0.3) * 3,
       },
       {
         id: "api-response-time",
@@ -369,6 +371,7 @@ export const FIXTURES: Record<string, FixtureConfig> = {
         description: "Average API response time in seconds",
         unit: "duration",
         valueGenerator: (i) => {
+          if (i < 20) return null;
           const baseline = 0.095;
           const oscillation = Math.sin(i * 0.6) * 0.012;
           const spike = i % 7 === 2 ? 0.035 : 0;

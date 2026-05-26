@@ -74,6 +74,7 @@
     "drizzle-orm": "^0.45.1",
     "fast-glob": "^3.3.3",
     "fast-xml-parser": "^5.3.2",
+    "get-folder-size": "^5.0.0",
     "preact": "^10.27.2",
     "preact-render-to-string": "^6.6.3",
     "serialize-javascript": "^7.0.0",

@@ -76,14 +76,56 @@ function ensureStyles() {
     interaction: { mode: "index", intersect: false },
     plugins: {
       legend: { display: false },
-      crosshair: {
-        enabled: true,
-        sync: { enabled: true, group: 1 },
-        line: { color: hexToRgba(accent, 0.3), width: 1 },
-        zoom: { enabled: true, minDataPoints: 10, minZoomRange: 4 },
-      },
     },
   };
+}
+
+function buildCrosshairOptions(syncGroup) {
+  var accent = themeVar("--accent") || "#6fb3d2";
+  return {
+    enabled: true,
+    sync: { enabled: true, group: syncGroup },
+    line: { color: hexToRgba(accent, 0.3), width: 1 },
+    zoom: { enabled: true, minDataPoints: 10, minZoomRange: 4 },
+  };
+}
+
+function computeSectionDateRange(section, lineCharts, timeline) {
+  var minIndex = timeline.length;
+  var maxIndex = -1;
+  section.charts.forEach(function (chartConfig) {
+    if (chartConfig.type === "multi" && chartConfig.metricIds) {
+      chartConfig.metricIds.forEach(function (metricId) {
+        var chart = lineCharts.find(function (c) {
+          return c.id === metricId;
+        });
+        if (chart && chart.values) {
+          chart.values.forEach(function (v, i) {
+            if (v !== null && v !== undefined) {
+              if (i < minIndex) minIndex = i;
+              if (i > maxIndex) maxIndex = i;
+            }
+          });
+        }
+      });
+    } else if (chartConfig.type === "single" && chartConfig.metricId) {
+      var chart = lineCharts.find(function (c) {
+        return c.id === chartConfig.metricId;
+      });
+      if (chart && chart.values) {
+        chart.values.forEach(function (v, i) {
+          if (v !== null && v !== undefined) {
+            if (i < minIndex) minIndex = i;
+            if (i > maxIndex) maxIndex = i;
+          }
+        });
+      }
+    }
+  });
+  if (minIndex <= maxIndex && minIndex < timeline.length && maxIndex >= 0) {
+    return { min: timeline[minIndex], max: timeline[maxIndex] };
+  }
+  return null;
 }
 
 /**
@@ -213,7 +255,7 @@ function createTimeSeriesTooltip(metricName, unit, timeline, metadata, isMultiMe
   };
 }
 
-function buildLineChart(chart, timeline, metadata) {
+function buildLineChart(chart, timeline, metadata, crosshairOptions, sectionRange) {
   return {
     type: "line",
     data: {
@@ -239,19 +281,22 @@ function buildLineChart(chart, timeline, metadata) {
       plugins: {
         legend: COMMON_OPTIONS.plugins.legend,
         tooltip: createTimeSeriesTooltip(chart.name, chart.unit, timeline, metadata),
-        crosshair: COMMON_OPTIONS.plugins.crosshair,
+        crosshair: crosshairOptions || buildCrosshairOptions(1),
       },
       scales: {
-        x: {
-          type: "time",
-          time: { unit: "day", displayFormats: { day: "MMM d" } },
-          title: { display: true, text: "Build Date" },
-          ticks: {
-            maxRotation: 0,
-            autoSkip: true,
-            maxTicksLimit: 10,
+        x: Object.assign(
+          {
+            type: "time",
+            time: { unit: "day", displayFormats: { day: "MMM d" } },
+            title: { display: true, text: "Build Date" },
+            ticks: {
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 10,
+            },
           },
-        },
+          sectionRange || {}
+        ),
         y: {
           beginAtZero: true,
           title: { display: true, text: chart.name },
@@ -295,7 +340,14 @@ function buildBarChart(chart) {
   };
 }
 
-function buildMultiMetricLineChart(chartConfig, lineChartsData, timeline, metadata) {
+function buildMultiMetricLineChart(
+  chartConfig,
+  lineChartsData,
+  timeline,
+  metadata,
+  crosshairOptions,
+  sectionRange
+) {
   var datasets = chartConfig.metricIds.map(function (metricId, index) {
     var chart = lineChartsData.find(function (c) {
       return c.id === metricId;
@@ -370,19 +422,22 @@ function buildMultiMetricLineChart(chartConfig, lineChartsData, timeline, metada
           labels: { boxWidth: 20, boxHeight: 3, font: { size: 11 } },
         },
         tooltip: createTimeSeriesTooltip(chartConfig.title, null, timeline, metadata, true),
-        crosshair: COMMON_OPTIONS.plugins.crosshair,
+        crosshair: crosshairOptions || buildCrosshairOptions(1),
       },
       scales: {
-        x: {
-          type: "time",
-          time: { unit: "day", displayFormats: { day: "MMM d" } },
-          title: { display: true, text: "Build Date" },
-          ticks: {
-            maxRotation: 0,
-            autoSkip: true,
-            maxTicksLimit: 10,
+        x: Object.assign(
+          {
+            type: "time",
+            time: { unit: "day", displayFormats: { day: "MMM d" } },
+            title: { display: true, text: "Build Date" },
+            ticks: {
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 10,
+            },
           },
-        },
+          sectionRange || {}
+        ),
         ...yAxes,
       },
     },
@@ -408,7 +463,9 @@ function initializeCharts(
 
   if (layout && layout.sections && layout.sections.length > 0) {
     // Layout-based rendering with sections
-    layout.sections.forEach(function (section) {
+    layout.sections.forEach(function (section, sectionIndex) {
+      var sectionCrosshair = buildCrosshairOptions(sectionIndex);
+      var sectionRange = computeSectionDateRange(section, lineCharts, timeline);
       section.charts.forEach(function (chartConfig) {
         var chartElementId =
           chartConfig.type === "multi" && chartConfig.metricIds
@@ -420,8 +477,16 @@ function initializeCharts(
         if (chartConfig.type === "multi" && chartConfig.metricIds) {
           var chartInstance = new Chart(
             ctx,
-            buildMultiMetricLineChart(chartConfig, lineCharts, timeline, metadata)
+            buildMultiMetricLineChart(
+              chartConfig,
+              lineCharts,
+              timeline,
+              metadata,
+              sectionCrosshair,
+              sectionRange
+            )
           );
+          if (sectionRange) chartInstance.crosshair.sectionDateRange = sectionRange;
           chartInstances[chartConfig.metricIds.join("-")] = chartInstance;
         } else if (chartConfig.type === "single" && chartConfig.metricId) {
           var singleChart =
@@ -432,8 +497,14 @@ function initializeCharts(
               return c.id === chartConfig.metricId;
             });
           if (singleChart) {
-            var builder = singleChart.values !== undefined ? buildLineChart : buildBarChart;
-            var chartInstance = new Chart(ctx, builder(singleChart, timeline, metadata));
+            var isLine = singleChart.values !== undefined;
+            var chartInstance = new Chart(
+              ctx,
+              isLine
+                ? buildLineChart(singleChart, timeline, metadata, sectionCrosshair, sectionRange)
+                : buildBarChart(singleChart)
+            );
+            if (sectionRange) chartInstance.crosshair.sectionDateRange = sectionRange;
             chartInstances[chartConfig.metricId] = chartInstance;
           }
         }
@@ -480,7 +551,8 @@ function initializeCharts(
 
   // Preview multi-metric charts in section-based layout
   if (showToggle && layout && layout.sections) {
-    layout.sections.forEach(function (section) {
+    layout.sections.forEach(function (section, sectionIndex) {
+      var sectionCrosshair = buildCrosshairOptions(sectionIndex);
       section.charts.forEach(function (chartConfig) {
         if (chartConfig.type === "multi" && chartConfig.metricIds) {
           var previewElementId = chartConfig.metricIds
@@ -503,7 +575,13 @@ function initializeCharts(
           var previewTimeline = previewData[0]?.timestamps || timeline;
           var chartInstance = new Chart(
             ctx,
-            buildMultiMetricLineChart(previewConfig, previewLineCharts, previewTimeline, null)
+            buildMultiMetricLineChart(
+              previewConfig,
+              previewLineCharts,
+              previewTimeline,
+              null,
+              sectionCrosshair
+            )
           );
           chartInstances[previewElementId] = chartInstance;
         }

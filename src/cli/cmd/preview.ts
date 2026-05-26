@@ -5,7 +5,6 @@ import { spawn } from "child_process";
 import { basename } from "path";
 import { loadConfig } from "../../config/loader.js";
 import { generateEmptyReport } from "../../reporter/empty-report.js";
-import { generateReport } from "../../reporter/generator.js";
 import { Storage } from "../../storage/storage.js";
 import { cmd } from "./cmd";
 
@@ -114,6 +113,7 @@ export const PreviewCommand = cmd({
       try {
         await storage.ready();
         const repoName = basename(process.cwd());
+        const { generateReport } = await import("../../reporter/generator.js");
         reportHtml = generateReport(repoName, storage, config);
       } catch (error) {
         console.log(

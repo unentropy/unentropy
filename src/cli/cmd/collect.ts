@@ -13,22 +13,14 @@ const SizeCommand = cmd({
   command: "size <paths...>",
   describe: "calculate size of files and directories",
   builder: (yargs: Argv) => {
-    return yargs
-      .positional("paths", {
-        type: "string",
-        description: "paths to files or directories",
-        array: true,
-      })
-      .options({
-        followSymlinks: {
-          type: "boolean",
-          description: "follow symbolic links",
-          default: false,
-        },
-      });
+    return yargs.positional("paths", {
+      type: "string",
+      description: "paths to files or directories",
+      array: true,
+    });
   },
-  async handler(argv: { paths?: string[]; followSymlinks?: boolean; [key: string]: unknown }) {
-    const { paths, followSymlinks } = argv;
+  async handler(argv: { paths?: string[]; [key: string]: unknown }) {
+    const { paths } = argv;
 
     if (!paths || paths.length === 0) {
       throw new Error("At least one path is required");
@@ -37,7 +29,7 @@ const SizeCommand = cmd({
     let totalSize = 0;
 
     for (const path of paths) {
-      const size = await parseSize(path, { followSymlinks });
+      const size = await parseSize(path);
       totalSize += size;
     }
 
