@@ -308,13 +308,17 @@ The system SHALL handle test command errors with appropriate exit codes and cont
 
 ### Requirement: Preview Command
 
-The system SHALL provide a `preview` command that generates an HTML report showing all configured metrics with empty/no-data state.
+WHEN the user runs `unentropy preview` without the `--db` option,
+the system SHALL generate an HTML report with synthetic placeholder data from the config file.
 
-#### Scenario: Generate preview with empty data
+WHEN the user runs `unentropy preview --db <path>` with the `--db` option,
+the system SHALL generate an HTML report with real data from the specified SQLite database.
+
+#### Scenario: Preview with synthetic data
 
 - **GIVEN** a valid `unentropy.json` with 3 metrics
 - **WHEN** the user runs `bunx unentropy preview`
-- **THEN** an HTML report is generated in `unentropy-preview/index.html` showing all 3 metrics with empty/no-data state and opens in default browser
+- **THEN** an HTML report is generated in `unentropy-preview/index.html` showing all 3 metrics with synthetic placeholder data and opens in default browser
 
 #### Scenario: Suppress browser open with --no-open
 
@@ -363,6 +367,42 @@ The system SHALL provide a `preview` command that generates an HTML report showi
 - **GIVEN** a successful preview generation
 - **WHEN** the report is generated
 - **THEN** the output displays the path to the generated report file
+
+#### Scenario: Successful report from local DB
+
+- **GIVEN** a valid `unentropy.json` config file
+- **AND** a SQLite database file at the path specified by `--db` containing metric data
+- **WHEN** the user runs `bunx unentropy preview --db ./unentropy.db`
+- **THEN** the system opens the config file
+- **AND** checks that the database file exists
+- **AND** opens the database in read-only mode
+- **AND** generates a complete HTML report with real metric data, charts, and statistics
+- **AND** writes the report to the output directory
+- **AND** opens the report in the default browser
+
+#### Scenario: Non-existent database file
+
+- **GIVEN** a valid `unentropy.json` config file
+- **AND** no SQLite database file at the path specified by `--db`
+- **WHEN** the user runs `bunx unentropy preview --db ./nonexistent.db`
+- **THEN** the system prints an error message: "Error: Database not found: ./nonexistent.db"
+- **AND** prints a hint: "Run metric collection first, or check the path."
+- **AND** exits with a non-zero exit code
+- **AND** does not generate any report
+
+#### Scenario: Empty database
+
+- **GIVEN** a valid `unentropy.json` config file
+- **AND** a SQLite database file at the path specified by `--db` that exists but contains no build data
+- **WHEN** the user runs `bunx unentropy preview --db ./unentropy.db`
+- **THEN** the system generates a report with zero build count
+- **AND** shows preview toggle for synthetic data (since buildCount < 10)
+
+#### Scenario: Report header shows directory name
+
+- **GIVEN** the current working directory is `/Users/alice/projects/my-app`
+- **WHEN** the user runs `bunx unentropy preview --db ./unentropy.db`
+- **THEN** the generated report displays "my-app" as the repository name
 
 ---
 
