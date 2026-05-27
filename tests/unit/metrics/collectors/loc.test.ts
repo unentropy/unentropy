@@ -102,6 +102,55 @@ describe("collectLoc", () => {
     });
   });
 
+  describe("paths argument with fast-glob", () => {
+    it("collects LOC from glob patterns", async () => {
+      mkdirSync(join(testDir, "src"));
+      writeFileSync(join(testDir, "src", "a.ts"), "const a = 1;\n");
+      writeFileSync(join(testDir, "src", "b.ts"), "const b = 2;\n");
+
+      const result = await collectLoc({ paths: ["src/**"], cwd: testDir });
+      expect(result).toBe(2);
+    });
+
+    it("collects LOC from multiple paths patterns", async () => {
+      mkdirSync(join(testDir, "lib"));
+      writeFileSync(join(testDir, "index.ts"), "const x = 1;\n");
+      writeFileSync(join(testDir, "lib", "util.ts"), "const y = 2;\n");
+
+      const result = await collectLoc({
+        paths: ["index.ts", "lib/*.ts"],
+        cwd: testDir,
+      });
+      expect(result).toBe(2);
+    });
+
+    it("respects exclude patterns in paths mode", async () => {
+      mkdirSync(join(testDir, "src"));
+      mkdirSync(join(testDir, "generated"));
+      writeFileSync(join(testDir, "src", "app.ts"), "const a = 1;\n");
+      writeFileSync(join(testDir, "generated", "types.ts"), "const t = 2;\n");
+
+      const result = await collectLoc({
+        paths: ["**/*.ts"],
+        excludePatterns: ["generated/**"],
+        cwd: testDir,
+      });
+      expect(result).toBe(1);
+    });
+
+    it("handles language filter in paths mode", async () => {
+      writeFileSync(join(testDir, "app.ts"), "const a = 1;\n");
+      writeFileSync(join(testDir, "style.css"), ".class { color: red; }\n");
+
+      const tsResult = await collectLoc({
+        paths: ["*.ts", "*.css"],
+        languageFilter: "TypeScript",
+        cwd: testDir,
+      });
+      expect(tsResult).toBe(1);
+    });
+  });
+
   describe("error handling", () => {
     it("throws for non-existent directory", async () => {
       expect(collectLoc({ path: "/non/existent/directory/path" })).rejects.toThrow(
@@ -118,6 +167,10 @@ describe("collectLoc", () => {
         // @ts-expect-error - Testing invalid input
         collectLoc({ path: null })
       ).rejects.toThrow("Path must be a non-empty string");
+    });
+
+    it("throws when neither path nor paths provided", async () => {
+      expect(collectLoc({})).rejects.toThrow("Either path or paths must be provided");
     });
   });
 });

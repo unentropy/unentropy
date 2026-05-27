@@ -12,6 +12,7 @@ This contract defines the `metrics` object within `unentropy.json`. It specifies
 
 ```typescript
 interface UnentropyConfig {
+  sources?: string[];
   metrics: Record<string, MetricConfig>;
 }
 ```
@@ -101,6 +102,31 @@ When metrics commands are executed, the following environment variables are avai
 - Exit code ignored (only stdout/stderr used)
 - Stdout is captured and parsed based on metric type
 - Stderr is logged but does not fail the metric
+
+### SourcesConfig
+
+Optional top-level field that defines the project scope for built-in collectors using micromatch patterns.
+
+```typescript
+type SourcesConfig = string[];
+```
+
+**Pattern Rules**:
+
+| Pattern Form | Example | Resolved Behavior |
+|--------------|---------|-------------------|
+| Bare directory (exists on disk) | `"src"` | Auto-expanded to `"src/**"` |
+| Bare file (exists on disk) | `"package.json"` | Kept as literal `"package.json"` |
+| Glob | `"src/**/*.ts"` | Used as-is |
+| Negated glob | `"!src/**/*.test.ts"` | Used as-is |
+| Negated directory | `"!node_modules"` | Auto-expanded to `"!node_modules/**"` if directory exists |
+
+**Behavior**:
+- Non-negated patterns include files
+- `!`-prefixed patterns exclude files
+- Order matters: last matching pattern wins
+- `loc` and `size` collectors use `sources` when no explicit path arguments are provided
+- Coverage collectors always filter parsed source files through `sources`
 
 ## Example Configurations
 

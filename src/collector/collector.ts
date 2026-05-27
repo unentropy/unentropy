@@ -1,5 +1,5 @@
 import { runCommand } from "./runner";
-import type { ResolvedMetricConfig } from "../config/schema";
+import type { ResolvedMetricConfig, SourcesConfig } from "../config/schema";
 import type { UnitType } from "../metrics/types";
 
 export interface ParseResult {
@@ -57,9 +57,14 @@ export function parseMetricValue(output: string, type: "numeric" | "label"): Par
  * Returns collected metrics for caller to record to database.
  *
  * @param metrics - Object of metric configurations to collect (key is metric id)
+ * @param sources - Optional project sources configuration for built-in collectors
  * @returns Collection result with successful metrics and failures
  */
-export async function collectMetrics(metrics: Record<string, ResolvedMetricConfig>): Promise<
+export async function collectMetrics(
+  metrics: Record<string, ResolvedMetricConfig>,
+  sources?: SourcesConfig,
+  basePath?: string
+): Promise<
   CollectionResult & {
     collectedMetrics: {
       definition: {
@@ -102,7 +107,14 @@ export async function collectMetrics(metrics: Record<string, ResolvedMetricConfi
     const metricId = metric.id ?? key;
 
     try {
-      const commandResult = await runCommand(metric.command, {}, metric.timeout ?? 60000);
+      const commandResult = await runCommand(
+        metric.command,
+        {},
+        metric.timeout ?? 60000,
+        false,
+        sources,
+        basePath
+      );
 
       if (!commandResult.success) {
         const reason = commandResult.timedOut

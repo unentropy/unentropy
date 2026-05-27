@@ -5,6 +5,7 @@ import { CollectCommand } from "./cli/cmd/collect";
 import { TestCommand } from "./cli/cmd/test";
 import { InitCommand } from "./cli/cmd/init";
 import { PreviewCommand } from "./cli/cmd/preview";
+import { SourcesCommand } from "./cli/cmd/sources";
 import pkg from "../package.json" assert { type: "json" };
 
 const cli = yargs()
@@ -15,6 +16,7 @@ const cli = yargs()
   .command(TestCommand)
   .command(InitCommand)
   .command(PreviewCommand)
+  .command(SourcesCommand)
   .fail((msg) => {
     if (
       msg.startsWith("Unknown argument") ||

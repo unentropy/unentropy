@@ -195,12 +195,19 @@ export const ReportConfigSchema = z
   })
   .strict();
 
+export const SourcesConfigSchema = z
+  .array(z.string().min(1, { message: "sources pattern cannot be empty" }))
+  .min(1, { message: "sources must contain at least one pattern" })
+  .max(50, { message: "sources cannot contain more than 50 patterns" })
+  .optional();
+
 export const UnentropyConfigSchema = z
   .object({
     storage: StorageConfigSchema.optional(),
     metrics: MetricsObjectSchema,
     qualityGate: QualityGateConfigSchema.optional(),
     report: ReportConfigSchema.optional(),
+    sources: SourcesConfigSchema,
   })
   .strict()
   .transform((data) => ({
@@ -218,6 +225,7 @@ export type ChartConfig = z.infer<typeof ChartConfigSchema>;
 export type ReportSection = z.infer<typeof ReportSectionSchema>;
 export type ReportConfig = z.infer<typeof ReportConfigSchema>;
 export type UnentropyConfig = z.infer<typeof UnentropyConfigSchema>;
+export type SourcesConfig = NonNullable<z.infer<typeof SourcesConfigSchema>>;
 
 export function validateConfig(config: unknown): UnentropyConfig {
   const result = UnentropyConfigSchema.safeParse(config);

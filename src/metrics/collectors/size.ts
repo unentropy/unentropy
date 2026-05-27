@@ -1,8 +1,11 @@
+import { lstat } from "fs/promises";
 import getFolderSize from "get-folder-size";
 import fg from "fast-glob";
+import { resolve } from "path";
 
 export interface SizeOptions {
   excludePatterns?: string[];
+  cwd?: string;
 }
 
 export async function parseSize(sourcePath: string, options: SizeOptions = {}): Promise<number> {
@@ -17,6 +20,8 @@ export async function parseSize(sourcePath: string, options: SizeOptions = {}): 
       onlyFiles: false,
       followSymbolicLinks: false,
       ignore: options.excludePatterns ?? [],
+      cwd: options.cwd || process.cwd(),
+      absolute: true,
     });
 
     if (matchedPaths.length === 0) {
@@ -31,5 +36,28 @@ export async function parseSize(sourcePath: string, options: SizeOptions = {}): 
     return totalSize;
   }
 
-  return Number(await getFolderSize.strict(sourcePath));
+  const resolvedPath = options.cwd ? resolve(options.cwd, sourcePath) : sourcePath;
+  return Number(await getFolderSize.strict(resolvedPath));
+}
+
+export async function collectSize(paths: string[], options: SizeOptions = {}): Promise<number> {
+  if (!paths || paths.length === 0) {
+    throw new Error("At least one path is required");
+  }
+
+  const files = await fg(paths, {
+    onlyFiles: true,
+    followSymbolicLinks: false,
+    ignore: options.excludePatterns ?? [],
+    cwd: options.cwd || process.cwd(),
+    absolute: true,
+  });
+
+  let totalSize = 0;
+  for (const file of files) {
+    const stats = await lstat(file);
+    totalSize += stats.size;
+  }
+
+  return totalSize;
 }

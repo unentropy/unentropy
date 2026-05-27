@@ -1,5 +1,6 @@
 import { exec } from "@actions/exec";
 import { executeCollect } from "./collect-runner";
+import type { SourcesConfig } from "../config/schema";
 
 export interface CommandResult {
   success: boolean;
@@ -14,13 +15,15 @@ export async function runCommand(
   command: string,
   env: Record<string, string>,
   timeoutMs = 60000,
-  silent = false
+  silent = false,
+  sources?: SourcesConfig,
+  basePath?: string
 ): Promise<CommandResult> {
   const startTime = Date.now();
 
   if (command.trim().startsWith("@collect ")) {
     const collectArgs = command.trim().slice("@collect ".length);
-    const result = await executeCollect(collectArgs);
+    const result = await executeCollect(collectArgs, sources, basePath);
     const durationMs = Date.now() - startTime;
 
     return {

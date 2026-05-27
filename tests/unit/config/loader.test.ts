@@ -133,4 +133,21 @@ describe("Config Loader", () => {
       expect(config.storage).toHaveProperty("type");
     });
   });
+
+  describe("Sources Configuration", () => {
+    it("should parse config with sources and normalize bare directories", async () => {
+      const configPath = path.join(fixturesDir, "valid-sources.json");
+      const config = await loadConfig(configPath);
+
+      expect(config.sources).toBeDefined();
+      expect(config.sources).toEqual(["src/**", "tests/**", "!node_modules"]);
+    });
+
+    it("should parse config without sources", async () => {
+      const configPath = path.join(fixturesDir, "valid-minimal.json");
+      const config = await loadConfig(configPath);
+
+      expect(config.sources).toBeUndefined();
+    });
+  });
 });

@@ -1,4 +1,5 @@
 {
+  "sources": ["src", "tests", "!node_modules", "!dist"],
   "metrics": {
     "lines-of-code": {
       "$ref": "loc",

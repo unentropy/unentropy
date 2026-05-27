@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "fs";
 import { join, extname } from "path";
+import fg from "fast-glob";
 import sloc from "sloc";
 import { getExtensionsForLanguage, isExtensionSupported } from "./loc/language-map.js";
 
@@ -9,11 +10,24 @@ import { getExtensionsForLanguage, isExtensionSupported } from "./loc/language-m
  */
 export interface LocOptions {
   /**
-   * Required: Path to the directory to count lines of code.
+   * Required (unless paths is provided): Path to the directory to count lines of code.
    * Can be relative or absolute path.
    * @type {string}
    */
-  path: string;
+  path?: string;
+
+  /**
+   * Optional: Multiple paths or glob patterns for file discovery.
+   * When provided, uses fast-glob instead of the custom walker.
+   * @type {string[] | undefined}
+   */
+  paths?: string[];
+
+  /**
+   * Optional: Working directory for resolving relative paths and glob patterns.
+   * @type {string | undefined}
+   */
+  cwd?: string;
 
   /**
    * Optional: Patterns to exclude from LOC count.
@@ -63,22 +77,37 @@ export interface LocOptions {
  * });
  */
 export async function collectLoc(options: LocOptions): Promise<number> {
-  const { path, excludePatterns, languageFilter } = options;
+  const { path, paths, cwd, excludePatterns, languageFilter } = options;
 
-  if (!path || typeof path !== "string") {
+  if (path !== undefined && (!path || typeof path !== "string")) {
     throw new Error("Path must be a non-empty string");
   }
 
-  if (!existsSync(path)) {
-    throw new Error(`Directory not found: ${path}`);
-  }
+  let files: string[];
 
-  const stats = statSync(path);
-  if (!stats.isDirectory()) {
-    throw new Error(`Path is not a directory: ${path}`);
-  }
+  if (paths && paths.length > 0) {
+    files = await fg(paths, {
+      onlyFiles: true,
+      followSymbolicLinks: false,
+      ignore: excludePatterns ?? [],
+      cwd: cwd || process.cwd(),
+      absolute: true,
+    });
+  } else if (path) {
+    if (!existsSync(path)) {
+      throw new Error(`Directory not found: ${path}`);
+    }
 
-  const excludeSet = new Set((excludePatterns || []).map((p) => p.toLowerCase()));
+    const stats = statSync(path);
+    if (!stats.isDirectory()) {
+      throw new Error(`Path is not a directory: ${path}`);
+    }
+
+    const excludeSet = new Set((excludePatterns || []).map((p) => p.toLowerCase()));
+    files = walkDirectory(path, excludeSet);
+  } else {
+    throw new Error("Either path or paths must be provided");
+  }
 
   let allowedExtensions: Set<string> | undefined;
   if (languageFilter) {
@@ -86,7 +115,6 @@ export async function collectLoc(options: LocOptions): Promise<number> {
     allowedExtensions = new Set(extensions.map((e) => `.${e}`));
   }
 
-  const files = walkDirectory(path, excludeSet);
   let totalLoc = 0;
 
   for (const filePath of files) {
