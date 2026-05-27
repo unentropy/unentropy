@@ -1,0 +1,9 @@
+{
+  "metrics": {
+    "coverage": {
+      "type": "numeric",
+      "command": "echo 85"
+    }
+  },
+  "sources": ["src", "tests", "!node_modules"]
+}

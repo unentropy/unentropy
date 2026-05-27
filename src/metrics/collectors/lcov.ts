@@ -1,5 +1,7 @@
 import { readFile } from "fs/promises";
 import { parse, generateSummary } from "@markusberg/lcov-parse";
+import { matchesSources } from "./sources-filter";
+import type { SourcesConfig } from "../../config/schema";
 
 export type CoverageType = "line" | "branch" | "function";
 
@@ -12,11 +14,14 @@ export interface LcovOptions {
  * Parse LCOV coverage report and return coverage percentage
  * @param sourcePath - Path to the LCOV file
  * @param options - Options including coverage type (line, branch, function) and fallback value
+ * @param sources - Optional sources configuration to filter coverage files
  * @returns Coverage percentage as a number (0-100)
  */
 export async function parseLcovCoverage(
   sourcePath: string,
-  options: LcovOptions = {}
+  options: LcovOptions = {},
+  sources?: SourcesConfig,
+  basePath?: string
 ): Promise<number> {
   // Validate input path
   if (!sourcePath || typeof sourcePath !== "string") {
@@ -29,7 +34,12 @@ export async function parseLcovCoverage(
   const lcovContent = await readFile(sourcePath, "utf-8");
 
   // Parse the LCOV content
-  const report = parse(lcovContent);
+  let report = parse(lcovContent);
+
+  // Filter by sources if configured
+  if (sources && sources.length > 0) {
+    report = report.filter((record) => matchesSources(record.file, sources, basePath));
+  }
 
   // Generate summary to get coverage percentages
   const summary = generateSummary(report);

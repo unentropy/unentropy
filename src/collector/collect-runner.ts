@@ -1,9 +1,10 @@
 import yargs from "yargs";
 import { collectLoc } from "../metrics/collectors/loc";
-import { parseSize } from "../metrics/collectors/size";
+import { parseSize, collectSize } from "../metrics/collectors/size";
 import { parseLcovCoverage, type CoverageType } from "../metrics/collectors/lcov";
 import { mergeCoberturaCoerage } from "../metrics/collectors/cobertura";
 import { mergeCloverCoverage } from "../metrics/collectors/clover";
+import type { SourcesConfig } from "../config/schema";
 
 export interface CollectResult {
   success: boolean;
@@ -19,7 +20,11 @@ const AVAILABLE_COLLECTORS = [
   "coverage-clover",
 ];
 
-export async function executeCollect(collectArgs: string): Promise<CollectResult> {
+export async function executeCollect(
+  collectArgs: string,
+  sources?: SourcesConfig,
+  basePath?: string
+): Promise<CollectResult> {
   const args = parseArguments(collectArgs);
 
   if (args.length === 0) {
@@ -40,36 +45,53 @@ export async function executeCollect(collectArgs: string): Promise<CollectResult
     await yargs()
       .scriptName("@collect")
       .command(
-        "loc <path>",
+        "loc [path]",
         "collect lines of code",
         (y) =>
           y
-            .positional("path", { type: "string", demandOption: true })
+            .positional("path", { type: "string" })
             .option("language", { alias: "l", type: "string" })
             .option("exclude", { alias: "e", type: "string", array: true }),
         async (argv) => {
-          const value = await collectLoc({
-            path: argv.path,
-            languageFilter: argv.language,
-            excludePatterns: argv.exclude,
-          });
-          result = { success: true, value: String(value) };
+          if (argv.path) {
+            const value = await collectLoc({
+              path: argv.path,
+              languageFilter: argv.language,
+              excludePatterns: argv.exclude,
+              cwd: basePath,
+            });
+            result = { success: true, value: String(value) };
+          } else if (sources) {
+            const value = await collectLoc({
+              paths: sources,
+              languageFilter: argv.language,
+              excludePatterns: argv.exclude,
+              cwd: basePath,
+            });
+            result = { success: true, value: String(value) };
+          } else {
+            throw new Error("Path is required when sources is not configured");
+          }
         }
       )
       .command(
-        "size <paths..>",
+        "size [paths..]",
         "calculate size of files",
-        (y) => y.positional("paths", { type: "string", array: true, demandOption: true }),
+        (y) => y.positional("paths", { type: "string", array: true }),
         async (argv) => {
           const paths = argv.paths ?? [];
-          if (paths.length === 0) {
-            throw new Error("At least one path is required");
+          if (paths.length > 0) {
+            let totalSize = 0;
+            for (const path of paths) {
+              totalSize += await parseSize(path, { cwd: basePath });
+            }
+            result = { success: true, value: String(totalSize) };
+          } else if (sources) {
+            const value = await collectSize(sources, { cwd: basePath });
+            result = { success: true, value: String(value) };
+          } else {
+            throw new Error("At least one path is required when sources is not configured");
           }
-          let totalSize = 0;
-          for (const path of paths) {
-            totalSize += await parseSize(path);
-          }
-          result = { success: true, value: String(totalSize) };
         }
       )
       .command(
@@ -86,10 +108,15 @@ export async function executeCollect(collectArgs: string): Promise<CollectResult
             })
             .option("fallback", { type: "number" }),
         async (argv) => {
-          const value = await parseLcovCoverage(argv.sourcePath, {
-            type: argv.type as CoverageType,
-            fallback: argv.fallback,
-          });
+          const value = await parseLcovCoverage(
+            argv.sourcePath,
+            {
+              type: argv.type as CoverageType,
+              fallback: argv.fallback,
+            },
+            sources,
+            basePath
+          );
           result = { success: true, value: String(value) };
         }
       )
@@ -106,9 +133,14 @@ export async function executeCollect(collectArgs: string): Promise<CollectResult
               default: "line",
             }),
         async (argv) => {
-          const value = await mergeCoberturaCoerage(argv.sourcePaths ?? [], {
-            type: argv.type as CoverageType,
-          });
+          const value = await mergeCoberturaCoerage(
+            argv.sourcePaths ?? [],
+            {
+              type: argv.type as CoverageType,
+            },
+            sources,
+            basePath
+          );
           result = { success: true, value: String(value) };
         }
       )
@@ -125,9 +157,14 @@ export async function executeCollect(collectArgs: string): Promise<CollectResult
               default: "line",
             }),
         async (argv) => {
-          const value = await mergeCloverCoverage(argv.sourcePaths ?? [], {
-            type: argv.type as CoverageType,
-          });
+          const value = await mergeCloverCoverage(
+            argv.sourcePaths ?? [],
+            {
+              type: argv.type as CoverageType,
+            },
+            sources,
+            basePath
+          );
           result = { success: true, value: String(value) };
         }
       )

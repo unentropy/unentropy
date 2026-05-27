@@ -133,6 +133,20 @@ This provides:
 
 **Note:** When a collector fails (missing files, parse errors), execution stops with an error rather than returning a fallback value.
 
+### Sources Configuration
+
+When `sources` is configured in `unentropy.json`, built-in collectors behave as follows:
+
+| Collector | Explicit path arg? | Behavior |
+|-----------|-------------------|----------|
+| `loc` | Yes (`@collect loc ./src`) | Uses explicit path, ignores `sources` |
+| `loc` | No (`@collect loc`) | Discovers files using `sources` patterns |
+| `size` | Yes (`@collect size dist/`) | Uses explicit path, ignores `sources` |
+| `size` | No (`@collect size`) | Discovers files using `sources` patterns |
+| `coverage-lcov` | Always needs report path | Parses report, filters source files through `sources` |
+| `coverage-cobertura` | Always needs report path(s) | Parses report(s), filters classes through `sources`, recalculates |
+| `coverage-clover` | Always needs report path(s) | Parses report(s), filters files through `sources`, recalculates |
+
 ## Command Strategy
 
 Metric templates fall into two categories:

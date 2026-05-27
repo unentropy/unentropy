@@ -10,7 +10,7 @@ import { mergeCloverCoverage, type CloverCoverageType } from "../../metrics/coll
 import { collectLoc } from "../../metrics/collectors/loc";
 
 const SizeCommand = cmd({
-  command: "size <paths...>",
+  command: "size [paths...]",
   describe: "calculate size of files and directories",
   builder: (yargs: Argv) => {
     return yargs.positional("paths", {
@@ -205,7 +205,7 @@ const CoverageCloverCommand = cmd({
 });
 
 const LocCommand = cmd({
-  command: "loc <path>",
+  command: "loc [path]",
   describe: "collect lines of code from directory",
   builder: (yargs: Argv) => {
     return yargs

@@ -375,7 +375,7 @@ export async function runQualityGateAction(): Promise<void> {
     const repository = storage.getRepository();
 
     core.info("Collecting metrics for current PR...");
-    const collectionResult = await collectMetrics(config.metrics);
+    const collectionResult = await collectMetrics(config.metrics, config.sources, config.basePath);
     core.info(
       `Metrics collection completed: ${collectionResult.successful}/${collectionResult.total} successful`
     );

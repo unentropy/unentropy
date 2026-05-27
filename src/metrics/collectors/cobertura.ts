@@ -1,5 +1,7 @@
 import { readFile } from "fs/promises";
 import { XMLParser } from "fast-xml-parser";
+import { matchesSources } from "./sources-filter";
+import type { SourcesConfig } from "../../config/schema";
 
 export type CoverageType = "line" | "branch" | "function";
 
@@ -135,7 +137,11 @@ function extractCounts(report: CoberturaReport, sourcePath: string): CoberturaCo
   return { linesCovered, linesValid, branchesCovered, branchesValid };
 }
 
-function extractMethods(report: CoberturaReport): MethodEntry[] {
+function extractMethods(
+  report: CoberturaReport,
+  sources?: SourcesConfig,
+  basePath?: string
+): MethodEntry[] {
   const methods: MethodEntry[] = [];
   const packages = report.coverage.packages?.package;
   if (!packages) return methods;
@@ -149,6 +155,10 @@ function extractMethods(report: CoberturaReport): MethodEntry[] {
     const classList = Array.isArray(classes) ? classes : [classes];
 
     for (const cls of classList) {
+      if (sources && !matchesSources(cls["@_filename"], sources, basePath)) {
+        continue;
+      }
+
       const classMethods = cls.methods?.method;
       if (!classMethods) continue;
 
@@ -177,7 +187,9 @@ function toArray<T>(value: T | T[] | undefined): T[] {
 }
 
 function extractFileLineData(
-  report: CoberturaReport
+  report: CoberturaReport,
+  sources?: SourcesConfig,
+  basePath?: string
 ): Map<string, { total: Set<number>; covered: Set<number> }> {
   const fileMap = new Map<string, { total: Set<number>; covered: Set<number> }>();
   const packages = toArray(report.coverage.packages?.package);
@@ -186,6 +198,9 @@ function extractFileLineData(
     const classes = toArray(pkg.classes?.class);
     for (const cls of classes) {
       const filename = cls["@_filename"];
+      if (sources && !matchesSources(filename, sources, basePath)) {
+        continue;
+      }
       const lines = toArray(cls.lines?.line);
       let entry = fileMap.get(filename);
       if (!entry) {
@@ -208,30 +223,91 @@ function extractFileLineData(
   return fileMap;
 }
 
+function parseConditionCoverage(
+  conditionCoverage: string | undefined
+): { covered: number; total: number } | undefined {
+  if (!conditionCoverage) return undefined;
+  const match = conditionCoverage.match(/\((\d+)\/(\d+)\)/);
+  if (!match || match[1] === undefined || match[2] === undefined) return undefined;
+  return {
+    covered: parseInt(match[1], 10),
+    total: parseInt(match[2], 10),
+  };
+}
+
+function extractBranchData(
+  report: CoberturaReport,
+  sources?: SourcesConfig,
+  basePath?: string
+): { total: number; covered: number } {
+  const packages = toArray(report.coverage.packages?.package);
+  let total = 0;
+  let covered = 0;
+
+  for (const pkg of packages) {
+    const classes = toArray(pkg.classes?.class);
+    for (const cls of classes) {
+      if (sources && !matchesSources(cls["@_filename"], sources, basePath)) {
+        continue;
+      }
+      const lines = toArray(cls.lines?.line);
+      for (const line of lines) {
+        if (line["@_branch"] === "true") {
+          const cc = parseConditionCoverage(line["@_condition-coverage"]);
+          if (cc) {
+            total += cc.total;
+            covered += cc.covered;
+          }
+        }
+      }
+    }
+  }
+
+  return { total, covered };
+}
+
 function calcSingleFileCoverage(
   report: CoberturaReport,
   coverageType: CoverageType,
-  sourcePath: string
+  sourcePath: string,
+  sources?: SourcesConfig,
+  basePath?: string
 ): number {
   switch (coverageType) {
     case "line": {
-      const lineRate = parseFloat(report.coverage["@_line-rate"]);
-      if (isNaN(lineRate)) {
-        throw new Error(`Invalid line-rate in: ${sourcePath}`);
+      if (!sources) {
+        const lineRate = parseFloat(report.coverage["@_line-rate"]);
+        if (isNaN(lineRate)) {
+          throw new Error(`Invalid line-rate in: ${sourcePath}`);
+        }
+        return lineRate * 100;
       }
-      return lineRate * 100;
+      const fileMap = extractFileLineData(report, sources, basePath);
+      let totalValid = 0;
+      let totalCovered = 0;
+      for (const entry of fileMap.values()) {
+        totalValid += entry.total.size;
+        totalCovered += entry.covered.size;
+      }
+      if (totalValid === 0) return 0;
+      return (totalCovered / totalValid) * 100;
     }
 
     case "branch": {
-      const branchRate = parseFloat(report.coverage["@_branch-rate"]);
-      if (isNaN(branchRate)) {
-        throw new Error(`Invalid branch-rate in: ${sourcePath}`);
+      if (!sources) {
+        const branchRate = parseFloat(report.coverage["@_branch-rate"]);
+        if (isNaN(branchRate)) {
+          throw new Error(`Invalid branch-rate in: ${sourcePath}`);
+        }
+        return branchRate * 100;
       }
-      return branchRate * 100;
+      const branchData = extractBranchData(report, sources, basePath);
+      if (branchData.total === 0) return 0;
+      return (branchData.covered / branchData.total) * 100;
     }
 
     case "function": {
-      const methods = extractMethods(report);
+      const methods = extractMethods(report, sources, basePath);
       if (methods.length === 0) {
         throw new Error(`No function coverage data in: ${sourcePath}`);
       }
@@ -246,15 +322,19 @@ function calcSingleFileCoverage(
 
 export async function parseCoberturaCoerage(
   sourcePath: string,
-  options: CoberturaOptions = {}
+  options: CoberturaOptions = {},
+  sources?: SourcesConfig,
+  basePath?: string
 ): Promise<number> {
   const report = await readAndParseCoberturaXml(sourcePath);
-  return calcSingleFileCoverage(report, options.type || "line", sourcePath);
+  return calcSingleFileCoverage(report, options.type || "line", sourcePath, sources, basePath);
 }
 
 export async function mergeCoberturaCoerage(
   sourcePaths: string[],
-  options: CoberturaOptions = {}
+  options: CoberturaOptions = {},
+  sources?: SourcesConfig,
+  basePath?: string
 ): Promise<number> {
   if (!sourcePaths || sourcePaths.length === 0) {
     throw new Error("At least one source path is required");
@@ -263,7 +343,7 @@ export async function mergeCoberturaCoerage(
   const coverageType = options.type || "line";
 
   if (coverageType === "function") {
-    return mergeFunctionCoverage(sourcePaths);
+    return mergeFunctionCoverage(sourcePaths, sources, basePath);
   }
 
   if (coverageType === "line") {
@@ -271,7 +351,7 @@ export async function mergeCoberturaCoerage(
 
     for (const sourcePath of sourcePaths) {
       const report = await readAndParseCoberturaXml(sourcePath);
-      const fileMap = extractFileLineData(report);
+      const fileMap = extractFileLineData(report, sources, basePath);
       for (const [filename, data] of fileMap) {
         let entry = merged.get(filename);
         if (!entry) {
@@ -298,15 +378,34 @@ export async function mergeCoberturaCoerage(
     return (totalCovered / totalValid) * 100;
   }
 
+  // branch coverage
+  if (!sources) {
+    let totalCovered = 0;
+    let totalValid = 0;
+
+    for (const sourcePath of sourcePaths) {
+      const report = await readAndParseCoberturaXml(sourcePath);
+      const counts = extractCounts(report, sourcePath);
+
+      totalCovered += counts.branchesCovered;
+      totalValid += counts.branchesValid;
+    }
+
+    if (totalValid === 0) {
+      return 0;
+    }
+
+    return (totalCovered / totalValid) * 100;
+  }
+
   let totalCovered = 0;
   let totalValid = 0;
 
   for (const sourcePath of sourcePaths) {
     const report = await readAndParseCoberturaXml(sourcePath);
-    const counts = extractCounts(report, sourcePath);
-
-    totalCovered += counts.branchesCovered;
-    totalValid += counts.branchesValid;
+    const branchData = extractBranchData(report, sources, basePath);
+    totalCovered += branchData.covered;
+    totalValid += branchData.total;
   }
 
   if (totalValid === 0) {
@@ -316,12 +415,16 @@ export async function mergeCoberturaCoerage(
   return (totalCovered / totalValid) * 100;
 }
 
-async function mergeFunctionCoverage(sourcePaths: string[]): Promise<number> {
+async function mergeFunctionCoverage(
+  sourcePaths: string[],
+  sources?: SourcesConfig,
+  basePath?: string
+): Promise<number> {
   const allMethods = new Map<string, MethodEntry>();
 
   for (const sourcePath of sourcePaths) {
     const report = await readAndParseCoberturaXml(sourcePath);
-    const methods = extractMethods(report);
+    const methods = extractMethods(report, sources, basePath);
 
     for (const m of methods) {
       const key = `${m.key.packageName}|${m.key.className}|${m.key.name}|${m.key.signature}`;

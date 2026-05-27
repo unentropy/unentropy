@@ -167,7 +167,14 @@ export const TestCommand = cmd({
     for (const [metricKey, metric] of metricEntries) {
       const commandStartTime = Date.now();
 
-      const result = await runCommand(metric.command, {}, timeout, true);
+      const result = await runCommand(
+        metric.command,
+        {},
+        timeout,
+        true,
+        config.sources,
+        config.basePath
+      );
       const duration = Date.now() - commandStartTime;
 
       const collectionResult: CollectionResult = {

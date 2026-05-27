@@ -1,5 +1,7 @@
 import { readFile } from "fs/promises";
 import { XMLParser } from "fast-xml-parser";
+import { matchesSources } from "./sources-filter";
+import type { SourcesConfig } from "../../config/schema";
 
 export type CloverCoverageType = "line" | "branch" | "function";
 
@@ -80,48 +82,49 @@ async function readAndParseCloverXml(sourcePath: string): Promise<CloverReport> 
   return report;
 }
 
-function extractProjectMetrics(
+function extractFileMetrics(
   report: CloverReport,
-  sourcePath: string,
-  coverageType: CloverCoverageType
+  coverageType: CloverCoverageType,
+  sources?: SourcesConfig,
+  basePath?: string
 ): { covered: number; valid: number } {
-  const metrics = report.coverage.project.metrics;
-  if (!metrics) {
-    throw new Error(`Missing metrics element in: ${sourcePath}`);
-  }
+  const files = toArray(report.coverage.project.file);
+  let covered = 0;
+  let valid = 0;
 
-  let coveredAttr: string | undefined;
-  let validAttr: string | undefined;
+  for (const file of files) {
+    if (sources && !matchesSources(file["@_name"], sources, basePath)) {
+      continue;
+    }
 
-  switch (coverageType) {
-    case "line":
-      coveredAttr = "@_coveredstatements";
-      validAttr = "@_statements";
-      break;
-    case "branch":
-      coveredAttr = "@_coveredconditionals";
-      validAttr = "@_conditionals";
-      break;
-    case "function":
-      coveredAttr = "@_coveredmethods";
-      validAttr = "@_methods";
-      break;
-  }
+    const metrics = file.metrics;
+    if (!metrics) continue;
 
-  const coveredStr = metrics[coveredAttr as keyof CloverMetrics] as string | undefined;
-  const validStr = metrics[validAttr as keyof CloverMetrics] as string | undefined;
+    let coveredAttr: string | undefined;
+    let validAttr: string | undefined;
 
-  if (coveredStr === undefined || validStr === undefined) {
-    throw new Error(
-      `Missing ${validAttr}/${coveredAttr} attributes in metrics element: ${sourcePath}`
-    );
-  }
+    switch (coverageType) {
+      case "line":
+        coveredAttr = "@_coveredstatements";
+        validAttr = "@_statements";
+        break;
+      case "branch":
+        coveredAttr = "@_coveredconditionals";
+        validAttr = "@_conditionals";
+        break;
+      case "function":
+        coveredAttr = "@_coveredmethods";
+        validAttr = "@_methods";
+        break;
+    }
 
-  const covered = parseInt(coveredStr, 10);
-  const valid = parseInt(validStr, 10);
+    const coveredStr = metrics[coveredAttr as keyof CloverMetrics] as string | undefined;
+    const validStr = metrics[validAttr as keyof CloverMetrics] as string | undefined;
 
-  if (isNaN(covered) || isNaN(valid)) {
-    throw new Error(`Invalid ${validAttr}/${coveredAttr} values in metrics element: ${sourcePath}`);
+    if (coveredStr !== undefined && validStr !== undefined) {
+      covered += parseInt(coveredStr, 10) || 0;
+      valid += parseInt(validStr, 10) || 0;
+    }
   }
 
   return { covered, valid };
@@ -158,11 +161,47 @@ function extractFileStmtData(file: CloverFile): {
 
 export async function parseCloverCoverage(
   sourcePath: string,
-  options: CloverOptions = {}
+  options: CloverOptions = {},
+  sources?: SourcesConfig,
+  basePath?: string
 ): Promise<number> {
   const report = await readAndParseCloverXml(sourcePath);
   const coverageType = options.type || "line";
-  const { covered, valid } = extractProjectMetrics(report, sourcePath, coverageType);
+
+  if (coverageType === "line") {
+    const fileMap = new Map<string, { total: Set<number>; covered: Set<number> }>();
+    const files = toArray(report.coverage.project.file);
+
+    for (const file of files) {
+      if (sources && !matchesSources(file["@_name"], sources, basePath)) {
+        continue;
+      }
+      const { stmtLineNums, coveredLineNums } = extractFileStmtData(file);
+      let entry = fileMap.get(file["@_name"]);
+      if (!entry) {
+        entry = { total: new Set(), covered: new Set() };
+        fileMap.set(file["@_name"], entry);
+      }
+      for (const num of stmtLineNums) {
+        entry.total.add(num);
+      }
+      for (const num of coveredLineNums) {
+        entry.covered.add(num);
+      }
+    }
+
+    let totalValid = 0;
+    let totalCovered = 0;
+    for (const entry of fileMap.values()) {
+      totalValid += entry.total.size;
+      totalCovered += entry.covered.size;
+    }
+
+    if (totalValid === 0) return 0;
+    return (totalCovered / totalValid) * 100;
+  }
+
+  const { covered, valid } = extractFileMetrics(report, coverageType, sources, basePath);
 
   if (valid === 0) {
     return 0;
@@ -173,7 +212,9 @@ export async function parseCloverCoverage(
 
 export async function mergeCloverCoverage(
   sourcePaths: string[],
-  options: CloverOptions = {}
+  options: CloverOptions = {},
+  sources?: SourcesConfig,
+  basePath?: string
 ): Promise<number> {
   if (!sourcePaths || sourcePaths.length === 0) {
     throw new Error("At least one source path is required");
@@ -186,7 +227,7 @@ export async function mergeCloverCoverage(
     let totalValid = 0;
     for (const sourcePath of sourcePaths) {
       const report = await readAndParseCloverXml(sourcePath);
-      const { covered, valid } = extractProjectMetrics(report, sourcePath, coverageType);
+      const { covered, valid } = extractFileMetrics(report, coverageType, sources, basePath);
       totalCovered += covered;
       totalValid += valid;
     }
@@ -201,6 +242,9 @@ export async function mergeCloverCoverage(
     const files = toArray(report.coverage.project.file);
 
     for (const file of files) {
+      if (sources && !matchesSources(file["@_name"], sources, basePath)) {
+        continue;
+      }
       const { stmtLineNums, coveredLineNums } = extractFileStmtData(file);
       let entry = fileMap.get(file["@_name"]);
       if (!entry) {

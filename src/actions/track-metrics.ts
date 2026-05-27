@@ -182,7 +182,7 @@ export async function runTrackMetricsAction(): Promise<void> {
   const repository = storage.getRepository();
 
   // Collect metrics (doesn't write to DB yet)
-  const collectionResult = await collectMetrics(config.metrics);
+  const collectionResult = await collectMetrics(config.metrics, config.sources, config.basePath);
 
   // Record build with all collected metrics in one operation
   await repository.recordBuild(context, collectionResult.collectedMetrics);

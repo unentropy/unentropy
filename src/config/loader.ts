@@ -1,4 +1,6 @@
 import { readFile } from "fs/promises";
+import { existsSync, statSync } from "fs";
+import { dirname, resolve } from "path";
 import { validateConfig } from "./schema";
 import { resolveMetricReference } from "../metrics/resolver.js";
 import type {
@@ -6,6 +8,7 @@ import type {
   StorageConfig,
   QualityGateConfig,
   ReportConfig,
+  SourcesConfig,
 } from "./schema";
 
 export interface ResolvedUnentropyConfig {
@@ -13,6 +16,27 @@ export interface ResolvedUnentropyConfig {
   storage: StorageConfig;
   qualityGate?: QualityGateConfig;
   report?: ReportConfig;
+  sources?: SourcesConfig;
+  basePath?: string;
+}
+
+function normalizeSourcesPatterns(sources: SourcesConfig, basePath?: string): SourcesConfig {
+  return sources.map((pattern) => {
+    const isNegated = pattern.startsWith("!");
+    const core = isNegated ? pattern.slice(1) : pattern;
+
+    const hasGlobChars = /[*?[\]{}]/.test(core);
+    if (hasGlobChars) {
+      return pattern;
+    }
+
+    const resolvedCore = basePath ? resolve(basePath, core) : resolve(core);
+    if (existsSync(resolvedCore) && statSync(resolvedCore).isDirectory()) {
+      return isNegated ? `!${core}/**` : `${core}/**`;
+    }
+
+    return pattern;
+  });
 }
 
 export async function loadConfig(configPath = "unentropy.json"): Promise<ResolvedUnentropyConfig> {
@@ -54,10 +78,14 @@ export async function loadConfig(configPath = "unentropy.json"): Promise<Resolve
     }
   }
 
+  const basePath = dirname(resolve(configPath));
+
   return {
     metrics: resolvedMetrics,
     storage: validated.storage,
     qualityGate: validated.qualityGate,
     report: validated.report,
+    basePath,
+    sources: validated.sources ? normalizeSourcesPatterns(validated.sources, basePath) : undefined,
   };
 }

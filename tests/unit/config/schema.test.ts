@@ -1541,59 +1541,126 @@ describe("Config Schema Validation", () => {
       });
     });
   });
-});
 
-describe("ReportConfig theme + mode", () => {
-  it("accepts theme as a built-in name", () => {
-    const result = validateConfig({
-      metrics: { x: { type: "numeric", command: "echo 1" } },
-      report: { theme: "lattice" },
+  describe("Sources Configuration", () => {
+    it("should accept valid sources array", () => {
+      const config = {
+        metrics: {
+          coverage: { type: "numeric", command: "echo 85" },
+        },
+        sources: ["src/**", "tests/**"],
+      };
+
+      expect(() => validateConfig(config)).not.toThrow();
     });
-    expect(result.report?.theme).toBe("lattice");
+
+    it("should accept sources with negation patterns", () => {
+      const config = {
+        metrics: {
+          coverage: { type: "numeric", command: "echo 85" },
+        },
+        sources: ["src/**", "!node_modules/**"],
+      };
+
+      expect(() => validateConfig(config)).not.toThrow();
+    });
+
+    it("should reject empty sources array", () => {
+      const config = {
+        metrics: {
+          coverage: { type: "numeric", command: "echo 85" },
+        },
+        sources: [],
+      };
+
+      expect(() => validateConfig(config)).toThrow(/sources must contain at least one pattern/);
+    });
+
+    it("should reject empty pattern in sources", () => {
+      const config = {
+        metrics: {
+          coverage: { type: "numeric", command: "echo 85" },
+        },
+        sources: ["src/**", ""],
+      };
+
+      expect(() => validateConfig(config)).toThrow(/sources pattern cannot be empty/);
+    });
+
+    it("should reject too many patterns in sources", () => {
+      const config = {
+        metrics: {
+          coverage: { type: "numeric", command: "echo 85" },
+        },
+        sources: Array.from({ length: 51 }, (_, i) => `pattern-${i}`),
+      };
+
+      expect(() => validateConfig(config)).toThrow(/sources cannot contain more than 50 patterns/);
+    });
+
+    it("should accept config without sources", () => {
+      const config = {
+        metrics: {
+          coverage: { type: "numeric", command: "echo 85" },
+        },
+      };
+
+      expect(() => validateConfig(config)).not.toThrow();
+    });
   });
 
-  it("accepts theme as a custom palette object", () => {
-    const result = validateConfig({
-      metrics: { x: { type: "numeric", command: "echo 1" } },
-      report: { theme: { dark: { "--accent": "#ff00ff" } } },
-    });
-    expect(result.report?.theme).toEqual({ dark: { "--accent": "#ff00ff" } });
-  });
-
-  it("accepts mode 'auto', 'light', 'dark'", () => {
-    for (const mode of ["auto", "light", "dark"] as const) {
+  describe("ReportConfig theme + mode", () => {
+    it("accepts theme as a built-in name", () => {
       const result = validateConfig({
         metrics: { x: { type: "numeric", command: "echo 1" } },
-        report: { mode },
+        report: { theme: "lattice" },
       });
-      expect(result.report?.mode).toBe(mode);
-    }
-  });
+      expect(result.report?.theme).toBe("lattice");
+    });
 
-  it("rejects an unknown mode value", () => {
-    expect(() =>
-      validateConfig({
+    it("accepts theme as a custom palette object", () => {
+      const result = validateConfig({
         metrics: { x: { type: "numeric", command: "echo 1" } },
-        report: { mode: "wat" },
-      })
-    ).toThrow();
-  });
+        report: { theme: { dark: { "--accent": "#ff00ff" } } },
+      });
+      expect(result.report?.theme).toEqual({ dark: { "--accent": "#ff00ff" } });
+    });
 
-  it("rejects unknown theme variable names", () => {
-    expect(() =>
-      validateConfig({
-        metrics: { x: { type: "numeric", command: "echo 1" } },
-        report: { theme: { dark: { "--not-a-real-var": "#ff00ff" } } },
-      })
-    ).toThrow();
-  });
+    it("accepts mode 'auto', 'light', 'dark'", () => {
+      for (const mode of ["auto", "light", "dark"] as const) {
+        const result = validateConfig({
+          metrics: { x: { type: "numeric", command: "echo 1" } },
+          report: { mode },
+        });
+        expect(result.report?.mode).toBe(mode);
+      }
+    });
 
-  it("rejects unknown built-in theme name", () => {
-    expect(() =>
-      validateConfig({
-        metrics: { x: { type: "numeric", command: "echo 1" } },
-        report: { theme: "neon" },
-      })
-    ).toThrow();
+    it("rejects an unknown mode value", () => {
+      expect(() =>
+        validateConfig({
+          metrics: { x: { type: "numeric", command: "echo 1" } },
+          report: { mode: "wat" },
+        })
+      ).toThrow();
+    });
+
+    it("rejects unknown theme variable names", () => {
+      expect(() =>
+        validateConfig({
+          metrics: { x: { type: "numeric", command: "echo 1" } },
+          report: { theme: { dark: { "--not-a-real-var": "#ff00ff" } } },
+        })
+      ).toThrow();
+    });
+
+    it("rejects unknown built-in theme name", () => {
+      expect(() =>
+        validateConfig({
+          metrics: { x: { type: "numeric", command: "echo 1" } },
+          report: { theme: "neon" },
+        })
+      ).toThrow();
+    });
   });
 });
