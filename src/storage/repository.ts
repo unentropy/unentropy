@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql, isNotNull, gte, exists } from "drizzle-orm";
+import { eq, and, desc, asc, sql, isNotNull, gte, inArray, exists } from "drizzle-orm";
 import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 import * as schema from "./schema";
 import type {
@@ -89,7 +89,7 @@ export class MetricsRepository {
         .from(schema.buildContexts)
         .where(
           and(
-            eq(schema.buildContexts.eventName, "push"),
+            inArray(schema.buildContexts.eventName, ["push", "import"]),
             exists(
               this.db
                 .select({ x: sql`1` })
@@ -144,7 +144,7 @@ export class MetricsRepository {
       .where(
         and(
           eq(schema.metricValues.metricId, metricName),
-          eq(schema.buildContexts.eventName, "push")
+          inArray(schema.buildContexts.eventName, ["push", "import"])
         )
       )
       .orderBy(asc(schema.buildContexts.timestamp))
@@ -166,7 +166,7 @@ export class MetricsRepository {
         and(
           eq(schema.metricValues.metricId, metricId),
           eq(schema.buildContexts.branch, referenceBranch),
-          eq(schema.buildContexts.eventName, "push"),
+          inArray(schema.buildContexts.eventName, ["push", "import"]),
           gte(
             schema.buildContexts.timestamp,
             sql`datetime('now', '-' || ${maxAgeDays} || ' days')`
