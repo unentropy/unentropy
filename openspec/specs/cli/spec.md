@@ -2,7 +2,6 @@
 
 ## Purpose
 Provide a command-line interface for project initialization, metric collection testing, report preview generation, and configuration validation.
-
 ## Requirements
 ### Requirement: Project Detection
 
@@ -433,4 +432,112 @@ The system SHALL provide a `verify` command to validate configuration files with
 - **GIVEN** a specified config file does not exist
 - **WHEN** the user runs `bunx unentropy verify`
 - **THEN** the system exits with code 1 displaying a clear message
+
+---
+
+### Requirement: Import Command
+
+The system SHALL provide `unentropy import <jsonl-path>` which validates and ingests the file into the SQLite database at `--output`, creating the database if it does not exist. The command SHALL operate purely on local files and SHALL NOT make any network calls.
+
+#### Scenario: Import into a new database
+
+- **GIVEN** a valid JSONL file and a non-existent `--output` path
+- **WHEN** the user runs `bunx unentropy import ./data.jsonl --output ./scratch.db`
+- **THEN** the database is created with the current schema, the records are inserted, and the command exits 0
+
+#### Scenario: Import into an existing database
+
+- **GIVEN** an existing SQLite database (CI-produced or from a prior import)
+- **WHEN** the user runs the import command with `--output` pointing at it
+- **THEN** the new records are inserted alongside existing rows; nothing pre-existing is modified
+
+#### Scenario: Dry-run validates without writing
+
+- **GIVEN** a JSONL file
+- **WHEN** the user runs `bunx unentropy import ./data.jsonl --output ./scratch.db --dry-run`
+- **THEN** the system performs full validation and commit-resolution, prints a summary (record count, metric ids, date range, per-source counts, per-tier resolution counts), and writes nothing to the database
+
+#### Scenario: Strict mode aborts on first invalid record
+
+- **GIVEN** a JSONL file containing any invalid record
+- **WHEN** the user passes `--strict`
+- **THEN** the command exits 1 with the file/line/reason of the failure and writes no records
+
+#### Scenario: Custom trend branch for commit resolution
+
+- **GIVEN** a repository whose integration branch is `develop`
+- **WHEN** the user runs the import command with `--trend-branch develop`
+- **THEN** the commit resolver uses `develop` for nearest-by-timestamp lookups instead of the default `main`
+
+#### Scenario: Validation errors with file/line context
+
+- **GIVEN** a JSONL file containing one malformed line
+- **WHEN** the user runs the command without `--strict`
+- **THEN** the system prints the path, line number, and reason; skips that record; continues; and exits 0
+
+---
+
+### Requirement: Import Command Error Handling
+
+The system SHALL exit with appropriate codes and clear messages for error conditions in the import command, in line with the conventions used by other CLI commands.
+
+#### Scenario: Config file not found
+
+- **GIVEN** no `unentropy.json` exists in the current directory and the user has not passed `--config`
+- **WHEN** the user runs the import command
+- **THEN** the system prints "Error: Config file not found: unentropy.json" with a suggestion to run init and exits with code 1
+
+#### Scenario: JSONL file missing
+
+- **GIVEN** the JSONL path passed as the positional argument does not exist
+- **WHEN** the import command runs
+- **THEN** the system prints "Error: JSONL file not found: <path>" and exits with code 1
+
+#### Scenario: Database write conflicts with locked file
+
+- **GIVEN** another process holds a write lock on the target SQLite database
+- **WHEN** the import command attempts to write
+- **THEN** the system reports the lock and exits with code 1 without producing a partial database
+
+#### Scenario: Shallow clone error
+
+- **GIVEN** the local repository was cloned without full history and the JSONL has records that need nearest-by-timestamp resolution
+- **WHEN** the import command runs
+- **THEN** the system prints a single error explaining the requirement (`git fetch --unshallow`, or `fetch-depth: 0` in CI) and exits with code 1 before writing any records
+
+### Requirement: Seed-Workflow Emission
+
+As a user (or agent acting on a user's behalf) seeding the `sqlite-artifact` storage backend, I want a single command that prints the exact workflow YAML I need to commit to a disposable branch, so that I do not have to keep the seed-workflow template synchronized by hand across documentation, blog posts, and agent skills.
+
+The system SHALL provide `unentropy import seed-workflow` which writes a canonical seed-workflow YAML to stdout (or to a path passed via `--output`), parameterized by the configured `artifactName` read from `unentropy.json`.
+
+#### Scenario: Emit workflow to stdout
+
+- **GIVEN** a project with `unentropy.json` configured for `sqlite-artifact` storage with the default `artifactName` of `unentropy-metrics`
+- **WHEN** the user runs `unentropy import seed-workflow`
+- **THEN** the system writes the seed workflow YAML to stdout, with the `actions/upload-artifact@v4` step's `name:` set to `unentropy-metrics`, and exits 0
+
+#### Scenario: Emit workflow with a custom artifact name
+
+- **GIVEN** `unentropy.json` sets `storage.artifact.name` to `custom-metrics`
+- **WHEN** the user runs `unentropy import seed-workflow`
+- **THEN** the emitted YAML's upload step references `name: custom-metrics`
+
+#### Scenario: Write workflow to a file
+
+- **GIVEN** any valid configuration
+- **WHEN** the user runs `unentropy import seed-workflow --output .github/workflows/unentropy-seed.yml`
+- **THEN** the file is written at that path; if the parent directory does not exist the system creates it; if the file already exists the system refuses unless `--force` is passed and exits 1 with an actionable message
+
+#### Scenario: Refuses on non-artifact storage
+
+- **GIVEN** `unentropy.json` configures storage as `sqlite-local` or `sqlite-s3`
+- **WHEN** the user runs `unentropy import seed-workflow`
+- **THEN** the system prints a clear message that the helper is only meaningful for the `sqlite-artifact` backend, suggests publishing the local SQLite directly for those backends, and exits 1
+
+#### Scenario: Config file not found
+
+- **GIVEN** no `unentropy.json` exists in the working directory
+- **WHEN** the user runs `unentropy import seed-workflow`
+- **THEN** the system prints `Error: Config file not found: unentropy.json` and exits 1, consistent with the rest of the import command tree
 

@@ -178,12 +178,27 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
         (artifact) => artifact.workflow_run?.head_branch === this.branchFilter
       );
 
-      if (matchingArtifacts.length === 0) {
-        return null;
+      if (matchingArtifacts.length > 0) {
+        // Artifacts are returned sorted by created_at desc, so first match is most recent
+        return matchingArtifacts[0] ?? null;
       }
 
-      // Artifacts are returned sorted by created_at desc, so first match is most recent
-      return matchingArtifacts[0] ?? null;
+      // Fallback: no artifact on the configured branch. If any artifact with this
+      // name exists on any branch (typically a disposable seeding branch), use the
+      // most recent one as a seed. The next successful CI run on the configured
+      // branch will re-upload, promoting the seed; the orphan ages out via GitHub
+      // retention.
+      const seed = artifacts[0];
+      if (seed) {
+        console.log(
+          `No '${this.artifactName}' artifact on '${this.branchFilter}'; ` +
+            `using seed from '${seed.workflow_run?.head_branch ?? "<unknown>"}' ` +
+            `(run ${seed.workflow_run?.id ?? "<unknown>"}).`
+        );
+        return seed;
+      }
+
+      return null;
     } catch (error) {
       console.warn(`Error finding artifacts: ${error}`);
       return null;

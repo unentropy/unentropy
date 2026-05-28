@@ -17,6 +17,7 @@ This project follows Specification-Driven Development (SDD) principles as define
 - DO NOT add code comments unless asked.
 - When asked to implement a single task, do not proceed to the next - stop and wait for further instructions.
 - Run "bun check" after making changes to the code
+- We use jujutsu VCS. Load jujutsu skill before any VCS operations.
 
 ## Project Summary
 

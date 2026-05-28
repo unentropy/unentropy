@@ -2,7 +2,6 @@
 
 ## Purpose
 Abstract metrics persistence through a pluggable storage provider interface with a defined SQLite database schema, supporting local files, GitHub Artifacts, and S3-compatible backends.
-
 ## Requirements
 ### Requirement: Storage Backend Configuration
 The system SHALL support configurable storage backends via a `storage` object in `unentropy.json` with a `type` property limited to `sqlite-local` (default), `sqlite-artifact`, or `sqlite-s3`.
@@ -65,39 +64,56 @@ The system SHALL provide a local file-based SQLite storage provider that stores 
 ---
 
 ### Requirement: Artifact Storage Behavior
+
 The system SHALL provide a GitHub Artifacts storage provider that searches for, downloads, and uploads the metrics database using the GitHub REST API.
 
 #### Scenario: Search and download latest artifact
+
 - **GIVEN** a storage configuration with `type: "sqlite-artifact"`
 - **WHEN** the provider initializes
 - **THEN** it searches for the most recent database artifact from successful workflow runs on the configured branch, downloads it, and extracts it to a temporary location
 
-#### Scenario: First run with no existing artifact
-- **GIVEN** a storage configuration with `type: "sqlite-artifact"` and no previous artifact exists
+#### Scenario: First run with no existing artifact on any branch
+
+- **GIVEN** a storage configuration with `type: "sqlite-artifact"` and no previous artifact exists in the repository under the configured `artifactName`
 - **WHEN** the provider initializes
 - **THEN** it creates a new empty database without attempting to download
 
+#### Scenario: First run picks up seed from non-canonical branch
+
+- **GIVEN** a storage configuration with `type: "sqlite-artifact"`, configured `branchFilter` (default `main`), and no artifact uploaded from that branch exists, **AND** an artifact with the configured `artifactName` was uploaded from any other branch (typically a disposable seeding branch like `unentropy-import-*`)
+- **WHEN** the provider initializes
+- **THEN** it falls back to the most recent artifact of that name from any branch, logs the fallback explicitly identifying the source branch and run id, and uses it as the starting database
+
+#### Scenario: Configured-branch artifact always wins over a stale seed
+
+- **GIVEN** an artifact has previously been uploaded from the configured branch by a normal CI run, **AND** an older seed artifact from a non-canonical branch also still exists
+- **WHEN** the provider initializes
+- **THEN** it uses the configured-branch artifact and does not consult the seed; the seed is left to age out via GitHub's retention
+
 #### Scenario: Upload updated database as artifact
+
 - **GIVEN** an artifact storage provider with metrics collected
 - **WHEN** `persist()` is called
 - **THEN** it uploads the updated database as a new artifact with the configured name, non-destructively (does not delete previous artifacts)
 
 #### Scenario: Auto-detect environment for artifact operations
+
 - **GIVEN** a storage configuration with `type: "sqlite-artifact"`
 - **WHEN** the provider initializes
 - **THEN** it auto-detects `GITHUB_TOKEN` and `GITHUB_REPOSITORY` from the environment for GitHub API calls
 
 #### Scenario: Configurable artifact name
+
 - **GIVEN** a user sets `"artifact": { "name": "custom-metrics" }` in storage config
 - **WHEN** the provider searches for or uploads artifacts
 - **THEN** it uses `custom-metrics` as the artifact name instead of the default `unentropy-metrics`
 
 #### Scenario: Configurable branch filter
+
 - **GIVEN** a user sets `"artifact": { "branchFilter": "develop" }` in storage config
 - **WHEN** the provider searches for previous artifacts
-- **THEN** it filters search results to only include artifacts from the `develop` branch
-
----
+- **THEN** it filters search results to only include artifacts from the `develop` branch (and falls back across branches only when nothing on `develop` is found)
 
 ### Requirement: S3 Storage Behavior
 The system SHALL provide an S3-compatible storage provider that downloads and uploads the metrics database using S3 API operations.

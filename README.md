@@ -132,6 +132,22 @@ Commit and push these files to start tracking metrics.
 > Note that this setup will keep the metrics history in a sqlite database stored in GitHub Actions artifacts.
 > This is great to get you up and running quickly, but you may want to consider other, more permanent storage options.
 
+## **Importing history**
+
+If you have historical metric data from another tool (SonarQube, Codacy, an in-house dashboard), you can seed your unentropy database from a canonical JSONL file:
+
+```bash
+# validate first
+npx unentropy import history.jsonl --output unentropy.db --dry-run
+
+# then import
+npx unentropy import history.jsonl --output unentropy.db
+```
+
+The canonical JSONL format is documented in the spec; AI agents and external dumpers can target it directly. Imported rows are tagged with `event_name='import'` so they coexist with rows produced by CI runs.
+
+If your project uses the GitHub Actions artifact storage backend, the seed database has to be uploaded from inside a workflow run — `unentropy import seed-workflow --help` emits a ready-to-commit workflow for the disposable-branch ceremony.
+
 ## **Configuration**
 
 Use `unentropy.json` to configure your metrics and quality gate. Each metric can be defined as a reference to a built-in template (`$ref`). You can also define custom metric collection commands.

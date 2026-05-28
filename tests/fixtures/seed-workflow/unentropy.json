@@ -1,0 +1,6 @@
+{
+  "storage": { "type": "sqlite-artifact" },
+  "metrics": {
+    "coverage": { "type": "numeric", "command": "echo 0", "unit": "percent" }
+  }
+}
