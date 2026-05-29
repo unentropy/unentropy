@@ -1,5 +1,5 @@
 import { eq, and, desc, asc, sql, isNotNull, gte, inArray, exists } from "drizzle-orm";
-import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
+import type { SQLiteBunDatabase } from "drizzle-orm/bun-sqlite";
 import * as schema from "./schema";
 import type {
   BuildContext,
@@ -9,7 +9,7 @@ import type {
 } from "./types";
 
 export class MetricsRepository {
-  constructor(private db: BunSQLiteDatabase<typeof schema>) {}
+  constructor(private db: SQLiteBunDatabase<typeof schema>) {}
 
   async recordBuild(
     buildContext: InsertBuildContext,

@@ -61,7 +61,7 @@ export async function generateFixtureDatabase(
   for (const metricGen of config.metricGenerators) {
     if (seenDefs.has(metricGen.id)) continue;
     seenDefs.add(metricGen.id);
-    const drizzleDb = drizzle(conn, { schema: { metricDefinitions } });
+    const drizzleDb = drizzle({ client: conn, schema: { metricDefinitions } });
     drizzleDb
       .insert(metricDefinitions)
       .values({
