@@ -2,6 +2,7 @@ import type { Argv } from "yargs";
 import { existsSync, readFileSync } from "fs";
 import { loadConfig } from "../../config/loader.js";
 import { Storage } from "../../storage/storage.js";
+import { SqliteLocalStorageProvider } from "../../storage/providers/sqlite-local.js";
 import { buildIngestPlan, ingest } from "../../collector/import/ingester.js";
 import { ShallowCloneError } from "../../collector/import/commit-resolver.js";
 import { formatSummary, formatWarnings } from "../../collector/import/summary.js";
@@ -109,7 +110,9 @@ const IngestJsonlCommand = cmd({
 
     let storage: Storage;
     try {
-      storage = new Storage({ type: "sqlite-local", path: outputPath });
+      storage = new Storage(
+        new SqliteLocalStorageProvider({ type: "sqlite-local", path: outputPath })
+      );
       await storage.ready();
     } catch (error) {
       console.error(

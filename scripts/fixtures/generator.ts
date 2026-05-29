@@ -1,4 +1,5 @@
 import { Storage } from "../../src/storage/storage";
+import { createStorageProvider } from "../../src/storage/providers/factory";
 import type { ResolvedUnentropyConfig } from "../../src/config/loader";
 import type { FixtureConfig, MetricGenerator, MetricInput } from "./definitions";
 import type { Database } from "bun:sqlite";
@@ -42,10 +43,12 @@ export async function generateFixtureDatabase(
     await fs.unlink(dbPath);
   } catch {}
 
-  const db = new Storage({
-    type: "sqlite-local",
-    path: dbPath,
-  });
+  const db = new Storage(
+    createStorageProvider({
+      type: "sqlite-local",
+      path: dbPath,
+    })
+  );
   await db.ready();
 
   const conn = db.getConnection();

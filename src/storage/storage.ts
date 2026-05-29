@@ -1,7 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { drizzle, type BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
-import type { StorageProvider, StorageProviderConfig } from "./providers/interface";
-import { createStorageProvider } from "./providers/factory";
+import type { StorageProvider } from "./providers/interface";
 import { MetricsRepository } from "./repository";
 import { initializeSchema } from "./migrations";
 import * as schema from "./schema";
@@ -12,8 +11,8 @@ export class Storage {
   private drizzleDb: BunSQLiteDatabase<typeof schema> | null = null;
   private repository: MetricsRepository | null = null;
 
-  constructor(private config: StorageProviderConfig) {
-    this.provider = createStorageProvider(this.config);
+  constructor(provider: StorageProvider) {
+    this.provider = provider;
     this.initPromise = this.initialize();
   }
 

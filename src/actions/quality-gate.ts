@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { loadConfig } from "../config/loader.js";
 import { Storage } from "../storage/storage.js";
+import { createStorageProvider } from "../storage/providers/factory.js";
 import { collectMetrics } from "../collector/collector.js";
 import type { StorageConfig } from "../config/schema.js";
 import type { StorageProviderConfig } from "../storage/providers/interface.js";
@@ -368,7 +369,7 @@ export async function runQualityGateAction(): Promise<void> {
 
     core.info("Downloading baseline database...");
     const storageConfig = createStorageConfig(inputs, config.storage, referenceBranch);
-    const storage = new Storage(storageConfig);
+    const storage = new Storage(createStorageProvider(storageConfig));
     await storage.ready();
     core.info("Baseline database downloaded successfully");
 

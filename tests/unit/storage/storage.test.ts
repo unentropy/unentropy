@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Storage } from "../../../src/storage/storage";
+import { createStorageProvider } from "../../../src/storage/providers/factory";
 import { rm } from "fs/promises";
 
 describe("Storage", () => {
@@ -7,10 +8,12 @@ describe("Storage", () => {
   let storage: Storage;
 
   beforeEach(async () => {
-    storage = new Storage({
-      type: "sqlite-local",
-      path: testDbPath,
-    });
+    storage = new Storage(
+      createStorageProvider({
+        type: "sqlite-local",
+        path: testDbPath,
+      })
+    );
     await storage.ready();
   });
 

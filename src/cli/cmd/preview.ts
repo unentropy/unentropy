@@ -6,6 +6,7 @@ import { basename } from "path";
 import { loadConfig } from "../../config/loader.js";
 import { generateEmptyReport } from "../../reporter/empty-report.js";
 import { Storage } from "../../storage/storage.js";
+import { SqliteLocalStorageProvider } from "../../storage/providers/sqlite-local.js";
 import { cmd } from "./cmd";
 
 export interface PreviewArgs {
@@ -104,11 +105,13 @@ export const PreviewCommand = cmd({
 
       console.log(`Reading database: ${dbPath}\n`);
 
-      const storage = new Storage({
-        type: "sqlite-local",
-        path: dbPath,
-        readonly: true,
-      });
+      const storage = new Storage(
+        new SqliteLocalStorageProvider({
+          type: "sqlite-local",
+          path: dbPath,
+          readonly: true,
+        })
+      );
 
       try {
         await storage.ready();

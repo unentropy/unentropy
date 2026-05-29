@@ -2,6 +2,7 @@ import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { parseMetricValue, collectMetrics } from "../../../src/collector/collector";
 import type { ResolvedMetricConfig } from "../../../src/config/schema";
 import { Storage } from "../../../src/storage/storage";
+import { createStorageProvider } from "../../../src/storage/providers/factory";
 import { unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 
@@ -13,7 +14,7 @@ beforeAll(async () => {
     await unlink(TEST_DB_PATH);
   }
 
-  testStorage = new Storage({ type: "sqlite-local", path: TEST_DB_PATH });
+  testStorage = new Storage(createStorageProvider({ type: "sqlite-local", path: TEST_DB_PATH }));
   await testStorage.initialize();
 });
 

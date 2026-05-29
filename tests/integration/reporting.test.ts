@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Storage } from "../../src/storage/storage";
+import { createStorageProvider } from "../../src/storage/providers/factory";
 import { generateReport } from "../../src/reporter/generator";
 import type { ResolvedUnentropyConfig } from "../../src/config/loader";
 import fs from "fs";
@@ -46,7 +47,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
       fs.unlinkSync(TEST_DB_PATH);
     }
 
-    db = new Storage({ type: "sqlite-local", path: TEST_DB_PATH });
+    db = new Storage(createStorageProvider({ type: "sqlite-local", path: TEST_DB_PATH }));
     await db.initialize();
     const repo = db.getRepository();
 
@@ -173,7 +174,7 @@ describe("Full reporting workflow integration (Bun runtime)", () => {
       fs.unlinkSync(emptyDbPath);
     }
 
-    const emptyDb = new Storage({ type: "sqlite-local", path: emptyDbPath });
+    const emptyDb = new Storage(createStorageProvider({ type: "sqlite-local", path: emptyDbPath }));
     await emptyDb.initialize();
 
     const html = generateReport("empty/repo", emptyDb, testConfig);

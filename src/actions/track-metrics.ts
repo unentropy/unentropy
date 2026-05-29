@@ -1,6 +1,7 @@
 import * as core from "@actions/core";
 import { loadConfig } from "../config/loader";
 import { Storage } from "../storage/storage";
+import { createStorageProvider } from "../storage/providers/factory";
 import { collectMetrics } from "../collector/collector";
 import { extractBuildContext } from "../collector/context";
 
@@ -172,7 +173,7 @@ export async function runTrackMetricsAction(): Promise<void> {
   // Phase 1: Initialize storage
   core.info("Initializing storage provider...");
   const storageConfig = createStorageConfig(inputs);
-  const storage = new Storage(storageConfig);
+  const storage = new Storage(createStorageProvider(storageConfig));
   await storage.ready();
   core.info("Storage provider initialized successfully");
 

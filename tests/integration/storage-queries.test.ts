@@ -3,6 +3,7 @@ import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { Storage } from "../../src/storage/storage";
+import { createStorageProvider } from "../../src/storage/providers/factory";
 import type { InsertMetricDefinition } from "../../src/storage/types";
 
 const testDbPath = `/tmp/unentropy-query-contract-${Date.now()}.db`;
@@ -104,7 +105,7 @@ function assertDefined<T>(value: T | undefined | null, message?: string): T {
 
 describe("Storage Query Contracts", () => {
   beforeAll(async () => {
-    storage = new Storage({ type: "sqlite-local", path: testDbPath });
+    storage = new Storage(createStorageProvider({ type: "sqlite-local", path: testDbPath }));
     await storage.initialize();
 
     const repo = storage.getRepository();

@@ -6,6 +6,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { spawnSync } from "child_process";
 import { Storage } from "../../../../src/storage/storage";
+import { createStorageProvider } from "../../../../src/storage/providers/factory";
 import { ingest, IMPORT_EVENT_NAME, parseJsonl } from "../../../../src/collector/import/ingester";
 
 function run(cmd: string, args: string[], cwd: string): string {
@@ -61,7 +62,7 @@ describe("ingest", () => {
 
   beforeEach(async () => {
     repo = makeRepo();
-    storage = new Storage({ type: "sqlite-local", path: dbPath });
+    storage = new Storage(createStorageProvider({ type: "sqlite-local", path: dbPath }));
     await storage.ready();
   });
 

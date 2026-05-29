@@ -47,6 +47,11 @@ function runChecks(): void {
   execInherit("bun run check", "CHECK");
 }
 
+function runBuilds(): void {
+  execInherit("bun run build:cli", "BUILD");
+  execInherit("bun run build:actions", "BUILD");
+}
+
 function bumpVersion(type: VersionType): string {
   execInherit(`bun pm version ${type} --no-git-tag-version --force`, "BUN");
   return getPackageVersion();
@@ -126,6 +131,8 @@ function printDryRun(type: VersionType, currentVersion: string, vcs: "jj" | "git
 
   console.log(`    [FORMAT] bun run format`);
   console.log(`    [CHECK]  bun run check`);
+  console.log(`    [BUILD]  bun run build:cli`);
+  console.log(`    [BUILD]  bun run build:actions`);
 
   if (vcs === "jj") {
     console.log(`    [BUN] bun pm version ${type} --no-git-tag-version --force`);
@@ -158,6 +165,7 @@ function printDryRun(type: VersionType, currentVersion: string, vcs: "jj" | "git
 
 function release(type: VersionType, vcs: "jj" | "git"): void {
   runChecks();
+  runBuilds();
 
   if (vcs === "jj") {
     verifyMainBookmark();
@@ -198,6 +206,7 @@ function main(): void {
 
   if (dryRun) {
     runChecks();
+    runBuilds();
     const currentVersion = getPackageVersion();
     printDryRun(type, currentVersion, vcs);
     process.exit(0);

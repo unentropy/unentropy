@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { Storage } from "../../src/storage/storage";
+import { createStorageProvider } from "../../src/storage/providers/factory";
 import { SqliteArtifactStorageProvider } from "../../src/storage/providers/sqlite-artifact";
 import type {
   StorageProviderConfig,
@@ -192,7 +193,7 @@ describe("Artifact Storage Integration", () => {
         ...baseArtifactConfig,
       };
 
-      const storage = new Storage(config);
+      const storage = new Storage(createStorageProvider(config));
       await storage.ready();
 
       // Verify storage is working

@@ -2,6 +2,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { rm } from "fs/promises";
 import { Storage } from "../../src/storage/storage";
+import { createStorageProvider } from "../../src/storage/providers/factory";
 import { ingest } from "../../src/collector/import/ingester";
 import type { ResolvedUnentropyConfig } from "../../src/config/loader";
 import { spawnSync } from "child_process";
@@ -53,7 +54,7 @@ describe("Reporter includes event_name='import' rows", () => {
 
   beforeEach(async () => {
     repo = makeRepo();
-    storage = new Storage({ type: "sqlite-local", path: dbPath });
+    storage = new Storage(createStorageProvider({ type: "sqlite-local", path: dbPath }));
     await storage.ready();
   });
 

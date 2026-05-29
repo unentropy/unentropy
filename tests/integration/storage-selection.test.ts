@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Storage } from "../../src/storage/storage";
+import { createStorageProvider } from "../../src/storage/providers/factory";
 import { SqliteS3StorageProvider } from "../../src/storage/providers/sqlite-s3";
 import type { StorageProviderConfig, SqliteS3Config } from "../../src/storage/providers/interface";
 
@@ -22,7 +23,7 @@ describe("Storage Backend Selection Integration", () => {
         path: `/tmp/storage-selection-local-${Date.now()}.db`,
       };
 
-      const storage = new Storage(config);
+      const storage = new Storage(createStorageProvider(config));
       await storage.ready();
       await storage.close();
     });
@@ -103,8 +104,7 @@ describe("Storage Backend Selection Integration", () => {
     });
 
     it("should handle storage creation through Storage class", async () => {
-      const provider: StorageProviderConfig = mockS3Config;
-      const storage = new Storage(provider);
+      const storage = new Storage(s3Provider);
 
       // This should work without throwing
       expect(storage).toBeDefined();
@@ -127,7 +127,7 @@ describe("Storage Backend Selection Integration", () => {
       const provider = { type: "invalid-type" } as unknown as StorageProviderConfig;
 
       const create = async () => {
-        const db = new Storage(provider);
+        const db = new Storage(createStorageProvider(provider));
         await db.ready();
       };
 
