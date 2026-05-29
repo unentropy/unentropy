@@ -30,7 +30,6 @@ const IngestJsonlCommand = cmd({
       .option("output", {
         alias: "o",
         type: "string",
-        demandOption: true,
         description: "target SQLite database (created if missing)",
       })
       .option("config", {

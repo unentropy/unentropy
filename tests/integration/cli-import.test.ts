@@ -87,7 +87,7 @@ describe("unentropy import (integration)", () => {
     expect(builds.length).toBe(1);
     expect(builds[0]!.event_name).toBe("import");
     expect(builds[0]!.commit_sha).toBe(sha);
-    expect(builds[0]!.run_id).toBe(`import:sonarqube:${sha}`);
+    expect(builds[0]!.run_id).toBe(`import:sonarqube:${sha.slice(0, 12)}`);
     const values = db
       .query<
         { metric_id: string; value_numeric: number },

@@ -93,7 +93,7 @@ describe("ingest", () => {
       .all();
     expect(builds.length).toBe(1);
     expect(builds[0]!.event_name).toBe(IMPORT_EVENT_NAME);
-    expect(builds[0]!.run_id).toBe(`import:sonarqube:${repo.sha}`);
+    expect(builds[0]!.run_id).toBe(`import:sonarqube:${repo.sha.slice(0, 12)}`);
 
     const defs = db
       .query<{ id: string; type: string }, []>("SELECT id, type FROM metric_definitions")
@@ -170,6 +170,22 @@ describe("ingest", () => {
     expect(summary.tierCounts.skipped).toBe(1);
     expect(summary.inserted).toBe(0);
     expect(summary.resolutionWarnings.length).toBe(1);
+    expect(summary.resolutionWarnings[0]!.category).toBe("unresolved-commit");
+  });
+
+  it("imports records with a long source name via a short-sha run_id", () => {
+    // `import:modernization-stats:<40-char-sha>` is 67 chars and previously
+    // tripped the run_id length guard, silently dropping the whole source.
+    const jsonl = `{"metric_id":"legacy-routes","timestamp":"2024-06-01T00:00:00Z","value_numeric":191,"source":"modernization-stats"}`;
+    const summary = ingest(storage, jsonl, { trendBranch: "main", cwd: repo.dir });
+
+    expect(summary.inserted).toBe(1);
+    expect(summary.tierCounts.skipped).toBe(0);
+    expect(summary.resolutionWarnings.length).toBe(0);
+
+    const db = storage.getConnection();
+    const row = db.query<{ run_id: string }, []>("SELECT run_id FROM build_contexts").get();
+    expect(row!.run_id).toBe(`import:modernization-stats:${repo.sha.slice(0, 12)}`);
   });
 
   it("flags metric ids that are not declared in config", () => {

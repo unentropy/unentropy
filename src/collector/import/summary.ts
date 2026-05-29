@@ -1,4 +1,22 @@
-import type { IngestSummary } from "./types";
+import type { IngestSummary, RecordResolutionWarning, SkipReasonCategory } from "./types";
+
+const SKIP_REASON_LABELS: Record<SkipReasonCategory, string> = {
+  "unresolved-commit": "timestamp predates repo history",
+  "run-id-length": "derived run_id too long",
+};
+
+function skipBreakdown(
+  warnings: RecordResolutionWarning[]
+): { label: string; count: number }[] {
+  const counts = new Map<SkipReasonCategory, number>();
+  for (const w of warnings) {
+    counts.set(w.category, (counts.get(w.category) ?? 0) + 1);
+  }
+  return [...counts.entries()].map(([category, count]) => ({
+    label: SKIP_REASON_LABELS[category],
+    count,
+  }));
+}
 
 export function formatSummary(
   summary: IngestSummary,
@@ -38,18 +56,25 @@ export function formatSummary(
   }
 
   const t = summary.tierCounts;
+  const breakdown = skipBreakdown(summary.resolutionWarnings);
   if (opts.dryRun) {
     lines.push(`  commit resolution:`);
     lines.push(`    source-provided        ${t["source-provided"]}`);
     lines.push(`    nearest-timestamp      ${t["nearest-timestamp"]}`);
-    lines.push(`    skipped (unresolvable) ${t.skipped}`);
-    lines.push(opts.dryRun ? `no database writes performed (--dry-run).` : "");
+    lines.push(`    skipped                ${t.skipped}`);
+    for (const { label, count } of breakdown) {
+      lines.push(`      ${label}: ${count}`);
+    }
+    lines.push(`no database writes performed (--dry-run).`);
   } else if (t["source-provided"] + t["nearest-timestamp"] + t.skipped > 0) {
     lines.push(
       `  commits resolved: ${t["source-provided"]} from source SHA, ${t["nearest-timestamp"]} by nearest timestamp`
     );
     if (t.skipped > 0) {
-      lines.push(`  commits skipped: ${t.skipped} (timestamp predates repo history)`);
+      lines.push(`  commits skipped: ${t.skipped}`);
+      for (const { label, count } of breakdown) {
+        lines.push(`    ${label}: ${count}`);
+      }
     }
   }
 

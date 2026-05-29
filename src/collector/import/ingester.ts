@@ -14,7 +14,11 @@ import { CommitResolver, ShallowCloneError } from "./commit-resolver";
 export const IMPORT_EVENT_NAME = "import";
 const DEFAULT_SOURCE = "manual";
 const DEFAULT_RUN_NUMBER = 0;
-const MAX_RUN_ID_LENGTH = 64;
+// build_contexts is already UNIQUE(commit_sha, run_id), so the run_id only needs
+// enough of the SHA to stay readable — a short SHA keeps derived run_ids well under
+// the limit even for the longest source names (source is capped at 64 chars).
+const RUN_ID_SHA_LENGTH = 12;
+const MAX_RUN_ID_LENGTH = 128;
 
 export interface IngestOptions {
   strict?: boolean;
@@ -106,6 +110,7 @@ export function buildIngestPlan(jsonl: string, options: IngestOptions): IngestPl
       warnings.push({
         line,
         reason: `no commit could be resolved for timestamp ${record.timestamp} on branch ${trendBranch}`,
+        category: "unresolved-commit",
         record,
       });
       continue;
@@ -124,6 +129,7 @@ export function buildIngestPlan(jsonl: string, options: IngestOptions): IngestPl
       warnings.push({
         line,
         reason: `derived run_id exceeds ${MAX_RUN_ID_LENGTH} characters; provide an explicit run_id`,
+        category: "run-id-length",
         record,
       });
       continue;
@@ -235,7 +241,7 @@ function applyResolvedRecords(db: Database, resolved: ResolvedRecord[]): number 
 }
 
 function buildDefaultRunId(source: string, sha: string): string {
-  return `import:${source}:${sha}`;
+  return `import:${source}:${sha.slice(0, RUN_ID_SHA_LENGTH)}`;
 }
 
 function unique<T>(xs: T[]): T[] {

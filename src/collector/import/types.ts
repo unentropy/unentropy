@@ -49,9 +49,12 @@ export interface RecordValidationError {
   raw: string;
 }
 
+export type SkipReasonCategory = "unresolved-commit" | "run-id-length";
+
 export interface RecordResolutionWarning {
   line: number;
   reason: string;
+  category: SkipReasonCategory;
   record: CanonicalImportRecord;
 }
 
