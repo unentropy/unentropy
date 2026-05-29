@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { SqliteDatabase } from "../driver";
 
 export type StorageProviderType = "sqlite-local" | "sqlite-artifact" | "sqlite-s3" | "postgres";
 
@@ -35,9 +35,9 @@ export interface SqliteS3Config extends BaseStorageProviderConfig {
 export type StorageProviderConfig = SqliteLocalConfig | SqliteArtifactConfig | SqliteS3Config;
 
 export interface StorageProvider {
-  initialize(): Promise<Database>;
+  initialize(): Promise<SqliteDatabase>;
   persist(): Promise<void>;
   cleanup(): Promise<void>;
   isInitialized(): boolean;
-  getDb(): Database;
+  getDb(): SqliteDatabase;
 }

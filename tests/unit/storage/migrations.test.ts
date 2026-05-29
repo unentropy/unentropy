@@ -30,11 +30,8 @@ describe("Schema Initialization", () => {
     const db = client.getConnection();
 
     const tables = db
-      .query<
-        { name: string },
-        []
-      >("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-      .all();
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+      .all() as { name: string }[];
 
     const tableNames = tables.map((t) => t.name).sort();
     expect(tableNames).toEqual([
@@ -50,8 +47,8 @@ describe("Schema Initialization", () => {
     const db = client.getConnection();
 
     const columns = db
-      .query<{ name: string; type: string }, []>("PRAGMA table_info(metric_definitions)")
-      .all();
+      .prepare("SELECT name, type FROM pragma_table_info('metric_definitions')")
+      .all() as { name: string; type: string }[];
     const columnNames = columns.map((c) => c.name);
 
     expect(columnNames).toEqual(["id", "type", "unit", "description"]);
@@ -62,8 +59,8 @@ describe("Schema Initialization", () => {
     const db = client.getConnection();
 
     const columns = db
-      .query<{ name: string; type: string }, []>("PRAGMA table_info(build_contexts)")
-      .all();
+      .prepare("SELECT name, type FROM pragma_table_info('build_contexts')")
+      .all() as { name: string; type: string }[];
     const columnNames = columns.map((c) => c.name);
 
     expect(columnNames).toEqual([
@@ -82,8 +79,8 @@ describe("Schema Initialization", () => {
     const db = client.getConnection();
 
     const columns = db
-      .query<{ name: string; type: string }, []>("PRAGMA table_info(metric_values)")
-      .all();
+      .prepare("SELECT name, type FROM pragma_table_info('metric_values')")
+      .all() as { name: string; type: string }[];
     const columnNames = columns.map((c) => c.name);
 
     expect(columnNames).toEqual(["id", "metric_id", "build_id", "value_numeric", "value_label"]);
@@ -93,9 +90,9 @@ describe("Schema Initialization", () => {
     initializeSchema(client);
     const db = client.getConnection();
 
-    const indexes = db
-      .query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE type='index'")
-      .all();
+    const indexes = db.prepare("SELECT name FROM sqlite_master WHERE type='index'").all() as {
+      name: string;
+    }[];
 
     const indexNames = indexes.map((i) => i.name).sort();
     expect(indexNames).toContain("idx_build_timestamp");
@@ -110,11 +107,8 @@ describe("Schema Initialization", () => {
     const db = client.getConnection();
 
     const version = db
-      .query<
-        { version: string },
-        []
-      >("SELECT version FROM schema_version ORDER BY version DESC LIMIT 1")
-      .get();
+      .prepare("SELECT version FROM schema_version ORDER BY version DESC LIMIT 1")
+      .get() as { version: string } | undefined;
 
     expect(version?.version).toBe("2.0.0");
   });
@@ -124,9 +118,9 @@ describe("Schema Initialization", () => {
     initializeSchema(client);
 
     const db = client.getConnection();
-    const versions = db
-      .query<{ count: number }, []>("SELECT COUNT(*) as count FROM schema_version")
-      .get();
+    const versions = db.prepare("SELECT COUNT(*) as count FROM schema_version").get() as
+      | { count: number }
+      | undefined;
 
     expect(versions?.count).toBe(1);
   });
@@ -136,11 +130,8 @@ describe("Schema Initialization", () => {
     const db = client.getConnection();
 
     const columns = db
-      .query<
-        { name: string; type: string; pk: number },
-        []
-      >("PRAGMA table_info(metric_definitions)")
-      .all();
+      .prepare("SELECT name, type, pk FROM pragma_table_info('metric_definitions')")
+      .all() as { name: string; type: string; pk: number }[];
 
     const idColumn = columns.find((c) => c.name === "id");
     expect(idColumn?.type).toBe("TEXT");
@@ -152,8 +143,8 @@ describe("Schema Initialization", () => {
     const db = client.getConnection();
 
     const columns = db
-      .query<{ name: string; type: string }, []>("PRAGMA table_info(metric_values)")
-      .all();
+      .prepare("SELECT name, type FROM pragma_table_info('metric_values')")
+      .all() as { name: string; type: string }[];
 
     const metricIdColumn = columns.find((c) => c.name === "metric_id");
     expect(metricIdColumn?.type).toBe("TEXT");

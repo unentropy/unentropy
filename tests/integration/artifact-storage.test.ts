@@ -101,10 +101,10 @@ describe("Artifact Storage Integration", () => {
       expect(provider.isInitialized()).toBe(true);
 
       // Use database
-      db.run("CREATE TABLE integration_test (id INTEGER PRIMARY KEY, data TEXT)");
-      db.run("INSERT INTO integration_test (data) VALUES (?)", ["test-data"]);
+      db.exec("CREATE TABLE integration_test (id INTEGER PRIMARY KEY, data TEXT)");
+      db.prepare("INSERT INTO integration_test (data) VALUES (?)").run("test-data");
 
-      const result = db.query("SELECT data FROM integration_test").get() as { data: string };
+      const result = db.prepare("SELECT data FROM integration_test").get() as { data: string };
       expect(result.data).toBe("test-data");
 
       // Persist (will fallback since we're not in real GitHub Actions)
@@ -265,18 +265,18 @@ describe("Artifact Storage Integration", () => {
       await provider2.initialize();
 
       // Create different data in each
-      provider1.getDb().run("CREATE TABLE data1 (id INTEGER)");
-      provider2.getDb().run("CREATE TABLE data2 (id INTEGER)");
+      provider1.getDb().exec("CREATE TABLE data1 (id INTEGER)");
+      provider2.getDb().exec("CREATE TABLE data2 (id INTEGER)");
 
       // Verify isolation
       const tables1 = provider1
         .getDb()
-        .query("SELECT name FROM sqlite_master WHERE type='table'")
-        .all();
+        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+        .all() as { name: string }[];
       const tables2 = provider2
         .getDb()
-        .query("SELECT name FROM sqlite_master WHERE type='table'")
-        .all();
+        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+        .all() as { name: string }[];
 
       expect(tables1).toContainEqual({ name: "data1" });
       expect(tables1).not.toContainEqual({ name: "data2" });
@@ -311,8 +311,8 @@ describe("Artifact Storage Integration", () => {
       await provider1.initialize();
 
       // Create data
-      provider1.getDb().run("CREATE TABLE persist_test (value TEXT)");
-      provider1.getDb().run("INSERT INTO persist_test (value) VALUES (?)", ["persisted"]);
+      provider1.getDb().exec("CREATE TABLE persist_test (value TEXT)");
+      provider1.getDb().prepare("INSERT INTO persist_test (value) VALUES (?)").run("persisted");
 
       // Persist and cleanup
       await provider1.persist();
@@ -330,7 +330,7 @@ describe("Artifact Storage Integration", () => {
       await provider2.initialize();
 
       // Verify data persisted (since we're using same local path)
-      const result = provider2.getDb().query("SELECT value FROM persist_test").get() as {
+      const result = provider2.getDb().prepare("SELECT value FROM persist_test").get() as {
         value: string;
       };
       expect(result.value).toBe("persisted");

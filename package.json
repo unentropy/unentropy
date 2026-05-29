@@ -55,6 +55,7 @@
     "version:major": "bun run scripts/version.ts major"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/bun": "latest",
     "@types/sloc": "^0.2.3",
     "@types/yargs": "^17.0.35",
@@ -71,11 +72,12 @@
     "@actions/github": "^6.0.1",
     "@markusberg/lcov-parse": "^2.0.4",
     "@types/serialize-javascript": "^5.0.4",
+    "better-sqlite3": "^12.10.0",
     "drizzle-orm": "^1.0.0-rc.3",
     "fast-glob": "^3.3.3",
     "fast-xml-parser": "^5.3.2",
-    "micromatch": "^4.0.5",
     "get-folder-size": "^5.0.0",
+    "micromatch": "^4.0.5",
     "preact": "^10.27.2",
     "preact-render-to-string": "^6.6.3",
     "serialize-javascript": "^7.0.0",

@@ -1,10 +1,10 @@
 import { Storage } from "./storage";
-import { Database } from "bun:sqlite";
+import type { SqliteDatabase } from "./driver";
 
 interface Migration {
   version: string;
   description: string;
-  up: (db: Database) => void;
+  up: (db: SqliteDatabase) => void;
 }
 
 const SCHEMA_SQL = `
@@ -71,11 +71,8 @@ export function initializeSchema(storage: Storage, targetVersion?: string): void
   `);
 
   const currentVersionRow = db
-    .query<
-      { version: string },
-      []
-    >("SELECT version FROM schema_version ORDER BY version DESC LIMIT 1")
-    .get();
+    .prepare("SELECT version FROM schema_version ORDER BY version DESC LIMIT 1")
+    .get() as { version: string } | undefined;
 
   const currentVersion = currentVersionRow?.version;
   const currentMigrationIndex = currentVersion
@@ -96,7 +93,7 @@ export function initializeSchema(storage: Storage, targetVersion?: string): void
 
     migration.up(db);
 
-    const insertStmt = db.query<unknown, [string, string]>(
+    const insertStmt = db.prepare(
       "INSERT OR IGNORE INTO schema_version (version, description) VALUES (?, ?)"
     );
     insertStmt.run(migration.version, migration.description);

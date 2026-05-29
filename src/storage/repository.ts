@@ -1,5 +1,4 @@
 import { eq, and, desc, asc, sql, isNotNull, gte, inArray, exists } from "drizzle-orm";
-import type { SQLiteBunDatabase } from "drizzle-orm/bun-sqlite";
 import * as schema from "./schema";
 import type {
   BuildContext,
@@ -9,7 +8,8 @@ import type {
 } from "./types";
 
 export class MetricsRepository {
-  constructor(private db: SQLiteBunDatabase<typeof schema>) {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(private db: any) {}
 
   async recordBuild(
     buildContext: InsertBuildContext,

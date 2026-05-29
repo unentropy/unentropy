@@ -31,25 +31,19 @@ describe("Storage", () => {
 
   it("configures DELETE journal mode via provider", () => {
     const db = storage.getConnection();
-    const result = db.query("PRAGMA journal_mode").get() as {
-      journal_mode: string;
-    };
-    expect(result.journal_mode).toBe("delete");
+    const result = db.prepare("PRAGMA journal_mode").get() as Record<string, unknown>;
+    expect(result?.journal_mode).toBe("delete");
   });
 
   it("enables foreign keys via provider", () => {
     const db = storage.getConnection();
-    const result = db.query("PRAGMA foreign_keys").get() as {
-      foreign_keys: number;
-    };
-    expect(result.foreign_keys).toBe(1);
+    const result = db.prepare("PRAGMA foreign_keys").get() as Record<string, unknown>;
+    expect(result?.foreign_keys).toBe(1);
   });
 
   it("sets busy timeout", () => {
     const db = storage.getConnection();
-    const result = db.query("PRAGMA busy_timeout").get() as {
-      timeout: number;
-    };
-    expect(result.timeout).toBe(5000);
+    const result = db.prepare("PRAGMA busy_timeout").get() as Record<string, unknown>;
+    expect(result?.timeout).toBe(5000);
   });
 });

@@ -86,19 +86,18 @@ describe("ingest", () => {
     expect(summary.tierCounts["source-provided"]).toBe(2);
 
     const db = storage.getConnection();
-    const builds = db
-      .query<
-        { event_name: string; run_id: string },
-        []
-      >("SELECT event_name, run_id FROM build_contexts")
-      .all();
+    const builds = db.prepare("SELECT event_name, run_id FROM build_contexts").all() as {
+      event_name: string;
+      run_id: string;
+    }[];
     expect(builds.length).toBe(1);
     expect(builds[0]!.event_name).toBe(IMPORT_EVENT_NAME);
     expect(builds[0]!.run_id).toBe(`import:sonarqube:${repo.sha.slice(0, 12)}`);
 
-    const defs = db
-      .query<{ id: string; type: string }, []>("SELECT id, type FROM metric_definitions")
-      .all();
+    const defs = db.prepare("SELECT id, type FROM metric_definitions").all() as {
+      id: string;
+      type: string;
+    }[];
     expect(defs).toContainEqual({ id: "coverage", type: "numeric" });
     expect(defs).toContainEqual({ id: "reliability", type: "label" });
   });
@@ -133,7 +132,9 @@ describe("ingest", () => {
     expect(summary.inserted).toBe(0);
 
     const db = storage.getConnection();
-    const builds = db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM build_contexts").get();
+    const builds = db.prepare("SELECT COUNT(*) AS n FROM build_contexts").get() as
+      | { n: number }
+      | undefined;
     expect(builds!.n).toBe(0);
   });
 
@@ -145,10 +146,14 @@ describe("ingest", () => {
     expect(second.inserted).toBe(1);
 
     const db = storage.getConnection();
-    const builds = db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM build_contexts").get();
+    const builds = db.prepare("SELECT COUNT(*) AS n FROM build_contexts").get() as
+      | { n: number }
+      | undefined;
     expect(builds!.n).toBe(1);
 
-    const values = db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM metric_values").get();
+    const values = db.prepare("SELECT COUNT(*) AS n FROM metric_values").get() as
+      | { n: number }
+      | undefined;
     expect(values!.n).toBe(1);
   });
 
@@ -160,7 +165,9 @@ describe("ingest", () => {
     expect(summary.inserted).toBe(1);
 
     const db = storage.getConnection();
-    const row = db.query<{ commit_sha: string }, []>("SELECT commit_sha FROM build_contexts").get();
+    const row = db.prepare("SELECT commit_sha FROM build_contexts").get() as
+      | { commit_sha: string }
+      | undefined;
     expect(row!.commit_sha).toBe(repo.sha);
   });
 
@@ -185,7 +192,9 @@ describe("ingest", () => {
     expect(summary.resolutionWarnings.length).toBe(0);
 
     const db = storage.getConnection();
-    const row = db.query<{ run_id: string }, []>("SELECT run_id FROM build_contexts").get();
+    const row = db.prepare("SELECT run_id FROM build_contexts").get() as
+      | { run_id: string }
+      | undefined;
     expect(row!.run_id).toBe(`import:modernization-stats:${repo.sha.slice(0, 12)}`);
   });
 

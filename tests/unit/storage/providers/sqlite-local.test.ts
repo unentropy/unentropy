@@ -78,7 +78,7 @@ describe("SqliteLocalStorageProvider", () => {
       path: testDbPath,
     });
     const tempDb = await tempProvider.initialize();
-    tempDb.run("CREATE TABLE test (id INTEGER)");
+    tempDb.exec("CREATE TABLE test (id INTEGER)");
     await tempProvider.cleanup();
 
     // Now open in readonly mode - just verify it opens successfully

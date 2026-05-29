@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { SqliteDatabase } from "../../storage/driver";
 import type { Storage } from "../../storage/storage";
 import {
   CanonicalImportRecordSchema,
@@ -14,9 +14,6 @@ import { CommitResolver, ShallowCloneError } from "./commit-resolver";
 export const IMPORT_EVENT_NAME = "import";
 const DEFAULT_SOURCE = "manual";
 const DEFAULT_RUN_NUMBER = 0;
-// build_contexts is already UNIQUE(commit_sha, run_id), so the run_id only needs
-// enough of the SHA to stay readable — a short SHA keeps derived run_ids well under
-// the limit even for the longest source names (source is capped at 64 chars).
 const RUN_ID_SHA_LENGTH = 12;
 const MAX_RUN_ID_LENGTH = 128;
 
@@ -81,10 +78,8 @@ export function parseJsonl(jsonl: string): {
 
 export function buildIngestPlan(jsonl: string, options: IngestOptions): IngestPlan {
   const { records, errors } = parseJsonl(jsonl);
-
   const trendBranch = options.trendBranch;
   const resolver = new CommitResolver({ trendBranch, cwd: options.cwd });
-
   const resolved: ResolvedRecord[] = [];
   const warnings: RecordResolutionWarning[] = [];
   const tierCounts: Record<CommitResolutionTier, number> = {
@@ -181,25 +176,25 @@ export function ingest(storage: Storage, jsonl: string, options: IngestOptions):
   return { ...plan.summary, inserted };
 }
 
-function applyResolvedRecords(db: Database, resolved: ResolvedRecord[]): number {
+function applyResolvedRecords(db: SqliteDatabase, resolved: ResolvedRecord[]): number {
   if (resolved.length === 0) return 0;
 
-  const insertBuild = db.query<{ id: number }, [string, string, string, number, string, string]>(
+  const insertBuild = db.prepare(
     `INSERT INTO build_contexts
        (commit_sha, branch, run_id, run_number, event_name, timestamp)
      VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT(commit_sha, run_id) DO NOTHING
      RETURNING id`
   );
-  const selectBuild = db.query<{ id: number }, [string, string]>(
+  const selectBuild = db.prepare(
     `SELECT id FROM build_contexts WHERE commit_sha = ? AND run_id = ?`
   );
-  const upsertDef = db.query<unknown, [string, string]>(
+  const upsertDef = db.prepare(
     `INSERT INTO metric_definitions (id, type)
      VALUES (?, ?)
      ON CONFLICT(id) DO NOTHING`
   );
-  const insertValue = db.query<unknown, [string, number, number | null, string | null]>(
+  const insertValue = db.prepare(
     `INSERT INTO metric_values (metric_id, build_id, value_numeric, value_label)
      VALUES (?, ?, ?, ?)
      ON CONFLICT(metric_id, build_id) DO UPDATE SET
@@ -208,8 +203,9 @@ function applyResolvedRecords(db: Database, resolved: ResolvedRecord[]): number 
   );
 
   let inserted = 0;
-  const tx = db.transaction((items: ResolvedRecord[]) => {
-    for (const item of items) {
+  db.exec("BEGIN");
+  try {
+    for (const item of resolved) {
       const buildRow =
         insertBuild.get(
           item.commitSha,
@@ -234,9 +230,12 @@ function applyResolvedRecords(db: Database, resolved: ResolvedRecord[]): number 
       );
       inserted += 1;
     }
-  });
+    db.exec("COMMIT");
+  } catch (e) {
+    db.exec("ROLLBACK");
+    throw e;
+  }
 
-  tx(resolved);
   return inserted;
 }
 

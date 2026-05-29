@@ -79,21 +79,15 @@ describe("unentropy import (integration)", () => {
 
     const db = new Database(dbPath, { readonly: true });
     const builds = db
-      .query<
-        { event_name: string; commit_sha: string; run_id: string },
-        []
-      >("SELECT event_name, commit_sha, run_id FROM build_contexts")
-      .all();
+      .prepare("SELECT event_name, commit_sha, run_id FROM build_contexts")
+      .all() as { event_name: string; commit_sha: string; run_id: string }[];
     expect(builds.length).toBe(1);
     expect(builds[0]!.event_name).toBe("import");
     expect(builds[0]!.commit_sha).toBe(sha);
     expect(builds[0]!.run_id).toBe(`import:sonarqube:${sha.slice(0, 12)}`);
     const values = db
-      .query<
-        { metric_id: string; value_numeric: number },
-        []
-      >("SELECT metric_id, value_numeric FROM metric_values ORDER BY metric_id")
-      .all();
+      .prepare("SELECT metric_id, value_numeric FROM metric_values ORDER BY metric_id")
+      .all() as { metric_id: string; value_numeric: number }[];
     expect(values).toEqual([
       { metric_id: "bugs", value_numeric: 3 },
       { metric_id: "coverage", value_numeric: 80 },
@@ -128,21 +122,18 @@ describe("unentropy import (integration)", () => {
 
     const db = new Database(dbPath, { readonly: true });
     const pushBuild = db
-      .query<{ value_numeric: number; event_name: string }, []>(
+      .prepare(
         `SELECT bc.event_name, mv.value_numeric FROM build_contexts bc
            JOIN metric_values mv ON mv.build_id = bc.id
            WHERE bc.run_id = '999'`
       )
-      .get();
+      .get() as { value_numeric: number; event_name: string } | undefined;
     expect(pushBuild?.value_numeric).toBe(99);
     expect(pushBuild?.event_name).toBe("push");
 
     const counts = db
-      .query<
-        { n: number },
-        []
-      >("SELECT COUNT(*) AS n FROM build_contexts WHERE event_name = 'import'")
-      .get();
+      .prepare("SELECT COUNT(*) AS n FROM build_contexts WHERE event_name = 'import'")
+      .get() as { n: number } | undefined;
     expect(counts?.n).toBe(1);
     db.close();
   });
@@ -184,7 +175,9 @@ describe("unentropy import (integration)", () => {
 
     if (existsSync(dbPath)) {
       const db = new Database(dbPath, { readonly: true });
-      const n = db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM build_contexts").get();
+      const n = db.prepare("SELECT COUNT(*) AS n FROM build_contexts").get() as
+        | { n: number }
+        | undefined;
       expect(n!.n).toBe(0);
       db.close();
     }

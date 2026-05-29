@@ -2,7 +2,7 @@ import { Storage } from "../../src/storage/storage";
 import { createStorageProvider } from "../../src/storage/providers/factory";
 import type { ResolvedUnentropyConfig } from "../../src/config/loader";
 import type { FixtureConfig, MetricGenerator, MetricInput } from "./definitions";
-import type { Database } from "bun:sqlite";
+import type { SqliteDatabase } from "../../src/storage/driver";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { metricDefinitions } from "../../src/storage/schema";
 
@@ -23,10 +23,10 @@ export function calculateBaseTimestamp(config: FixtureConfig): number {
   return endDate.getTime() - (config.buildCount - 1) * dayInMs;
 }
 
-function setPragma(conn: Database, name: string, value: string): string | undefined {
-  const row = conn.query(`PRAGMA ${name}`).get() as Record<string, string> | undefined;
-  conn.run(`PRAGMA ${name} = ${value}`);
-  return row?.[name];
+function setPragma(conn: SqliteDatabase, name: string, value: string): string | undefined {
+  const prev = conn.prepare(`PRAGMA ${name}`).get() as Record<string, unknown> | undefined;
+  conn.exec(`PRAGMA ${name} = ${value}`);
+  return prev?.[name] as string | undefined;
 }
 
 export async function generateFixtureDatabase(
@@ -55,13 +55,12 @@ export async function generateFixtureDatabase(
   const origSync = setPragma(conn, "synchronous", "OFF");
   const origJournal = setPragma(conn, "journal_mode", "MEMORY");
 
-  // Pre-insert metric definitions once so onConflictDoUpdate is a no-op in the loop
   const repo = db.getRepository();
   const seenDefs = new Set<string>();
   for (const metricGen of config.metricGenerators) {
     if (seenDefs.has(metricGen.id)) continue;
     seenDefs.add(metricGen.id);
-    const drizzleDb = drizzle({ client: conn, schema: { metricDefinitions } });
+    const drizzleDb = drizzle({ client: conn.$raw, schema: { metricDefinitions } });
     drizzleDb
       .insert(metricDefinitions)
       .values({
@@ -78,7 +77,8 @@ export async function generateFixtureDatabase(
   const baseTimestamp = calculateBaseTimestamp(config);
   const buildInterval = 1;
 
-  const tx = conn.transaction(() => {
+  conn.exec("BEGIN");
+  try {
     for (let i = 0; i < config.buildCount; i++) {
       const buildDate = config.timestampGenerator
         ? config.timestampGenerator(i, baseTimestamp)
@@ -116,12 +116,14 @@ export async function generateFixtureDatabase(
         metrics
       );
     }
-  });
-  tx();
+    conn.exec("COMMIT");
+  } catch (e) {
+    conn.exec("ROLLBACK");
+    throw e;
+  }
 
-  // Restore original PRAGMAs
-  if (origSync) conn.run(`PRAGMA synchronous = ${origSync}`);
-  if (origJournal) conn.run(`PRAGMA journal_mode = ${origJournal}`);
+  if (origSync) conn.exec(`PRAGMA synchronous = ${origSync}`);
+  if (origJournal) conn.exec(`PRAGMA journal_mode = ${origJournal}`);
 
   return db;
 }

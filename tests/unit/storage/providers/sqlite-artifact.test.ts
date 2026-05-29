@@ -190,8 +190,8 @@ describe("SqliteArtifactStorageProvider", () => {
 
       // Create some test data
       const db = provider.getDb();
-      db.run("CREATE TABLE test_persist (id INTEGER PRIMARY KEY, value TEXT)");
-      db.run("INSERT INTO test_persist (value) VALUES (?)", ["test"]);
+      db.exec("CREATE TABLE test_persist (id INTEGER PRIMARY KEY, value TEXT)");
+      db.prepare("INSERT INTO test_persist (value) VALUES (?)").run("test");
 
       await provider.persist();
 
@@ -203,7 +203,7 @@ describe("SqliteArtifactStorageProvider", () => {
 
       // Verify data is still accessible after persist
       const newDb = provider.getDb();
-      const result = newDb.query("SELECT value FROM test_persist").get() as { value: string };
+      const result = newDb.prepare("SELECT value FROM test_persist").get() as { value: string };
       expect(result.value).toBe("test");
     });
 
@@ -229,8 +229,8 @@ describe("SqliteArtifactStorageProvider", () => {
 
       // Create some test data
       const db = provider.getDb();
-      db.run("CREATE TABLE test_reopen (id INTEGER PRIMARY KEY, value TEXT)");
-      db.run("INSERT INTO test_reopen (value) VALUES (?)", ["before-persist"]);
+      db.exec("CREATE TABLE test_reopen (id INTEGER PRIMARY KEY, value TEXT)");
+      db.prepare("INSERT INTO test_reopen (value) VALUES (?)").run("before-persist");
 
       await provider.persist();
 
@@ -239,9 +239,9 @@ describe("SqliteArtifactStorageProvider", () => {
 
       // Should be able to write new data after persist
       const newDb = provider.getDb();
-      newDb.run("INSERT INTO test_reopen (value) VALUES (?)", ["after-persist"]);
+      newDb.prepare("INSERT INTO test_reopen (value) VALUES (?)").run("after-persist");
 
-      const results = newDb.query("SELECT value FROM test_reopen ORDER BY id").all() as {
+      const results = newDb.prepare("SELECT value FROM test_reopen ORDER BY id").all() as {
         value: string;
       }[];
       expect(results).toHaveLength(2);
@@ -309,8 +309,10 @@ describe("SqliteArtifactStorageProvider", () => {
 
       expect(db).toBeDefined();
       // Verify it's a working database connection
-      db.run("CREATE TABLE test_getdb (id INTEGER PRIMARY KEY)");
-      const result = db.query("SELECT name FROM sqlite_master WHERE type='table'").all();
+      db.exec("CREATE TABLE test_getdb (id INTEGER PRIMARY KEY)");
+      const result = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as {
+        name: string;
+      }[];
       expect(result).toContainEqual({ name: "test_getdb" });
     });
   });
@@ -335,20 +337,12 @@ describe("SqliteArtifactStorageProvider", () => {
       const db = provider.getDb();
 
       // Verify SQLite configuration
-      const journalMode = db.query("PRAGMA journal_mode").get() as {
-        journal_mode: string;
-      };
-      expect(journalMode.journal_mode).toBe("delete");
-
-      const foreignKeys = db.query("PRAGMA foreign_keys").get() as {
-        foreign_keys: number;
-      };
-      expect(foreignKeys.foreign_keys).toBe(1);
-
-      const busyTimeout = db.query("PRAGMA busy_timeout").get() as {
-        timeout: number;
-      };
-      expect(busyTimeout.timeout).toBe(5000);
+      const jm = db.prepare("PRAGMA journal_mode").get() as Record<string, unknown>;
+      expect(jm?.journal_mode).toBe("delete");
+      const fk = db.prepare("PRAGMA foreign_keys").get() as Record<string, unknown>;
+      expect(fk?.foreign_keys).toBe(1);
+      const bt = db.prepare("PRAGMA busy_timeout").get() as Record<string, unknown>;
+      expect(bt?.timeout).toBe(5000);
     });
   });
 

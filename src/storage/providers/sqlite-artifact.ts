@@ -1,4 +1,5 @@
-import { Database } from "bun:sqlite";
+import { createDatabase } from "../driver";
+import type { SqliteDatabase } from "../driver";
 import { promises as fs } from "fs";
 import { dirname } from "path";
 import { spawnSync } from "child_process";
@@ -16,7 +17,7 @@ interface Artifact {
 }
 
 export class SqliteArtifactStorageProvider implements StorageProvider {
-  private db: Database | null = null;
+  private db: SqliteDatabase | null = null;
   private initialized = false;
   private readonly artifactName: string;
   private readonly branchFilter: string;
@@ -33,7 +34,7 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
     this.repository = config.repository;
   }
 
-  async initialize(): Promise<Database> {
+  async initialize(): Promise<SqliteDatabase> {
     if (this.initialized && this.db) {
       return this.db;
     }
@@ -64,7 +65,7 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
       this.firstRun = false;
     }
 
-    this.configureConnection();
+    await this.configureConnection();
     this.initialized = true;
 
     if (!this.db) {
@@ -81,12 +82,7 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
     this.db.close();
     this.db = null;
 
-    // NOTE: Artifact upload is handled by the composite action's upload-artifact step
-    // to work around ACTIONS_RUNTIME_TOKEN not being available in shell steps.
-    // The composite action uses actions/upload-artifact@v4 which runs as a proper
-    // JS action and has access to the required runtime token.
-
-    this.configureConnection();
+    await this.configureConnection();
   }
 
   async cleanup(): Promise<void> {
@@ -96,16 +92,14 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
         this.db = null;
       }
       this.initialized = false;
-    } catch {
-      // Ignore cleanup errors
-    }
+    } catch {}
   }
 
   isInitialized(): boolean {
     return this.initialized;
   }
 
-  getDb(): Database {
+  getDb(): SqliteDatabase {
     if (!this.db) throw new Error("Database not initialized");
     return this.db;
   }
@@ -154,7 +148,6 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
         throw new Error(`Invalid repository format: ${repo}`);
       }
 
-      // Search artifacts directly by name - this works across all workflows
       const response = await fetch(
         `https://api.github.com/repos/${owner}/${repoName}/actions/artifacts?name=${encodeURIComponent(this.artifactName)}&per_page=100`,
         {
@@ -173,21 +166,14 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
       const data = (await response.json()) as { artifacts: Artifact[] };
       const artifacts = data.artifacts || [];
 
-      // Filter by branch if specified, then return the most recent (first in list)
       const matchingArtifacts = artifacts.filter(
         (artifact) => artifact.workflow_run?.head_branch === this.branchFilter
       );
 
       if (matchingArtifacts.length > 0) {
-        // Artifacts are returned sorted by created_at desc, so first match is most recent
         return matchingArtifacts[0] ?? null;
       }
 
-      // Fallback: no artifact on the configured branch. If any artifact with this
-      // name exists on any branch (typically a disposable seeding branch), use the
-      // most recent one as a seed. The next successful CI run on the configured
-      // branch will re-upload, promoting the seed; the orphan ages out via GitHub
-      // retention.
       const seed = artifacts[0];
       if (seed) {
         console.log(
@@ -255,9 +241,7 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
         console.warn(`Failed to extract zip: ${extractError}`);
         try {
           await fs.unlink(tempZipPath);
-        } catch {
-          // Ignore cleanup errors
-        }
+        } catch {}
         return false;
       }
     } catch (error) {
@@ -270,17 +254,17 @@ export class SqliteArtifactStorageProvider implements StorageProvider {
     const dbDir = dirname(this.databasePath);
     await fs.mkdir(dbDir, { recursive: true });
 
-    const db = new Database(this.databasePath, { create: true });
+    const db = await createDatabase(this.databasePath);
     db.close();
   }
 
-  private configureConnection(): void {
-    this.db = new Database(this.databasePath, { create: true });
-    this.db.run("PRAGMA journal_mode = DELETE");
-    this.db.run("PRAGMA synchronous = NORMAL");
-    this.db.run("PRAGMA foreign_keys = ON");
-    this.db.run("PRAGMA busy_timeout = 5000");
-    this.db.run("PRAGMA cache_size = -2000");
-    this.db.run("PRAGMA temp_store = MEMORY");
+  private async configureConnection(): Promise<void> {
+    this.db = await createDatabase(this.databasePath);
+    this.db.exec("PRAGMA journal_mode = DELETE");
+    this.db.exec("PRAGMA synchronous = NORMAL");
+    this.db.exec("PRAGMA foreign_keys = ON");
+    this.db.exec("PRAGMA busy_timeout = 5000");
+    this.db.exec("PRAGMA cache_size = -2000");
+    this.db.exec("PRAGMA temp_store = MEMORY");
   }
 }

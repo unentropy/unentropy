@@ -74,14 +74,12 @@ describe("SqliteS3StorageProvider", () => {
     const db = await provider.initialize();
 
     // Verify SQLite configuration
-    const journalMode = db.query("PRAGMA journal_mode").get() as { journal_mode: string };
-    expect(journalMode.journal_mode).toBe("delete");
-
-    const foreignKeys = db.query("PRAGMA foreign_keys").get() as { foreign_keys: number };
-    expect(foreignKeys.foreign_keys).toBe(1);
-
-    const busyTimeout = db.query("PRAGMA busy_timeout").get() as { timeout: number };
-    expect(busyTimeout.timeout).toBe(5000);
+    const jm = db.prepare("PRAGMA journal_mode").get() as Record<string, unknown>;
+    expect(jm?.journal_mode).toBe("delete");
+    const fk = db.prepare("PRAGMA foreign_keys").get() as Record<string, unknown>;
+    expect(fk?.foreign_keys).toBe(1);
+    const bt = db.prepare("PRAGMA busy_timeout").get() as Record<string, unknown>;
+    expect(bt?.timeout).toBe(5000);
   });
 
   test("should upload database to S3 on persist", async () => {
@@ -89,8 +87,8 @@ describe("SqliteS3StorageProvider", () => {
     const db = await provider.initialize();
 
     // Create test table and insert data
-    db.run("CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT)");
-    db.run("INSERT INTO test_table (name) VALUES (?)", ["test_data"]);
+    db.exec("CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT)");
+    db.prepare("INSERT INTO test_table (name) VALUES (?)").run("test_data");
 
     // Persist to S3
     await provider.persist();
@@ -109,8 +107,8 @@ describe("SqliteS3StorageProvider", () => {
     await provider.initialize();
     const db1 = await provider.initialize();
 
-    db1.run("CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT)");
-    db1.run("INSERT INTO test_table (name) VALUES (?)", ["original_data"]);
+    db1.exec("CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT)");
+    db1.prepare("INSERT INTO test_table (name) VALUES (?)").run("original_data");
     await provider.persist();
     await provider.cleanup();
 
@@ -129,7 +127,7 @@ describe("SqliteS3StorageProvider", () => {
     const db2 = await provider2.initialize();
 
     // Verify data was downloaded
-    const result = db2.query("SELECT name FROM test_table").get() as { name: string } | undefined;
+    const result = db2.prepare("SELECT name FROM test_table").get() as { name: string } | undefined;
     expect(result?.name).toBe("original_data");
 
     await provider2.cleanup();
@@ -140,8 +138,8 @@ describe("SqliteS3StorageProvider", () => {
     await provider.initialize();
     const db1 = await provider.initialize();
 
-    db1.run("CREATE TABLE metrics (id INTEGER PRIMARY KEY, value INTEGER)");
-    db1.run("INSERT INTO metrics (value) VALUES (?)", [42]);
+    db1.exec("CREATE TABLE metrics (id INTEGER PRIMARY KEY, value INTEGER)");
+    db1.prepare("INSERT INTO metrics (value) VALUES (?)").run(42);
     await provider.persist();
     await provider.cleanup();
 
@@ -160,7 +158,7 @@ describe("SqliteS3StorageProvider", () => {
     const db2 = await provider2.initialize();
 
     // Add more data
-    db2.run("INSERT INTO metrics (value) VALUES (?)", [84]);
+    db2.prepare("INSERT INTO metrics (value) VALUES (?)").run(84);
     await provider2.persist();
     await provider2.cleanup();
 
@@ -178,7 +176,9 @@ describe("SqliteS3StorageProvider", () => {
     await provider3.initialize();
     const db3 = await provider3.initialize();
 
-    const results = db3.query("SELECT value FROM metrics ORDER BY id").all() as { value: number }[];
+    const results = db3.prepare("SELECT value FROM metrics ORDER BY id").all() as {
+      value: number;
+    }[];
     expect(results).toHaveLength(2);
     expect(results[0]?.value).toBe(42);
     expect(results[1]?.value).toBe(84);
@@ -191,7 +191,7 @@ describe("SqliteS3StorageProvider", () => {
     const db = await provider.initialize();
 
     // Create complex test data
-    db.run(
+    db.exec(
       "CREATE TABLE test_data (id INTEGER PRIMARY KEY, text TEXT, number REAL, blob BLOB, timestamp INTEGER)"
     );
 
@@ -202,12 +202,11 @@ describe("SqliteS3StorageProvider", () => {
       { id: 3, text: "test3", number: 1.618, blob: null, timestamp: baseTime + 2000 },
     ];
 
+    const insertData = db.prepare(
+      "INSERT INTO test_data (text, number, timestamp) VALUES (?, ?, ?)"
+    );
     for (const data of testData) {
-      db.run("INSERT INTO test_data (text, number, timestamp) VALUES (?, ?, ?)", [
-        data.text,
-        data.number,
-        data.timestamp,
-      ]);
+      insertData.run(data.text, data.number, data.timestamp);
     }
 
     // Persist and cleanup
@@ -228,7 +227,9 @@ describe("SqliteS3StorageProvider", () => {
     await provider2.initialize();
     const db2 = await provider2.initialize();
 
-    const results = db2.query("SELECT * FROM test_data ORDER BY id").all() as {
+    const results = db2
+      .prepare("SELECT * FROM test_data ORDER BY id")
+      .all() as {
       text: string;
       number: number;
       timestamp: number;
@@ -255,8 +256,8 @@ describe("SqliteS3StorageProvider", () => {
     await customProvider.initialize();
     const db = await customProvider.initialize();
 
-    db.run("CREATE TABLE custom_test (id INTEGER PRIMARY KEY, value TEXT)");
-    db.run("INSERT INTO custom_test (value) VALUES (?)", ["custom_key_test"]);
+    db.exec("CREATE TABLE custom_test (id INTEGER PRIMARY KEY, value TEXT)");
+    db.prepare("INSERT INTO custom_test (value) VALUES (?)").run("custom_key_test");
     await customProvider.persist();
 
     // Verify file exists at custom path

@@ -1,15 +1,10 @@
-import { Database } from "bun:sqlite";
+import { createDatabase } from "../driver";
+import type { SqliteDatabase } from "../driver";
 import { S3Client } from "bun";
 import type { StorageProvider, SqliteS3Config } from "./interface";
 
-/**
- * S3-compatible storage provider for SQLite databases
- *
- * Downloads database from S3 on initialization, uploads on persist.
- * Uses temporary local storage for SQLite operations.
- */
 export class SqliteS3StorageProvider implements StorageProvider {
-  private db: Database | null = null;
+  private db: SqliteDatabase | null = null;
   private initialized = false;
   private s3Client: S3Client | null = null;
   private tempDbPath: string;
@@ -20,13 +15,12 @@ export class SqliteS3StorageProvider implements StorageProvider {
     this.tempDbPath = `/tmp/unentropy-s3-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.db`;
   }
 
-  async initialize(): Promise<Database> {
+  async initialize(): Promise<SqliteDatabase> {
     console.log("Initializing SQLite S3 storage provider...");
     if (this.initialized && this.db) {
       return this.db;
     }
 
-    // Generate fresh temp path for each initialization to avoid conflicts
     console.log("Generating temp path:", this.tempDbPath);
     this.tempDbPath = `/tmp/unentropy-s3-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.db`;
     await this.initializeS3Client();
@@ -47,7 +41,7 @@ export class SqliteS3StorageProvider implements StorageProvider {
 
     await this.uploadDatabase();
 
-    this.configureConnection();
+    await this.configureConnection();
   }
 
   async cleanup(): Promise<void> {
@@ -60,9 +54,7 @@ export class SqliteS3StorageProvider implements StorageProvider {
       await Bun.file(this.tempDbPath).delete();
 
       this.initialized = false;
-    } catch {
-      // Ignore cleanup errors
-    }
+    } catch {}
   }
 
   isInitialized(): boolean {
@@ -89,7 +81,6 @@ export class SqliteS3StorageProvider implements StorageProvider {
     const databaseKey = this.getDatabaseKey();
 
     try {
-      // Try to download existing database
       if (!this.s3Client) {
         throw new Error("S3 client not initialized");
       }
@@ -103,13 +94,11 @@ export class SqliteS3StorageProvider implements StorageProvider {
         return;
       }
     } catch (error) {
-      // Database doesn't exist or download failed, create new one
       console.log(`Database not found in S3, creating new database: ${error}`);
     }
 
-    // Create new empty database
     console.log("No existing database found, creating new database...");
-    const newDb = new Database(this.tempDbPath, { create: true });
+    const newDb = await createDatabase(this.tempDbPath);
     newDb.close();
   }
 
@@ -125,38 +114,30 @@ export class SqliteS3StorageProvider implements StorageProvider {
   }
 
   getDatabaseKey(): string {
-    // Use a default database key or allow custom key via config
     return this.config.databaseKey || "unentropy.db";
   }
 
-  private configureConnection(): Database {
-    this.db = new Database(this.tempDbPath, { create: true });
-    // Configure SQLite for single-file storage (no WAL files to manage)
-    this.db.run("PRAGMA journal_mode = DELETE");
-    this.db.run("PRAGMA synchronous = NORMAL");
-    this.db.run("PRAGMA foreign_keys = ON");
-    this.db.run("PRAGMA busy_timeout = 5000");
-    this.db.run("PRAGMA cache_size = -2000");
-    this.db.run("PRAGMA temp_store = MEMORY");
+  private async configureConnection(): Promise<SqliteDatabase> {
+    this.db = await createDatabase(this.tempDbPath);
+    this.db.exec("PRAGMA journal_mode = DELETE");
+    this.db.exec("PRAGMA synchronous = NORMAL");
+    this.db.exec("PRAGMA foreign_keys = ON");
+    this.db.exec("PRAGMA busy_timeout = 5000");
+    this.db.exec("PRAGMA cache_size = -2000");
+    this.db.exec("PRAGMA temp_store = MEMORY");
 
     return this.db;
   }
 
-  /**
-   * Get S3 client for testing purposes
-   */
   getS3Client() {
     return this.s3Client;
   }
 
-  /**
-   * Get temporary database path for testing
-   */
   getTempDbPath(): string {
     return this.tempDbPath;
   }
 
-  getDb(): Database {
+  getDb(): SqliteDatabase {
     if (!this.db) throw new Error("Database not initialized");
     return this.db;
   }

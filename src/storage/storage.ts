@@ -1,5 +1,5 @@
-import type { Database } from "bun:sqlite";
-import { drizzle, type SQLiteBunDatabase } from "drizzle-orm/bun-sqlite";
+import { initDrizzle } from "./driver";
+import type { SqliteDatabase } from "./driver";
 import type { StorageProvider } from "./providers/interface";
 import { MetricsRepository } from "./repository";
 import { initializeSchema } from "./migrations";
@@ -8,7 +8,8 @@ import * as schema from "./schema";
 export class Storage {
   private readonly provider: StorageProvider;
   private readonly initPromise: Promise<void>;
-  private drizzleDb: SQLiteBunDatabase<typeof schema> | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private drizzleDb: any = null;
   private repository: MetricsRepository | null = null;
 
   constructor(provider: StorageProvider) {
@@ -21,7 +22,7 @@ export class Storage {
     initializeSchema(this);
 
     const rawDb = this.provider.getDb();
-    this.drizzleDb = drizzle({ client: rawDb, schema });
+    this.drizzleDb = await initDrizzle(rawDb.$raw, schema);
     this.repository = new MetricsRepository(this.drizzleDb);
   }
 
@@ -29,7 +30,7 @@ export class Storage {
     await this.initPromise;
   }
 
-  getConnection(): Database {
+  getConnection(): SqliteDatabase {
     return this.provider?.getDb();
   }
 

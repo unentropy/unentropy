@@ -1,17 +1,17 @@
-import { Database } from "bun:sqlite";
+import { createDatabase } from "../driver";
+import type { SqliteDatabase } from "../driver";
 import type { StorageProvider, SqliteLocalConfig } from "./interface";
 
 export class SqliteLocalStorageProvider implements StorageProvider {
-  private db: Database | null = null;
+  private db: SqliteDatabase | null = null;
 
   constructor(private config: SqliteLocalConfig) {}
 
-  async initialize(): Promise<Database> {
+  async initialize(): Promise<SqliteDatabase> {
     if (this.db) return this.db;
 
-    this.db = new Database(this.config.path, {
+    this.db = await createDatabase(this.config.path, {
       readonly: this.config.readonly ?? false,
-      create: true,
     });
 
     this.configureConnection();
@@ -22,13 +22,12 @@ export class SqliteLocalStorageProvider implements StorageProvider {
   private configureConnection(): void {
     if (!this.db) throw new Error("Database not initialized");
 
-    // Configure SQLite for single-file storage (no WAL files to manage)
-    this.db.run("PRAGMA journal_mode = DELETE");
-    this.db.run("PRAGMA synchronous = NORMAL");
-    this.db.run("PRAGMA foreign_keys = ON");
-    this.db.run("PRAGMA busy_timeout = 5000");
-    this.db.run("PRAGMA cache_size = -2000");
-    this.db.run("PRAGMA temp_store = MEMORY");
+    this.db.exec("PRAGMA journal_mode = DELETE");
+    this.db.exec("PRAGMA synchronous = NORMAL");
+    this.db.exec("PRAGMA foreign_keys = ON");
+    this.db.exec("PRAGMA busy_timeout = 5000");
+    this.db.exec("PRAGMA cache_size = -2000");
+    this.db.exec("PRAGMA temp_store = MEMORY");
   }
 
   async persist(): Promise<void> {
@@ -46,7 +45,7 @@ export class SqliteLocalStorageProvider implements StorageProvider {
     return this.db !== null;
   }
 
-  getDb(): Database {
+  getDb(): SqliteDatabase {
     if (!this.db) throw new Error("Database not initialized");
     return this.db;
   }
