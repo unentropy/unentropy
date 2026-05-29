@@ -15,9 +15,24 @@ function summaryWithSkips(): IngestSummary {
     skipped: 3,
     validationErrors: [],
     resolutionWarnings: [
-      { line: 1, reason: "no commit could be resolved", category: "unresolved-commit", record: record("a") },
-      { line: 2, reason: "derived run_id exceeds 128 characters", category: "run-id-length", record: record("b") },
-      { line: 3, reason: "derived run_id exceeds 128 characters", category: "run-id-length", record: record("c") },
+      {
+        line: 1,
+        reason: "no commit could be resolved",
+        category: "unresolved-commit",
+        record: record("a"),
+      },
+      {
+        line: 2,
+        reason: "derived run_id exceeds 128 characters",
+        category: "run-id-length",
+        record: record("b"),
+      },
+      {
+        line: 3,
+        reason: "derived run_id exceeds 128 characters",
+        category: "run-id-length",
+        record: record("c"),
+      },
     ],
     tierCounts: { "source-provided": 0, "nearest-timestamp": 2, skipped: 3 },
     metricIds: ["a", "b", "c"],

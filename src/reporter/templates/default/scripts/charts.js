@@ -90,42 +90,83 @@ function buildCrosshairOptions(syncGroup) {
   };
 }
 
-function computeSectionDateRange(section, lineCharts, timeline) {
-  var minIndex = timeline.length;
-  var maxIndex = -1;
+// Collect the line-chart metric ids referenced by a section (single or multi).
+function collectSectionMetricIds(section) {
+  var ids = [];
   section.charts.forEach(function (chartConfig) {
     if (chartConfig.type === "multi" && chartConfig.metricIds) {
       chartConfig.metricIds.forEach(function (metricId) {
-        var chart = lineCharts.find(function (c) {
-          return c.id === metricId;
-        });
-        if (chart && chart.values) {
-          chart.values.forEach(function (v, i) {
-            if (v !== null && v !== undefined) {
-              if (i < minIndex) minIndex = i;
-              if (i > maxIndex) maxIndex = i;
-            }
-          });
-        }
+        ids.push(metricId);
       });
     } else if (chartConfig.type === "single" && chartConfig.metricId) {
-      var chart = lineCharts.find(function (c) {
-        return c.id === chartConfig.metricId;
-      });
-      if (chart && chart.values) {
-        chart.values.forEach(function (v, i) {
-          if (v !== null && v !== undefined) {
-            if (i < minIndex) minIndex = i;
-            if (i > maxIndex) maxIndex = i;
-          }
-        });
-      }
+      ids.push(chartConfig.metricId);
     }
   });
-  if (minIndex <= maxIndex && minIndex < timeline.length && maxIndex >= 0) {
-    return { min: timeline[minIndex], max: timeline[maxIndex] };
-  }
-  return null;
+  return ids;
+}
+
+/**
+ * Indices into the global `timeline` that this section is rendered against:
+ * every index where at least one metric referenced by the section (single or
+ * multi) has a non-null value. Returned ascending; empty if the section has no
+ * data anywhere.
+ */
+function computeSectionIndices(section, lineCharts, timeline) {
+  var inScope = timeline.map(function () {
+    return false;
+  });
+
+  collectSectionMetricIds(section).forEach(function (metricId) {
+    var chart = lineCharts.find(function (c) {
+      return c.id === metricId;
+    });
+    if (chart && chart.values) {
+      chart.values.forEach(function (v, i) {
+        if (v !== null && v !== undefined) inScope[i] = true;
+      });
+    }
+  });
+
+  var indices = [];
+  inScope.forEach(function (flag, i) {
+    if (flag) indices.push(i);
+  });
+  return indices;
+}
+
+/**
+ * Build the per-section view: the ascending indices in scope plus the global
+ * `timeline` and `metadata` sliced to those indices. Reuse one view for every
+ * chart in the section so crosshair dataIndex stays aligned.
+ */
+function buildSectionView(section, lineCharts, timeline, metadata) {
+  var indices = computeSectionIndices(section, lineCharts, timeline);
+  return {
+    indices: indices,
+    timeline: indices.map(function (i) {
+      return timeline[i];
+    }),
+    metadata: indices.map(function (i) {
+      return metadata ? metadata[i] : null;
+    }),
+  };
+}
+
+// Slice a single chart's values to a section view, preserving index order.
+function sliceValues(values, view) {
+  if (!values) return [];
+  return view.indices.map(function (i) {
+    return values[i];
+  });
+}
+
+// The "All" date range for a section: the endpoints of its section timeline.
+function sectionRangeFromView(view) {
+  if (!view.timeline.length) return null;
+  return {
+    min: view.timeline[0],
+    max: view.timeline[view.timeline.length - 1],
+  };
 }
 
 /**
@@ -465,7 +506,15 @@ function initializeCharts(
     // Layout-based rendering with sections
     layout.sections.forEach(function (section, sectionIndex) {
       var sectionCrosshair = buildCrosshairOptions(sectionIndex);
-      var sectionRange = computeSectionDateRange(section, lineCharts, timeline);
+      // Each section renders against its own timeline: the builds where any of
+      // its metrics have data. Builds unique to other sections are excluded, so
+      // lines stay continuous instead of breaking on foreign-section nulls.
+      var view = buildSectionView(section, lineCharts, timeline, metadata);
+      var sectionRange = sectionRangeFromView(view);
+      // Pre-slice each line chart's values to this section's timeline.
+      var sectionLineCharts = lineCharts.map(function (chart) {
+        return Object.assign({}, chart, { values: sliceValues(chart.values, view) });
+      });
       section.charts.forEach(function (chartConfig) {
         var chartElementId =
           chartConfig.type === "multi" && chartConfig.metricIds
@@ -479,9 +528,9 @@ function initializeCharts(
             ctx,
             buildMultiMetricLineChart(
               chartConfig,
-              lineCharts,
-              timeline,
-              metadata,
+              sectionLineCharts,
+              view.timeline,
+              view.metadata,
               sectionCrosshair,
               sectionRange
             )
@@ -489,19 +538,25 @@ function initializeCharts(
           if (sectionRange) chartInstance.crosshair.sectionDateRange = sectionRange;
           chartInstances[chartConfig.metricIds.join("-")] = chartInstance;
         } else if (chartConfig.type === "single" && chartConfig.metricId) {
-          var singleChart =
-            lineCharts.find(function (c) {
-              return c.id === chartConfig.metricId;
-            }) ||
-            barCharts.find(function (c) {
-              return c.id === chartConfig.metricId;
-            });
+          var sectionLineChart = sectionLineCharts.find(function (c) {
+            return c.id === chartConfig.metricId;
+          });
+          var barChart = barCharts.find(function (c) {
+            return c.id === chartConfig.metricId;
+          });
+          var singleChart = sectionLineChart || barChart;
           if (singleChart) {
-            var isLine = singleChart.values !== undefined;
+            var isLine = sectionLineChart !== undefined;
             var chartInstance = new Chart(
               ctx,
               isLine
-                ? buildLineChart(singleChart, timeline, metadata, sectionCrosshair, sectionRange)
+                ? buildLineChart(
+                    singleChart,
+                    view.timeline,
+                    view.metadata,
+                    sectionCrosshair,
+                    sectionRange
+                  )
                 : buildBarChart(singleChart)
             );
             if (sectionRange) chartInstance.crosshair.sectionDateRange = sectionRange;

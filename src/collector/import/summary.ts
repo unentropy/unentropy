@@ -5,9 +5,7 @@ const SKIP_REASON_LABELS: Record<SkipReasonCategory, string> = {
   "run-id-length": "derived run_id too long",
 };
 
-function skipBreakdown(
-  warnings: RecordResolutionWarning[]
-): { label: string; count: number }[] {
+function skipBreakdown(warnings: RecordResolutionWarning[]): { label: string; count: number }[] {
   const counts = new Map<SkipReasonCategory, number>();
   for (const w of warnings) {
     counts.set(w.category, (counts.get(w.category) ?? 0) + 1);
