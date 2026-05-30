@@ -56,19 +56,13 @@ export const LANGUAGE_TO_EXTENSIONS: Record<string, string[]> = {
   JSON: ["json"],
   OCaml: ["ml", "mli"],
   "Visual Basic": ["vb"],
+  Markdown: ["md"],
 };
 
 /**
  * Returns the set of sloc extensions for a given language name.
- * Throws if the language is not recognized.
+ * Returns an empty array if the language is not recognized.
  */
 export function getExtensionsForLanguage(language: string): string[] {
-  const extensions = LANGUAGE_TO_EXTENSIONS[language];
-  if (!extensions) {
-    const availableLanguages = Object.keys(LANGUAGE_TO_EXTENSIONS).join(", ");
-    throw new Error(
-      `Language "${language}" not supported. Available languages: ${availableLanguages}`
-    );
-  }
-  return extensions;
+  return LANGUAGE_TO_EXTENSIONS[language] ?? [];
 }

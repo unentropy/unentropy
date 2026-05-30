@@ -110,9 +110,14 @@ export async function collectLoc(options: LocOptions): Promise<number> {
   }
 
   let allowedExtensions: Set<string> | undefined;
+  let fallbackOnly = false;
   if (languageFilter) {
     const extensions = getExtensionsForLanguage(languageFilter);
-    allowedExtensions = new Set(extensions.map((e) => `.${e}`));
+    if (extensions.length > 0) {
+      allowedExtensions = new Set(extensions.map((e) => `.${e}`));
+    } else {
+      fallbackOnly = true;
+    }
   }
 
   let totalLoc = 0;
@@ -127,7 +132,7 @@ export async function collectLoc(options: LocOptions): Promise<number> {
     const content = readFileSync(filePath, "utf-8");
     const extensionWithoutDot = ext.slice(1);
 
-    if (isExtensionSupported(extensionWithoutDot)) {
+    if (!fallbackOnly && isExtensionSupported(extensionWithoutDot)) {
       const stats = sloc(content, extensionWithoutDot);
       totalLoc += stats.source;
     } else {

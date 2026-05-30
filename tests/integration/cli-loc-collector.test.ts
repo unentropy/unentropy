@@ -3,7 +3,6 @@ import { join, resolve } from "path";
 import { collectLoc } from "../../src/metrics/collectors/loc";
 
 describe("LOC Collector Integration Tests (T059)", () => {
-  // Use the dedicated loc-collector fixture
   const fixtureDir = resolve(join(__dirname, "../fixtures/loc-collector"));
   const srcDir = join(fixtureDir, "src");
 
@@ -27,16 +26,12 @@ describe("LOC Collector Integration Tests (T059)", () => {
   describe("basic LOC collection", () => {
     it("should collect LOC from fixture src directory", async () => {
       const loc = await collectLoc({ path: srcDir });
-
-      // src/ contains only TypeScript files: main.ts + utils.ts = 31 code lines
       expect(loc).toBe(EXPECTED.src.typeScript);
       expect(Number.isInteger(loc)).toBe(true);
     });
 
     it("should count LOC from root fixture directory", async () => {
       const loc = await collectLoc({ path: fixtureDir });
-
-      // Root contains TypeScript files (31 lines) + package.json (16 lines) = 47 total
       expect(loc).toBe(EXPECTED.root.all);
     });
   });
@@ -44,13 +39,10 @@ describe("LOC Collector Integration Tests (T059)", () => {
   describe("exclude patterns", () => {
     it("should not affect LOC when excluding non-existent patterns", async () => {
       const without = await collectLoc({ path: srcDir });
-
       const with_ = await collectLoc({
         path: srcDir,
         excludePatterns: ["does-not-exist-pattern"],
       });
-
-      // Excluding non-existent pattern should not change result
       expect(with_).toBe(without);
       expect(with_).toBe(EXPECTED.src.typeScript);
     });
@@ -60,8 +52,6 @@ describe("LOC Collector Integration Tests (T059)", () => {
         path: srcDir,
         excludePatterns: ["dist", "build", "node_modules"],
       });
-
-      // Multiple non-existent patterns should not affect result
       expect(loc).toBe(EXPECTED.src.typeScript);
     });
   });
@@ -72,8 +62,6 @@ describe("LOC Collector Integration Tests (T059)", () => {
         path: srcDir,
         languageFilter: "TypeScript",
       });
-
-      // src/ only contains TypeScript files
       expect(typeScriptLoc).toBe(EXPECTED.src.typeScript);
     });
 
@@ -82,10 +70,7 @@ describe("LOC Collector Integration Tests (T059)", () => {
         path: srcDir,
         languageFilter: "TypeScript",
       });
-
       const totalLoc = await collectLoc({ path: srcDir });
-
-      // When src/ only has TypeScript, filtered result should equal total
       expect(typeScriptLoc).toBe(totalLoc);
       expect(typeScriptLoc).toBe(EXPECTED.src.typeScript);
     });
@@ -95,8 +80,6 @@ describe("LOC Collector Integration Tests (T059)", () => {
         path: fixtureDir,
         languageFilter: "JSON",
       });
-
-      // Fixture root contains package.json = 16 code lines
       expect(jsonLoc).toBe(EXPECTED.root.json);
     });
 
@@ -106,9 +89,64 @@ describe("LOC Collector Integration Tests (T059)", () => {
         excludePatterns: ["nonexistent"],
         languageFilter: "TypeScript",
       });
-
-      // TypeScript in src/ is 31 lines regardless of non-existent exclusions
       expect(loc).toBe(EXPECTED.src.typeScript);
+    });
+  });
+
+  describe("paths (glob) mode", () => {
+    it("should collect LOC from glob patterns", async () => {
+      const loc = await collectLoc({
+        paths: ["src/**"],
+        cwd: fixtureDir,
+      });
+      expect(loc).toBe(EXPECTED.src.typeScript);
+    });
+
+    it("should support language filter in paths mode", async () => {
+      const loc = await collectLoc({
+        paths: ["src/**"],
+        languageFilter: "TypeScript",
+        cwd: fixtureDir,
+      });
+      expect(loc).toBe(EXPECTED.src.typeScript);
+    });
+
+    it("should return zero for non-matching language filter in paths mode", async () => {
+      const loc = await collectLoc({
+        paths: ["src/**"],
+        languageFilter: "JSON",
+        cwd: fixtureDir,
+      });
+      expect(loc).toBe(0);
+    });
+
+    it("should support exclude patterns in paths mode", async () => {
+      const loc = await collectLoc({
+        paths: ["src/**"],
+        excludePatterns: ["nonexistent"],
+        cwd: fixtureDir,
+      });
+      expect(loc).toBe(EXPECTED.src.typeScript);
+    });
+  });
+
+  describe("fallback for unsupported extensions", () => {
+    it("should count non-empty lines for unsupported file types", async () => {
+      const loc = await collectLoc({ path: fixtureDir });
+      const tsOnly = await collectLoc({
+        path: fixtureDir,
+        languageFilter: "TypeScript",
+      });
+      const nonTs = loc - tsOnly;
+      expect(nonTs).toBe(EXPECTED.root.json);
+    });
+
+    it("should count non-empty lines for unknown language filter", async () => {
+      const result = await collectLoc({
+        path: srcDir,
+        languageFilter: "NonExistentLanguage123",
+      });
+      expect(result).toBeGreaterThan(0);
     });
   });
 
@@ -117,8 +155,6 @@ describe("LOC Collector Integration Tests (T059)", () => {
       const loc1 = await collectLoc({ path: srcDir });
       const loc2 = await collectLoc({ path: srcDir });
       const loc3 = await collectLoc({ path: srcDir });
-
-      // All calls should return the same value
       expect(loc1).toBe(EXPECTED.src.typeScript);
       expect(loc2).toBe(EXPECTED.src.typeScript);
       expect(loc3).toBe(EXPECTED.src.typeScript);
@@ -127,8 +163,6 @@ describe("LOC Collector Integration Tests (T059)", () => {
     it("should handle paths with trailing slashes deterministically", async () => {
       const without = await collectLoc({ path: srcDir });
       const with_ = await collectLoc({ path: `${srcDir}/` });
-
-      // Trailing slash should not affect result
       expect(with_).toBe(without);
       expect(with_).toBe(EXPECTED.src.typeScript);
     });
@@ -141,15 +175,6 @@ describe("LOC Collector Integration Tests (T059)", () => {
       );
     });
 
-    it("should throw error for invalid language filter", async () => {
-      expect(
-        collectLoc({
-          path: srcDir,
-          languageFilter: "NonExistentLanguage123",
-        })
-      ).rejects.toThrow("not supported");
-    });
-
     it("should throw error for empty path", async () => {
       expect(collectLoc({ path: "" })).rejects.toThrow("Path must be a non-empty string");
     });
@@ -159,6 +184,10 @@ describe("LOC Collector Integration Tests (T059)", () => {
         // @ts-expect-error - Testing invalid input
         collectLoc({ path: null })
       ).rejects.toThrow("Path must be a non-empty string");
+    });
+
+    it("should throw error when neither path nor paths provided", async () => {
+      expect(collectLoc({})).rejects.toThrow("Either path or paths must be provided");
     });
   });
 });
