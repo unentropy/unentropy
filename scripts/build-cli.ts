@@ -21,6 +21,7 @@ const buildCli = async (): Promise<void> => {
     naming: outfile,
     minify: true,
     banner: "#!/usr/bin/env node",
+    external: ["bun:sqlite", "drizzle-orm/bun-sqlite", "node:sqlite", "drizzle-orm/node-sqlite"],
   });
 
   console.log(`✓ Built ${outfile}`);
