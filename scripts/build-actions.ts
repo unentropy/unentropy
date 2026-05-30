@@ -16,6 +16,7 @@ const buildAction = async (entrypoint: string, outdir: string, outfile: string):
     target: "bun",
     naming: outfile,
     minify: true,
+    external: ["node:sqlite", "drizzle-orm/node-sqlite"],
   });
 
   console.log(`✓ Built ${outfile}`);
