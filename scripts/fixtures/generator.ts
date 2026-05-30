@@ -3,7 +3,7 @@ import { createStorageProvider } from "../../src/storage/providers/factory";
 import type { ResolvedUnentropyConfig } from "../../src/config/loader";
 import type { FixtureConfig, MetricGenerator, MetricInput } from "./definitions";
 import type { SqliteDatabase } from "../../src/storage/driver";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import { initDrizzle } from "../../src/storage/driver";
 import { metricDefinitions } from "../../src/storage/schema";
 
 export function calculateBaseTimestamp(config: FixtureConfig): number {
@@ -60,7 +60,7 @@ export async function generateFixtureDatabase(
   for (const metricGen of config.metricGenerators) {
     if (seenDefs.has(metricGen.id)) continue;
     seenDefs.add(metricGen.id);
-    const drizzleDb = drizzle({ client: conn.$raw, schema: { metricDefinitions } });
+    const drizzleDb = await initDrizzle(conn.$raw, { metricDefinitions });
     drizzleDb
       .insert(metricDefinitions)
       .values({

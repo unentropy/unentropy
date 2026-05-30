@@ -227,9 +227,7 @@ describe("SqliteS3StorageProvider", () => {
     await provider2.initialize();
     const db2 = await provider2.initialize();
 
-    const results = db2
-      .prepare("SELECT * FROM test_data ORDER BY id")
-      .all() as {
+    const results = db2.prepare("SELECT * FROM test_data ORDER BY id").all() as {
       text: string;
       number: number;
       timestamp: number;
