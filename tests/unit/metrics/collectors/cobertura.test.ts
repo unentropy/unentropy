@@ -101,6 +101,48 @@ describe("parseCoberturaCoerage", () => {
       expect(coverage).toBe(85);
     });
   });
+
+  describe("sources filtering with basePath", () => {
+    it("filters line coverage by sources with basePath", async () => {
+      const coverage = await parseCoberturaCoerage(
+        join(fixturesDir, "sample.xml"),
+        {},
+        ["src/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(75);
+    });
+
+    it("excludes all files with negation patterns using basePath", async () => {
+      const coverage = await parseCoberturaCoerage(
+        join(fixturesDir, "sample.xml"),
+        {},
+        ["src/**", "!src/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(0);
+    });
+
+    it("filters branch coverage by sources with basePath", async () => {
+      const coverage = await parseCoberturaCoerage(
+        join(fixturesDir, "sample.xml"),
+        { type: "branch" },
+        ["src/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(60);
+    });
+
+    it("filters function coverage by sources with basePath", async () => {
+      const coverage = await parseCoberturaCoerage(
+        join(fixturesDir, "sample.xml"),
+        { type: "function" },
+        ["src/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(75);
+    });
+  });
 });
 
 describe("mergeCoberturaCoerage", () => {
@@ -114,6 +156,16 @@ describe("mergeCoberturaCoerage", () => {
     it("should merge two overlapping reports, deduplicating lines", async () => {
       const coverage = await mergeCoberturaCoerage([f("sample.xml"), f("overlap-report.xml")]);
       expect(coverage).toBeCloseTo(100, 0);
+    });
+
+    it("merges with sources filter and basePath", async () => {
+      const coverage = await mergeCoberturaCoerage(
+        [f("sample.xml"), f("parallel-report.xml")],
+        {},
+        ["src/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(82.5);
     });
   });
 

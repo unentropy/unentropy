@@ -163,4 +163,62 @@ end_of_record`;
       expect(coverage).toBe(0);
     });
   });
+
+  describe("sources filtering with cross-root basePath", () => {
+    it("filters by sources with basePath using absolute SF paths", async () => {
+      const lcovContent = `TN:
+SF:/home/ci/project/src/example.js
+DA:1,1
+DA:2,1
+DA:3,0
+DA:4,1
+LF:4
+LH:3
+end_of_record`;
+      writeFileSync(lcovFilePath, lcovContent);
+      const coverage = await parseLcovCoverage(lcovFilePath, {}, ["src/**"], "/home/mat/project");
+      expect(coverage).toBe(75);
+    });
+
+    it("filters out non-matching files with cross-root basePath", async () => {
+      const lcovContent = `TN:
+SF:/home/ci/project/src/example.js
+DA:1,1
+DA:2,1
+LF:2
+LH:2
+end_of_record`;
+      writeFileSync(lcovFilePath, lcovContent);
+      const coverage = await parseLcovCoverage(
+        lcovFilePath,
+        {},
+        ["vendor/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(0);
+    });
+
+    it("filters function coverage by sources with cross-root basePath", async () => {
+      const lcovContent = `TN:
+SF:/home/ci/project/src/example.js
+FN:10,exampleFunction
+FN:20,anotherFunction
+FNDA:1,exampleFunction
+FNDA:0,anotherFunction
+FNF:2
+FNH:1
+DA:1,1
+LF:1
+LH:1
+end_of_record`;
+      writeFileSync(lcovFilePath, lcovContent);
+      const coverage = await parseLcovCoverage(
+        lcovFilePath,
+        { type: "function" },
+        ["src/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(50);
+    });
+  });
 });

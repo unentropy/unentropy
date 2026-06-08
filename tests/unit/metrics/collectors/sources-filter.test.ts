@@ -84,5 +84,53 @@ describe("matchesSources", () => {
       const sources = ["src/**"];
       expect(matchesSources("\\repo\\src\\app.ts", sources, "\\repo")).toBe(true);
     });
+
+    it("handles absolute paths from a different filesystem root", () => {
+      const sources = ["src/**"];
+      expect(
+        matchesSources(
+          "/home/cleeng/core-platform/src/app.ts",
+          sources,
+          "/home/mat/Work/Cleeng/core-platform"
+        )
+      ).toBe(true);
+    });
+
+    it("respects negation patterns for cross-root paths", () => {
+      const sources = ["src/**", "!src/**/*.test.ts"];
+      expect(
+        matchesSources(
+          "/home/cleeng/core-platform/src/app.test.ts",
+          sources,
+          "/home/mat/Work/Cleeng/core-platform"
+        )
+      ).toBe(false);
+    });
+
+    it("extracts path after last base dir occurrence when name repeats", () => {
+      const sources = ["lib/project/**"];
+      const basePath = "/home/project";
+      expect(matchesSources("/home/other/project/lib/project/utils.ts", sources, basePath)).toBe(
+        true
+      );
+    });
+
+    it("falls through when base dir name is not found in path", () => {
+      const sources = ["src/**"];
+      expect(
+        matchesSources("/completely/unrelated/path/src/app.ts", sources, "/home/my/repo")
+      ).toBe(false);
+    });
+
+    it("handles cross-root paths with dot segments", () => {
+      const sources = ["src/**"];
+      expect(
+        matchesSources(
+          "/home/cleeng/core-platform/./src/app.ts",
+          sources,
+          "/home/mat/Work/Cleeng/core-platform"
+        )
+      ).toBe(true);
+    });
   });
 });

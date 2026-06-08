@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "fs";
-import { join, extname } from "path";
+import { join, extname, resolve, isAbsolute } from "path";
 import fg from "fast-glob";
 import sloc from "sloc";
 import { getExtensionsForLanguage, isExtensionSupported } from "./loc/language-map.js";
@@ -94,17 +94,19 @@ export async function collectLoc(options: LocOptions): Promise<number> {
       absolute: true,
     });
   } else if (path) {
-    if (!existsSync(path)) {
+    const resolvedPath = isAbsolute(path) || !cwd ? path : resolve(cwd, path);
+
+    if (!existsSync(resolvedPath)) {
       throw new Error(`Directory not found: ${path}`);
     }
 
-    const stats = statSync(path);
+    const stats = statSync(resolvedPath);
     if (!stats.isDirectory()) {
       throw new Error(`Path is not a directory: ${path}`);
     }
 
     const excludeSet = new Set((excludePatterns || []).map((p) => p.toLowerCase()));
-    files = walkDirectory(path, excludeSet);
+    files = walkDirectory(resolvedPath, excludeSet);
   } else {
     throw new Error("Either path or paths must be provided");
   }

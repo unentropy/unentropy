@@ -1,4 +1,5 @@
 import { readFile } from "fs/promises";
+import { resolve, isAbsolute } from "path";
 import { parse, generateSummary } from "@markusberg/lcov-parse";
 import { matchesSources } from "./sources-filter";
 import type { SourcesConfig } from "../../config/schema";
@@ -30,8 +31,11 @@ export async function parseLcovCoverage(
 
   const coverageType = options.type || "line";
 
+  const resolvedPath =
+    isAbsolute(sourcePath) || !basePath ? sourcePath : resolve(basePath, sourcePath);
+
   // Read the LCOV file content
-  const lcovContent = await readFile(sourcePath, "utf-8");
+  const lcovContent = await readFile(resolvedPath, "utf-8");
 
   // Parse the LCOV content
   let report = parse(lcovContent);

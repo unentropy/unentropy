@@ -1,4 +1,5 @@
 import { readFile } from "fs/promises";
+import { resolve, isAbsolute } from "path";
 import { XMLParser } from "fast-xml-parser";
 import { matchesSources } from "./sources-filter";
 import type { SourcesConfig } from "../../config/schema";
@@ -78,6 +79,13 @@ interface CoberturaReport {
       package?: CoberturaPackage | CoberturaPackage[];
     };
   };
+}
+
+function resolveSourcePath(sourcePath: string, basePath?: string): string {
+  if (!sourcePath || typeof sourcePath !== "string") {
+    return sourcePath;
+  }
+  return isAbsolute(sourcePath) || !basePath ? sourcePath : resolve(basePath, sourcePath);
 }
 
 async function readAndParseCoberturaXml(sourcePath: string): Promise<CoberturaReport> {
@@ -326,8 +334,9 @@ export async function parseCoberturaCoerage(
   sources?: SourcesConfig,
   basePath?: string
 ): Promise<number> {
-  const report = await readAndParseCoberturaXml(sourcePath);
-  return calcSingleFileCoverage(report, options.type || "line", sourcePath, sources, basePath);
+  const resolvedPath = resolveSourcePath(sourcePath, basePath);
+  const report = await readAndParseCoberturaXml(resolvedPath);
+  return calcSingleFileCoverage(report, options.type || "line", resolvedPath, sources, basePath);
 }
 
 export async function mergeCoberturaCoerage(
@@ -340,16 +349,17 @@ export async function mergeCoberturaCoerage(
     throw new Error("At least one source path is required");
   }
 
+  const resolvedPaths = sourcePaths.map((p) => resolveSourcePath(p, basePath));
   const coverageType = options.type || "line";
 
   if (coverageType === "function") {
-    return mergeFunctionCoverage(sourcePaths, sources, basePath);
+    return mergeFunctionCoverage(resolvedPaths, sources, basePath);
   }
 
   if (coverageType === "line") {
     const merged = new Map<string, { total: Set<number>; covered: Set<number> }>();
 
-    for (const sourcePath of sourcePaths) {
+    for (const sourcePath of resolvedPaths) {
       const report = await readAndParseCoberturaXml(sourcePath);
       const fileMap = extractFileLineData(report, sources, basePath);
       for (const [filename, data] of fileMap) {
@@ -383,7 +393,7 @@ export async function mergeCoberturaCoerage(
     let totalCovered = 0;
     let totalValid = 0;
 
-    for (const sourcePath of sourcePaths) {
+    for (const sourcePath of resolvedPaths) {
       const report = await readAndParseCoberturaXml(sourcePath);
       const counts = extractCounts(report, sourcePath);
 
@@ -401,7 +411,7 @@ export async function mergeCoberturaCoerage(
   let totalCovered = 0;
   let totalValid = 0;
 
-  for (const sourcePath of sourcePaths) {
+  for (const sourcePath of resolvedPaths) {
     const report = await readAndParseCoberturaXml(sourcePath);
     const branchData = extractBranchData(report, sources, basePath);
     totalCovered += branchData.covered;

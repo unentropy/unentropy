@@ -1,4 +1,5 @@
 import { readFile } from "fs/promises";
+import { resolve, isAbsolute } from "path";
 import { XMLParser } from "fast-xml-parser";
 import { matchesSources } from "./sources-filter";
 import type { SourcesConfig } from "../../config/schema";
@@ -50,6 +51,13 @@ interface CloverReport {
     "@_phpunit"?: string;
     project: CloverProject;
   };
+}
+
+function resolveSourcePath(sourcePath: string, basePath?: string): string {
+  if (!sourcePath || typeof sourcePath !== "string") {
+    return sourcePath;
+  }
+  return isAbsolute(sourcePath) || !basePath ? sourcePath : resolve(basePath, sourcePath);
 }
 
 async function readAndParseCloverXml(sourcePath: string): Promise<CloverReport> {
@@ -165,7 +173,8 @@ export async function parseCloverCoverage(
   sources?: SourcesConfig,
   basePath?: string
 ): Promise<number> {
-  const report = await readAndParseCloverXml(sourcePath);
+  const resolvedPath = resolveSourcePath(sourcePath, basePath);
+  const report = await readAndParseCloverXml(resolvedPath);
   const coverageType = options.type || "line";
 
   if (coverageType === "line") {
@@ -220,12 +229,13 @@ export async function mergeCloverCoverage(
     throw new Error("At least one source path is required");
   }
 
+  const resolvedPaths = sourcePaths.map((p) => resolveSourcePath(p, basePath));
   const coverageType = options.type || "line";
 
   if (coverageType !== "line") {
     let totalCovered = 0;
     let totalValid = 0;
-    for (const sourcePath of sourcePaths) {
+    for (const sourcePath of resolvedPaths) {
       const report = await readAndParseCloverXml(sourcePath);
       const { covered, valid } = extractFileMetrics(report, coverageType, sources, basePath);
       totalCovered += covered;
@@ -237,7 +247,7 @@ export async function mergeCloverCoverage(
 
   const fileMap = new Map<string, { total: Set<number>; covered: Set<number> }>();
 
-  for (const sourcePath of sourcePaths) {
+  for (const sourcePath of resolvedPaths) {
     const report = await readAndParseCloverXml(sourcePath);
     const files = toArray(report.coverage.project.file);
 

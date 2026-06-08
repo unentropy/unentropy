@@ -100,6 +100,58 @@ describe("parseCloverCoverage", () => {
       expect(coverage).toBe(0);
     });
   });
+
+  describe("sources filtering with cross-root basePath", () => {
+    it("filters line coverage by sources with cross-root basePath", async () => {
+      const coverage = await parseCloverCoverage(
+        join(fixturesDir, "sample.xml"),
+        {},
+        ["src/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(75);
+    });
+
+    it("excludes files with negation patterns using cross-root basePath", async () => {
+      const coverage = await parseCloverCoverage(
+        join(fixturesDir, "sample.xml"),
+        {},
+        ["src/**", "!src/Calculator.php"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(0);
+    });
+
+    it("returns 0 when no files match the sources filter", async () => {
+      const coverage = await parseCloverCoverage(
+        join(fixturesDir, "sample.xml"),
+        {},
+        ["vendor/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(0);
+    });
+
+    it("filters branch coverage by sources with cross-root basePath", async () => {
+      const coverage = await parseCloverCoverage(
+        join(fixturesDir, "sample.xml"),
+        { type: "branch" },
+        ["src/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(60);
+    });
+
+    it("filters function coverage by sources with cross-root basePath", async () => {
+      const coverage = await parseCloverCoverage(
+        join(fixturesDir, "sample.xml"),
+        { type: "function" },
+        ["src/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBe(75);
+    });
+  });
 });
 
 describe("mergeCloverCoverage", () => {
@@ -112,6 +164,16 @@ describe("mergeCloverCoverage", () => {
     it("should merge two overlapping reports, deduplicating lines", async () => {
       const coverage = await mergeCloverCoverage([f("sample.xml"), f("overlap-report.xml")]);
       expect(coverage).toBeCloseTo(100, 1);
+    });
+
+    it("merges with sources filter and cross-root basePath", async () => {
+      const coverage = await mergeCloverCoverage(
+        [f("sample.xml"), f("parallel-report.xml")],
+        {},
+        ["src/**"],
+        "/home/mat/project"
+      );
+      expect(coverage).toBeCloseTo(63.64, 1);
     });
   });
 
