@@ -193,7 +193,7 @@ bunx unentropy test [options]
 
 | Option | Alias | Type | Default | Description |
 |--------|-------|------|---------|-------------|
-| `--config` | `-c` | string | `unentropy.json` | Path to config file |
+| `--config` | `-c` | string | `unentropy.json` | Path to config file. Relative paths in metric commands resolve against the config file's directory. |
 | `--timeout` | — | number | `30000` | Per-metric timeout in milliseconds |
 
 ## Exit Codes
@@ -301,7 +301,7 @@ bunx unentropy preview [options]
 
 | Option | Alias | Type | Default | Description |
 |--------|-------|------|---------|-------------|
-| `--config` | `-c` | string | `unentropy.json` | Path to config file |
+| `--config` | `-c` | string | `unentropy.json` | Path to config file. Relative paths in metric commands resolve against the config file's directory. |
 | `--output` | `-o` | string | `unentropy-preview` | Output directory for report |
 | `--no-open` | — | boolean | `false` | Don't open browser automatically |
 | `--force` | `-f` | boolean | `false` | Overwrite existing non-empty directory |

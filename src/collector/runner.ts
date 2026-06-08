@@ -61,6 +61,7 @@ export async function runCommand(
       env: { ...(process.env as Record<string, string>), ...env },
       ignoreReturnCode: true,
       silent,
+      cwd: basePath,
       listeners: {
         stdout: (data: Buffer) => {
           stdout += data.toString();

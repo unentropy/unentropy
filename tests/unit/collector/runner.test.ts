@@ -1,4 +1,7 @@
 import { describe, test, expect } from "bun:test";
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 import { runCommand } from "../../../src/collector/runner";
 
 describe("runCommand", () => {
@@ -165,5 +168,68 @@ describe("runCommand", () => {
     expect(result.success).toBe(true);
     expect(result.exitCode).toBe(0);
     expect(result.stdout.trim()).toMatch(/^\d+$/);
+  });
+
+  test("executes shell command with basePath as cwd", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "runner-test-"));
+    writeFileSync(join(tempDir, "testfile.txt"), "hello-from-basedir");
+
+    const result = await runCommand("cat ./testfile.txt", {}, 60000, true, undefined, tempDir);
+
+    expect(result.success).toBe(true);
+    expect(result.stdout.trim()).toBe("hello-from-basedir");
+    expect(result.exitCode).toBe(0);
+
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  test("executes shell command in process.cwd() when basePath is not provided", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "runner-test-"));
+    writeFileSync(join(tempDir, "testfile.txt"), "hello-from-cwd");
+
+    const result = await runCommand("cat ./testfile.txt", {}, 60000, true);
+
+    // Without basePath, the command runs in process.cwd() and should not find the file
+    expect(result.success).toBe(false);
+
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  test("@collect loc resolves relative path against basePath", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "runner-test-"));
+    const srcDir = join(tempDir, "src");
+    mkdirSync(srcDir, { recursive: true });
+    writeFileSync(join(srcDir, "test.ts"), "const x = 1;\n");
+
+    const result = await runCommand("@collect loc ./src", {}, 60000, true, undefined, tempDir);
+
+    expect(result.success).toBe(true);
+    expect(result.exitCode).toBe(0);
+    expect(parseInt(result.stdout.trim())).toBeGreaterThan(0);
+
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  test("@collect size resolves glob against basePath", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "runner-test-"));
+    const distDir = join(tempDir, "dist");
+    mkdirSync(distDir, { recursive: true });
+    writeFileSync(join(distDir, "a.js"), "console.log(1);\n");
+    writeFileSync(join(distDir, "b.js"), "console.log(2);\n");
+
+    const result = await runCommand(
+      "@collect size ./dist/*.js",
+      {},
+      60000,
+      true,
+      undefined,
+      tempDir
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.exitCode).toBe(0);
+    expect(parseInt(result.stdout.trim())).toBeGreaterThan(0);
+
+    rmSync(tempDir, { recursive: true, force: true });
   });
 });

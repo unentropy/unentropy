@@ -227,9 +227,35 @@ The system SHALL exit with appropriate error codes and clear messages for all er
 
 ---
 
+### Requirement: Config Directory Context in Test Command
+
+As a user running `unentropy test` from a different directory with `--config`, I want metric shell commands to execute in the config file's directory so that relative file paths in those commands resolve correctly.
+
+The system SHALL establish a config root directory before executing metric commands. All shell commands defined in the metrics configuration SHALL be executed with the config root directory as the working directory. `@collect` commands SHALL resolve their arguments relative to the config root directory.
+
+#### Scenario: Shell command resolves relative to config directory
+
+- **GIVEN** a config at `/home/user/project/unentropy.json` containing a metric with command `cat ./coverage/lcov.info`
+- **WHEN** the user runs `bunx unentropy test --config /home/user/project/unentropy.json` from `/tmp`
+- **THEN** the shell command executes in `/home/user/project` and successfully reads `/home/user/project/coverage/lcov.info`
+
+#### Scenario: @collect resolves relative to config directory
+
+- **GIVEN** a config at `/home/user/project/unentropy.json` containing a metric with command `@collect loc ./src`
+- **WHEN** the user runs `bunx unentropy test --config /home/user/project/unentropy.json` from `/tmp`
+- **THEN** the `loc` collector analyzes `/home/user/project/src`
+
+#### Scenario: Absolute paths unaffected by config directory
+
+- **GIVEN** a config containing a metric with command `cat /absolute/path/to/file.xml`
+- **WHEN** the metric is collected from any working directory
+- **THEN** the absolute path is used as-is without modification
+
+---
+
 ### Requirement: Test Command
 
-The system SHALL provide a `test` command that validates the config schema and runs all metric collections sequentially without persisting data.
+The system SHALL provide a `test` command that validates the config schema and runs all metric collections sequentially without persisting data. When the `--config` option is provided, the system SHALL establish a config root directory from the specified config file's location and execute all metric commands with that directory as the working directory.
 
 #### Scenario: All metrics collected successfully
 
@@ -253,7 +279,7 @@ The system SHALL provide a `test` command that validates the config schema and r
 
 - **GIVEN** a valid config at `custom-config.json`
 - **WHEN** the user runs `bunx unentropy test --config custom-config.json`
-- **THEN** the system uses the specified config file
+- **THEN** the system uses the specified config file and establishes the config root directory from its location
 
 #### Scenario: Per-metric timeout override with --timeout
 

@@ -211,4 +211,58 @@ describe("test command integration", () => {
     expect(result.stdout).toContain("87.5%"); // percent: with % symbol
     expect(result.stdout).toContain("1,000 KB"); // bytes: human-readable KB (1024000 bytes)
   });
+
+  test("resolves relative paths against config directory when --config is outside cwd", async () => {
+    const projectDir = join(
+      tmpdir(),
+      `unentropy-project-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    mkdirSync(projectDir, { recursive: true });
+
+    const dataDir = join(projectDir, "data");
+    mkdirSync(dataDir, { recursive: true });
+    await writeFile(join(dataDir, "value.txt"), "42");
+
+    const configPath = join(projectDir, "unentropy.json");
+    const config = {
+      storage: {
+        type: "sqlite-artifact",
+      },
+      metrics: {
+        "file-metric": {
+          type: "numeric",
+          name: "File Metric",
+          command: "cat ./data/value.txt",
+          unit: "integer",
+        },
+      },
+    };
+
+    await writeFile(configPath, JSON.stringify(config, null, 2));
+
+    const result = spawnSync(
+      "bun",
+      [
+        join(new URL("../..", import.meta.url).pathname, "src/index.ts"),
+        "test",
+        "--config",
+        configPath,
+      ],
+      {
+        cwd: tempDir, // Run from a different directory
+        encoding: "utf-8",
+      }
+    );
+
+    const stdout = typeof result.stdout === "string" ? result.stdout : "";
+    const code = result.status || 0;
+
+    expect(code).toBe(0);
+    expect(stdout).toContain("Config schema valid");
+    expect(stdout).toContain("File Metric (integer)");
+    expect(stdout).toContain("42");
+    expect(stdout).toContain("All 1 metrics collected successfully");
+
+    rmSync(projectDir, { recursive: true, force: true });
+  });
 });
