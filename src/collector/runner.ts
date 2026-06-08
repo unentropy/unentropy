@@ -1,4 +1,5 @@
 import { exec } from "@actions/exec";
+import * as core from "@actions/core";
 import { executeCollect } from "./collect-runner";
 import type { SourcesConfig } from "../config/schema";
 
@@ -23,8 +24,20 @@ export async function runCommand(
 
   if (command.trim().startsWith("@collect ")) {
     const collectArgs = command.trim().slice("@collect ".length);
+    if (!silent) {
+      core.info(`[command] @collect ${collectArgs}`);
+    }
     const result = await executeCollect(collectArgs, sources, basePath);
     const durationMs = Date.now() - startTime;
+
+    if (!silent) {
+      if (result.value) {
+        process.stdout.write(result.value);
+      }
+      if (result.error) {
+        process.stderr.write(result.error);
+      }
+    }
 
     return {
       success: result.success,
