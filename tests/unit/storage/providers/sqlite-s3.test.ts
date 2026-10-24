@@ -11,8 +11,8 @@ describe("SqliteS3StorageProvider", () => {
       endpoint: "http://localhost:9000",
       bucket: "unentropy-test",
       region: "us-east-1",
-      accessKeyId: "minioadmin",
-      secretAccessKey: "minioadmin",
+      accessKeyId: "test-access-key",
+      secretAccessKey: "test-secret-key",
       databaseKey: `test-${uniqueSuffix}.db`,
     });
   });
@@ -51,8 +51,8 @@ describe("SqliteS3StorageProvider", () => {
       endpoint: "http://localhost:9000",
       bucket: "unentropy-test",
       region: "us-east-1",
-      accessKeyId: "minioadmin",
-      secretAccessKey: "minioadmin",
+      accessKeyId: "test-access-key",
+      secretAccessKey: "test-secret-key",
       databaseKey: `custom/path/test-${uniqueSuffix}.db`,
     });
 
@@ -118,8 +118,8 @@ describe("SqliteS3StorageProvider", () => {
       endpoint: "http://localhost:9000",
       bucket: "unentropy-test",
       region: "us-east-1",
-      accessKeyId: "minioadmin",
-      secretAccessKey: "minioadmin",
+      accessKeyId: "test-access-key",
+      secretAccessKey: "test-secret-key",
       databaseKey: provider.getDatabaseKey(),
     });
 
@@ -149,8 +149,8 @@ describe("SqliteS3StorageProvider", () => {
       endpoint: "http://localhost:9000",
       bucket: "unentropy-test",
       region: "us-east-1",
-      accessKeyId: "minioadmin",
-      secretAccessKey: "minioadmin",
+      accessKeyId: "test-access-key",
+      secretAccessKey: "test-secret-key",
       databaseKey: provider.getDatabaseKey(),
     });
 
@@ -168,8 +168,8 @@ describe("SqliteS3StorageProvider", () => {
       endpoint: "http://localhost:9000",
       bucket: "unentropy-test",
       region: "us-east-1",
-      accessKeyId: "minioadmin",
-      secretAccessKey: "minioadmin",
+      accessKeyId: "test-access-key",
+      secretAccessKey: "test-secret-key",
       databaseKey: provider.getDatabaseKey(),
     });
 
@@ -219,8 +219,8 @@ describe("SqliteS3StorageProvider", () => {
       endpoint: "http://localhost:9000",
       bucket: "unentropy-test",
       region: "us-east-1",
-      accessKeyId: "minioadmin",
-      secretAccessKey: "minioadmin",
+      accessKeyId: "test-access-key",
+      secretAccessKey: "test-secret-key",
       databaseKey: provider.getDatabaseKey(),
     });
 
@@ -246,8 +246,8 @@ describe("SqliteS3StorageProvider", () => {
       endpoint: "http://localhost:9000",
       bucket: "unentropy-test",
       region: "us-east-1",
-      accessKeyId: "minioadmin",
-      secretAccessKey: "minioadmin",
+      accessKeyId: "test-access-key",
+      secretAccessKey: "test-secret-key",
       databaseKey: customKey,
     });
 

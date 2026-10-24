@@ -46,8 +46,8 @@ describe("track-metrics action integration", () => {
       "INPUT_S3-ENDPOINT": "http://localhost:9000",
       "INPUT_S3-BUCKET": "unentropy-test",
       "INPUT_S3-REGION": "us-east-1",
-      "INPUT_S3-ACCESS-KEY-ID": "minioadmin",
-      "INPUT_S3-SECRET-ACCESS-KEY": "minioadmin",
+      "INPUT_S3-ACCESS-KEY-ID": "test-access-key",
+      "INPUT_S3-SECRET-ACCESS-KEY": "test-secret-key",
     };
   });
 

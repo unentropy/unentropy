@@ -27,18 +27,18 @@ jobs:
         run: bun install
       - name: Build GitHub Actions
         run: bun run build:actions
-      - name: Start Minio container
+      - name: Create bucket for tests
+        run: mkdir -p "$RUNNER_TEMP/s3-data/unentropy-test"
+      - name: Start S3 container
         run: |
           docker run -d \
-          --name minio \
-          -p 9000:9000 \
-          -p 9001:9001 \
-          -e MINIO_ROOT_USER=minioadmin \
-          -e MINIO_ROOT_PASSWORD=minioadmin \
-          minio/minio server /data --console-address ":9001" \
-          && while ! docker exec minio mc ready local; do sleep 1; done
-      - name: Create bucket for tests
-        run: docker exec minio mc mb data/unentropy-test
+          --name s3s \
+          -p 9000:8014 \
+          -v "$RUNNER_TEMP/s3-data:/data" \
+          ghcr.io/s3s-project/s3s:0.17.0 \
+          ./s3s-fs --host 0.0.0.0 --port 8014 \
+          --access-key test-access-key --secret-key test-secret-key /data \
+          && until curl -s -o /dev/null http://localhost:9000; do sleep 1; done
       - name: Run tests with coverage
         run: bun run test --coverage --coverage-reporter=lcov
       - name: Upload coverage artifact
