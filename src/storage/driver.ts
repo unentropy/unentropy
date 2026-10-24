@@ -45,7 +45,7 @@ async function createBunDatabase(
   options?: { readonly?: boolean }
 ): Promise<SqliteDatabase> {
   const { Database } = await import("bun:sqlite");
-  const raw = new Database(path, { create: true, readonly: options?.readonly ?? false });
+  const raw = new Database(path, options?.readonly ? { readonly: true } : { create: true });
   return {
     get $raw() {
       return raw;
@@ -107,7 +107,7 @@ export async function createRawClient(
 ): Promise<any> {
   if (isBun()) {
     const { Database } = await import("bun:sqlite");
-    return new Database(path, { create: true, readonly: options?.readonly ?? false });
+    return new Database(path, options?.readonly ? { readonly: true } : { create: true });
   }
   const { DatabaseSync } = await import("node:sqlite");
   return new DatabaseSync(path, { readOnly: options?.readonly ?? false });
