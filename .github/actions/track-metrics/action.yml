@@ -107,7 +107,7 @@ runs:
     - name: Setup Bun
       uses: oven-sh/setup-bun@v2
       with:
-        bun-version: "1.3.3"
+        bun-version: "1.3.11"
     - name: Run metrics collection
       id: track-metrics
       shell: bash
@@ -137,7 +137,7 @@ runs:
     # which is required by the artifact upload API but not available in shell steps
     - name: Upload database artifact
       if: steps.track-metrics.outputs.artifact-upload-required == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.track-metrics.outputs.artifact-name }}
         path: ${{ steps.track-metrics.outputs.artifact-path }}

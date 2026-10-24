@@ -133,8 +133,7 @@ describe("ingest", () => {
 
     const db = storage.getConnection();
     const builds = db.prepare("SELECT COUNT(*) AS n FROM build_contexts").get() as
-      | { n: number }
-      | undefined;
+      { n: number } | undefined;
     expect(builds!.n).toBe(0);
   });
 
@@ -147,13 +146,11 @@ describe("ingest", () => {
 
     const db = storage.getConnection();
     const builds = db.prepare("SELECT COUNT(*) AS n FROM build_contexts").get() as
-      | { n: number }
-      | undefined;
+      { n: number } | undefined;
     expect(builds!.n).toBe(1);
 
     const values = db.prepare("SELECT COUNT(*) AS n FROM metric_values").get() as
-      | { n: number }
-      | undefined;
+      { n: number } | undefined;
     expect(values!.n).toBe(1);
   });
 
@@ -166,8 +163,7 @@ describe("ingest", () => {
 
     const db = storage.getConnection();
     const row = db.prepare("SELECT commit_sha FROM build_contexts").get() as
-      | { commit_sha: string }
-      | undefined;
+      { commit_sha: string } | undefined;
     expect(row!.commit_sha).toBe(repo.sha);
   });
 
@@ -193,8 +189,7 @@ describe("ingest", () => {
 
     const db = storage.getConnection();
     const row = db.prepare("SELECT run_id FROM build_contexts").get() as
-      | { run_id: string }
-      | undefined;
+      { run_id: string } | undefined;
     expect(row!.run_id).toBe(`import:modernization-stats:${repo.sha.slice(0, 12)}`);
   });
 

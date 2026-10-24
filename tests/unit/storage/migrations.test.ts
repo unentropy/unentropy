@@ -119,8 +119,7 @@ describe("Schema Initialization", () => {
 
     const db = client.getConnection();
     const versions = db.prepare("SELECT COUNT(*) as count FROM schema_version").get() as
-      | { count: number }
-      | undefined;
+      { count: number } | undefined;
 
     expect(versions?.count).toBe(1);
   });

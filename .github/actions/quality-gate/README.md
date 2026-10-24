@@ -16,7 +16,7 @@ jobs:
   quality-gate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: unentropy/quality-gate@v0
         with:
@@ -143,7 +143,7 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: unentropy/track-metrics@v0
         with:
           storage-type: sqlite-s3
@@ -158,7 +158,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: unentropy/quality-gate@v0
         with:
           storage-type: sqlite-s3

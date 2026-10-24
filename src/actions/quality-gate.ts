@@ -335,9 +335,7 @@ export async function runQualityGateAction(): Promise<void> {
     );
 
     const gateMode = (inputs.qualityGateMode ?? config.qualityGate?.mode ?? "soft") as
-      | "off"
-      | "soft"
-      | "hard";
+      "off" | "soft" | "hard";
     core.info(`Quality gate mode: ${gateMode}`);
 
     if (gateMode === "off") {
