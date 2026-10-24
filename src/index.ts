@@ -7,7 +7,7 @@ import { InitCommand } from "./cli/cmd/init";
 import { PreviewCommand } from "./cli/cmd/preview";
 import { SourcesCommand } from "./cli/cmd/sources";
 import { ImportCommand } from "./cli/cmd/import";
-import pkg from "../package.json" assert { type: "json" };
+import pkg from "../package.json" with { type: "json" };
 
 const cli = yargs()
   .scriptName("unentropy")

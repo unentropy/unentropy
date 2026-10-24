@@ -176,8 +176,7 @@ describe("unentropy import (integration)", () => {
     if (existsSync(dbPath)) {
       const db = new Database(dbPath, { readonly: true });
       const n = db.prepare("SELECT COUNT(*) AS n FROM build_contexts").get() as
-        | { n: number }
-        | undefined;
+        { n: number } | undefined;
       expect(n!.n).toBe(0);
       db.close();
     }

@@ -44,12 +44,8 @@ outputs:
   "qualityGate": {
     "status": "pass",
     "mode": "soft",
-    "metrics": [
-      /* ... MetricEvaluationResult[] ... */
-    ],
-    "failingMetrics": [
-      /* ... MetricEvaluationResult[] ... */
-    ],
+    "metrics": [/* ... MetricEvaluationResult[] ... */],
+    "failingMetrics": [/* ... MetricEvaluationResult[] ... */],
     "summary": { "totalMetrics": 5, "evaluatedMetrics": 3, "passed": 3, "failed": 0, "unknown": 0 },
     "baselineInfo": { "referenceBranch": "main", "maxAgeDays": 90 }
   }
