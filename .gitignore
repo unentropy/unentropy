@@ -16,3 +16,9 @@ test-artifacts/
 unentropy-preview/index.html
 .opencode/package-lock.json
 .superpowers/
+
+# >>> sdlc-utilities managed v3 (do not edit) — transient skill artifacts
+*-context-*.json
+*-manifest-*.json
+*-prepare-*.json
+# <<< sdlc-utilities managed
