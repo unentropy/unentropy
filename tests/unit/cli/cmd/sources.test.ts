@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -169,7 +169,7 @@ describe("SourcesCommand", () => {
 
     expect(stderr).toEqual([]);
     for (const line of stdout) {
-      expect(line).toStartWith("/");
+      expect(line).toMatch(/^\//);
     }
   });
 

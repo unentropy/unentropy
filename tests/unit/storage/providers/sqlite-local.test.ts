@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "bun:test";
+import { describe, it, expect, afterEach } from "vitest";
 import { SqliteLocalStorageProvider } from "../../../../src/storage/providers/sqlite-local";
 import { existsSync, unlinkSync } from "fs";
 

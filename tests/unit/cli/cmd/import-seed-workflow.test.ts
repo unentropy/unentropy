@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import { renderSeedWorkflow } from "../../../../src/cli/cmd/import-seed-workflow";
 
 describe("renderSeedWorkflow", () => {

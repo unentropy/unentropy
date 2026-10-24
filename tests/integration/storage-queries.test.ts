@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { Storage } from "../../src/storage/storage";

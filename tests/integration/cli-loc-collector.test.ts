@@ -1,9 +1,9 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import { join, resolve } from "path";
 import { collectLoc } from "../../src/metrics/collectors/loc";
 
 describe("LOC Collector Integration Tests (T059)", () => {
-  const fixtureDir = resolve(join(__dirname, "../fixtures/loc-collector"));
+  const fixtureDir = resolve(join(import.meta.dirname, "../fixtures/loc-collector"));
   const srcDir = join(fixtureDir, "src");
 
   // Expected values for fixture files (verified with SCC)
@@ -170,24 +170,24 @@ describe("LOC Collector Integration Tests (T059)", () => {
 
   describe("error handling", () => {
     it("should throw error for non-existent directory", async () => {
-      expect(collectLoc({ path: "/non/existent/directory/path" })).rejects.toThrow(
+      await expect(collectLoc({ path: "/non/existent/directory/path" })).rejects.toThrow(
         "Directory not found"
       );
     });
 
     it("should throw error for empty path", async () => {
-      expect(collectLoc({ path: "" })).rejects.toThrow("Path must be a non-empty string");
+      await expect(collectLoc({ path: "" })).rejects.toThrow("Path must be a non-empty string");
     });
 
     it("should throw error for null path", async () => {
-      expect(
+      await expect(
         // @ts-expect-error - Testing invalid input
         collectLoc({ path: null })
       ).rejects.toThrow("Path must be a non-empty string");
     });
 
     it("should throw error when neither path nor paths provided", async () => {
-      expect(collectLoc({})).rejects.toThrow("Either path or paths must be provided");
+      await expect(collectLoc({})).rejects.toThrow("Either path or paths must be provided");
     });
   });
 });

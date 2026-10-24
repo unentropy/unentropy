@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { describe, test, beforeEach, afterEach, expect } from "bun:test";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { Database } from "bun:sqlite";
+import { DatabaseSync } from "node:sqlite";
 
 const PROJECT_ROOT = new URL("../..", import.meta.url).pathname;
-const CLI = join(PROJECT_ROOT, "src/index.ts");
+const CLI = join(PROJECT_ROOT, "dist/index.js");
 
 const MINIMAL_CONFIG = JSON.stringify({
   metrics: {
@@ -38,7 +38,7 @@ function initRepo(dir: string): { sha: string } {
 }
 
 function runImport(cwd: string, args: string[]): { code: number; stdout: string; stderr: string } {
-  const r = spawnSync("bun", [CLI, "import", ...args], { cwd, encoding: "utf-8" });
+  const r = spawnSync(process.execPath, [CLI, "import", ...args], { cwd, encoding: "utf-8" });
   return {
     code: r.status ?? -1,
     stdout: typeof r.stdout === "string" ? r.stdout : "",
@@ -77,7 +77,7 @@ describe("unentropy import (integration)", () => {
     expect(r.stdout).toContain("imported 2 records");
     expect(existsSync(dbPath)).toBe(true);
 
-    const db = new Database(dbPath, { readonly: true });
+    const db = new DatabaseSync(dbPath, { readOnly: true });
     const builds = db
       .prepare("SELECT event_name, commit_sha, run_id FROM build_contexts")
       .all() as { event_name: string; commit_sha: string; run_id: string }[];
@@ -98,7 +98,7 @@ describe("unentropy import (integration)", () => {
   test("imports into an existing DB without touching pre-existing rows", () => {
     const dbPath = join(tempDir, "scratch.db");
 
-    const pre = new Database(dbPath);
+    const pre = new DatabaseSync(dbPath);
     pre.exec(`
       CREATE TABLE schema_version (version TEXT PRIMARY KEY, applied_at DATETIME, description TEXT);
       CREATE TABLE metric_definitions (id TEXT PRIMARY KEY CHECK(id GLOB '[a-z0-9-]*'), type TEXT NOT NULL CHECK(type IN ('numeric','label')), unit TEXT, description TEXT);
@@ -120,7 +120,7 @@ describe("unentropy import (integration)", () => {
     const r = runImport(tempDir, [jsonlPath, "--output", dbPath]);
     expect(r.code).toBe(0);
 
-    const db = new Database(dbPath, { readonly: true });
+    const db = new DatabaseSync(dbPath, { readOnly: true });
     const pushBuild = db
       .prepare(
         `SELECT bc.event_name, mv.value_numeric FROM build_contexts bc
@@ -174,7 +174,7 @@ describe("unentropy import (integration)", () => {
     expect(r.stderr).toContain("invalid JSON");
 
     if (existsSync(dbPath)) {
-      const db = new Database(dbPath, { readonly: true });
+      const db = new DatabaseSync(dbPath, { readOnly: true });
       const n = db.prepare("SELECT COUNT(*) AS n FROM build_contexts").get() as
         { n: number } | undefined;
       expect(n!.n).toBe(0);

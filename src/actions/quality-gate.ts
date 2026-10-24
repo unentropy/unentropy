@@ -2,6 +2,7 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
+import { resolveGitHubToken } from "./github-token.js";
 import { loadConfig } from "../config/loader.js";
 import { Storage } from "../storage/storage.js";
 import { createStorageProvider } from "../storage/providers/factory.js";
@@ -111,11 +112,13 @@ function createStorageConfig(
     };
   }
 
-  const token = process.env.GITHUB_TOKEN;
+  const token = resolveGitHubToken();
   const repository = process.env.GITHUB_REPOSITORY;
 
   if (!token) {
-    throw new Error("GITHUB_TOKEN environment variable is required for artifact storage");
+    throw new Error(
+      "GitHub token is required for artifact storage (github-token input or GITHUB_TOKEN env)"
+    );
   }
   if (!repository) {
     throw new Error("GITHUB_REPOSITORY environment variable is required for artifact storage");
@@ -134,9 +137,11 @@ async function createQualityGateComment(
   marker: string,
   maxMetrics: number
 ): Promise<string | null> {
-  const token = process.env.GITHUB_TOKEN;
+  const token = resolveGitHubToken();
   if (!token) {
-    core.warning("GITHUB_TOKEN not available, skipping PR comment");
+    core.warning(
+      "GitHub token not available (github-token input or GITHUB_TOKEN env), skipping PR comment"
+    );
     return null;
   }
 
@@ -467,11 +472,4 @@ export async function runQualityGateAction(): Promise<void> {
     );
     process.exit(1);
   }
-}
-
-if (import.meta.main) {
-  runQualityGateAction().catch((error) => {
-    core.setFailed(`Unhandled error: ${error instanceof Error ? error.message : String(error)}`);
-    process.exit(1);
-  });
 }

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { executeCollect } from "../../../src/collector/collect-runner";
 import { mkdtempSync, writeFileSync, rmSync } from "fs";
 import { join } from "path";

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import { evaluateThreshold, evaluateQualityGate } from "../../../src/quality-gate/evaluator.js";
 import type { MetricSample } from "../../../src/quality-gate/types.js";
 import type { MetricThresholdConfig, QualityGateConfig } from "../../../src/config/schema.js";

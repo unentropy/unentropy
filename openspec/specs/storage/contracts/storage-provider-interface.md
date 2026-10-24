@@ -28,7 +28,7 @@ Defines the interface contract for storage providers that abstract where SQLite 
 │ (interface)  │  │ (domain ops)   │
 └──────┬───────┘  └────────────────┘
        │
-       │ returns bun:sqlite Database
+       │ returns SqliteDatabase
        ▼
 ┌─────────────────────────────┐
 │  StorageProvider            │
@@ -47,19 +47,19 @@ Defines the interface contract for storage providers that abstract where SQLite 
 ### StorageProvider Interface
 
 ```typescript
-import type { Database } from "bun:sqlite";
+import type { SqliteDatabase } from "../driver";
 
 interface StorageProvider {
   /**
-   * Initialize the storage provider and return a ready-to-use Database instance.
+   * Initialize the storage provider and return a ready-to-use SqliteDatabase instance.
    *
    * For local storage: Opens the database file directly.
    * For remote storage: Downloads database to temporary location, then opens locally.
    *
-   * @returns Promise resolving to bun:sqlite Database instance
+   * @returns Promise resolving to SqliteDatabase instance (node:sqlite)
    * @throws Error if initialization fails (file not found, permission denied, network error, etc.)
    */
-  initialize(): Promise<Database>;
+  initialize(): Promise<SqliteDatabase>;
 
   /**
    * Persist any changes made to the database.
@@ -134,7 +134,7 @@ async function createStorageProvider(
 ### SqliteLocalStorageProvider
 
 **Behavior**:
-- `initialize()`: Opens SQLite database at `config.path` using `bun:sqlite`. If the file does not exist, creates it. Configures connection with appropriate PRAGMA settings (DELETE journal mode, NORMAL synchronous, foreign keys ON, 5s busy timeout, 2MB cache, MEMORY temp store).
+- `initialize()`: Opens SQLite database at `config.path` using `node:sqlite`. If the file does not exist, creates it. Configures connection with appropriate PRAGMA settings (DELETE journal mode, NORMAL synchronous, foreign keys ON, 5s busy timeout, 2MB cache, MEMORY temp store).
 - `persist()`: No-op. SQLite writes are immediate to disk.
 - `cleanup()`: Closes database connection via `db.close()`. Removes any temporary resources.
 - `isInitialized`: Returns `true` after successful `initialize()`.
@@ -189,7 +189,7 @@ All remote storage providers follow a non-destructive upload strategy:
 - For `type === 'sqlite-s3'`: `s3Bucket`, `s3Key`, `s3Region` are required
 
 ### Runtime Validation
-- `initialize()` must be called before using the Database
+- `initialize()` must be called before using the SqliteDatabase
 - `persist()` can only be called after successful `initialize()`
 - `cleanup()` can be called after `persist()` or on error
 - Multiple calls to `cleanup()` must be safe (idempotent)

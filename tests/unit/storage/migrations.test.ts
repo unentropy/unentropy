@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Storage } from "../../../src/storage/storage";
 import { createStorageProvider } from "../../../src/storage/providers/factory";
 import { initializeSchema } from "../../../src/storage/migrations";

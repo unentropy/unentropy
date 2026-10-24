@@ -1,12 +1,25 @@
+import { AwsClient } from "aws4fetch";
+import { readFile, writeFile, rm } from "node:fs/promises";
 import { createDatabase } from "../driver";
 import type { SqliteDatabase } from "../driver";
-import { S3Client } from "bun";
 import type { StorageProvider, SqliteS3Config } from "./interface";
+
+export class S3RequestError extends Error {
+  constructor(
+    readonly operation: "GET" | "PUT" | "HEAD",
+    readonly status: number | undefined,
+    message: string,
+    options?: ErrorOptions
+  ) {
+    super(message, options);
+    this.name = "S3RequestError";
+  }
+}
 
 export class SqliteS3StorageProvider implements StorageProvider {
   private db: SqliteDatabase | null = null;
   private initialized = false;
-  private s3Client: S3Client | null = null;
+  private client: AwsClient | null = null;
   private tempDbPath: string;
   private config: SqliteS3Config;
 
@@ -51,7 +64,7 @@ export class SqliteS3StorageProvider implements StorageProvider {
         this.db = null;
       }
 
-      await Bun.file(this.tempDbPath).delete();
+      await rm(this.tempDbPath, { force: true });
 
       this.initialized = false;
     } catch {}
@@ -68,35 +81,85 @@ export class SqliteS3StorageProvider implements StorageProvider {
       );
     }
 
-    this.s3Client = new S3Client({
+    if (!this.config.bucket) {
+      throw new Error("S3 configuration is incomplete: bucket is required");
+    }
+
+    this.client = new AwsClient({
       accessKeyId: this.config.accessKeyId,
       secretAccessKey: this.config.secretAccessKey,
-      bucket: this.config.bucket,
-      endpoint: this.config.endpoint,
-      region: this.config.region,
+      service: "s3",
+      region: this.config.region || undefined,
+      retries: 2,
     });
+  }
+
+  private objectUrl(key: string): string {
+    const endpoint = (this.config.endpoint ?? "").replace(/\/+$/, "");
+    const encodedKey = key.split("/").map(encodeURIComponent).join("/");
+    return `${endpoint}/${this.config.bucket}/${encodedKey}`;
+  }
+
+  private getClient(): AwsClient {
+    if (!this.client) {
+      throw new Error("S3 client not initialized");
+    }
+    return this.client;
+  }
+
+  private async request(
+    operation: S3RequestError["operation"],
+    key: string,
+    init: RequestInit = {}
+  ): Promise<Response> {
+    const client = this.getClient();
+    try {
+      return await client.fetch(this.objectUrl(key), { ...init, method: operation });
+    } catch (error) {
+      throw new S3RequestError(
+        operation,
+        undefined,
+        `S3 ${operation} request failed for ${key}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      );
+    }
+  }
+
+  async objectExists(key: string): Promise<boolean> {
+    const res = await this.request("HEAD", key);
+    if (res.status === 200) {
+      return true;
+    }
+    if (res.status === 404) {
+      return false;
+    }
+    throw new S3RequestError("HEAD", res.status, `S3 HEAD failed for ${key}: ${res.status}`);
   }
 
   private async downloadOrCreateDatabase(): Promise<void> {
     const databaseKey = this.getDatabaseKey();
 
-    try {
-      if (!this.s3Client) {
-        throw new Error("S3 client not initialized");
-      }
-      const s3File = this.s3Client.file(databaseKey);
-      if (await s3File.exists()) {
-        const databaseData = await s3File.arrayBuffer();
-        await Bun.write(this.tempDbPath, databaseData);
-        console.log(
-          `Database downloaded from S3: ${databaseKey} and stored at ${this.tempDbPath}. Size: ${databaseData.byteLength} bytes`
-        );
-        return;
-      }
-    } catch (error) {
-      console.log(`Database not found in S3, creating new database: ${error}`);
+    const res = await this.request("GET", databaseKey);
+
+    if (res.ok) {
+      const databaseData = new Uint8Array(await res.arrayBuffer());
+      await writeFile(this.tempDbPath, databaseData);
+      console.log(
+        `Database downloaded from S3: ${databaseKey} and stored at ${this.tempDbPath}. Size: ${databaseData.byteLength} bytes`
+      );
+      return;
     }
 
+    if (res.status !== 404) {
+      await res.body?.cancel();
+      throw new S3RequestError(
+        "GET",
+        res.status,
+        `S3 download failed for ${databaseKey}: ${res.status}`
+      );
+    }
+
+    await res.body?.cancel();
     console.log("No existing database found, creating new database...");
     const newDb = await createDatabase(this.tempDbPath);
     newDb.close();
@@ -104,13 +167,14 @@ export class SqliteS3StorageProvider implements StorageProvider {
 
   private async uploadDatabase(): Promise<void> {
     const databaseKey = this.getDatabaseKey();
-    const databaseData = await Bun.file(this.tempDbPath).arrayBuffer();
+    const body = await readFile(this.tempDbPath);
 
-    if (!this.s3Client) {
-      throw new Error("S3 client not initialized");
+    const res = await this.request("PUT", databaseKey, { body });
+    if (!res.ok) {
+      await res.body?.cancel();
+      throw new S3RequestError("PUT", res.status, `S3 upload failed: ${res.status}`);
     }
-    const bytesWritten = await this.s3Client.write(databaseKey, databaseData);
-    console.log(`Database uploaded successfully: ${bytesWritten} bytes written`);
+    console.log(`Database uploaded successfully: ${body.byteLength} bytes written`);
   }
 
   getDatabaseKey(): string {
@@ -127,10 +191,6 @@ export class SqliteS3StorageProvider implements StorageProvider {
     this.db.exec("PRAGMA temp_store = MEMORY");
 
     return this.db;
-  }
-
-  getS3Client() {
-    return this.s3Client;
   }
 
   getTempDbPath(): string {

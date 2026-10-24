@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import render from "preact-render-to-string";
 import { h } from "preact";
 import { Section } from "../../../src/reporter/templates/default/components/Section";

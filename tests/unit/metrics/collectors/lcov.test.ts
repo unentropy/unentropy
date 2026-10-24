@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { parseLcovCoverage } from "../../../../src/metrics/collectors/lcov.js";
 import { writeFileSync, unlinkSync, mkdirSync, rmdirSync } from "fs";
 import { join } from "path";

@@ -59,86 +59,41 @@ inputs:
     description: "Enable verbose logging"
     required: false
     default: "false"
+  github-token:
+    description: "GitHub token used for artifact storage and PR comments"
+    required: false
+    default: "${{ github.token }}"
 outputs:
   success:
     description: "Whether the workflow completed successfully"
-    value: ${{ steps.track-metrics.outputs.success }}
   storage-type:
     description: "Storage backend type used"
-    value: ${{ steps.track-metrics.outputs.storage-type }}
   database-location:
     description: "Database storage location identifier"
-    value: ${{ steps.track-metrics.outputs.database-location }}
   database-size:
     description: "Database file size in bytes"
-    value: ${{ steps.track-metrics.outputs.database-size }}
   metrics-collected:
     description: "Number of metrics collected"
-    value: ${{ steps.track-metrics.outputs.metrics-collected }}
   total-builds:
     description: "Total number of builds in the database"
-    value: ${{ steps.track-metrics.outputs.total-builds }}
   duration:
     description: "Total workflow duration in milliseconds"
-    value: ${{ steps.track-metrics.outputs.duration }}
   # Artifact-specific outputs (only set when storage-type is sqlite-artifact)
   source-run-id:
     description: "Workflow run ID where the previous database artifact was found (artifact storage only)"
-    value: ${{ steps.track-metrics.outputs.source-run-id }}
   artifact-upload-required:
-    description: "Whether artifact upload is needed (sqlite-artifact storage only)"
-    value: ${{ steps.track-metrics.outputs.artifact-upload-required }}
+    description: 'Always "false": the action uploads the database artifact itself. Kept for compatibility'
   artifact-name:
     description: "Artifact name for upload (sqlite-artifact storage only)"
-    value: ${{ steps.track-metrics.outputs.artifact-name }}
   artifact-path:
     description: "Path to database file for upload (sqlite-artifact storage only)"
-    value: ${{ steps.track-metrics.outputs.artifact-path }}
+  artifact-id:
+    description: "ID of the uploaded database artifact (sqlite-artifact storage only)"
   # Error outputs
   error-code:
     description: "Error code (if failed)"
-    value: ${{ steps.track-metrics.outputs.error-code }}
   error-message:
     description: "Error message (if failed)"
-    value: ${{ steps.track-metrics.outputs.error-message }}
 runs:
-  using: "composite"
-  steps:
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v2
-      with:
-        bun-version: "1.4.4"
-    - name: Run metrics collection
-      id: track-metrics
-      shell: bash
-      run: |
-        bun "${{ github.action_path }}/dist/track-metrics.js"
-      env:
-        INPUT_STORAGE-TYPE: ${{ inputs.storage-type }}
-        # S3 configuration
-        INPUT_S3-ENDPOINT: ${{ inputs.s3-endpoint }}
-        INPUT_S3-BUCKET: ${{ inputs.s3-bucket }}
-        INPUT_S3-REGION: ${{ inputs.s3-region }}
-        INPUT_S3-ACCESS-KEY-ID: ${{ inputs.s3-access-key-id }}
-        INPUT_S3-SECRET-ACCESS-KEY: ${{ inputs.s3-secret-access-key }}
-        # Artifact configuration
-        INPUT_ARTIFACT-NAME: ${{ inputs.artifact-name }}
-        INPUT_ARTIFACT-BRANCH-FILTER: ${{ inputs.artifact-branch-filter }}
-        # General configuration
-        INPUT_CONFIG-FILE: ${{ inputs.config-file }}
-        INPUT_DATABASE-KEY: ${{ inputs.database-key }}
-        INPUT_REPORT-DIR: ${{ inputs.report-dir }}
-        INPUT_TIMEOUT: ${{ inputs.timeout }}
-        INPUT_VERBOSE: ${{ inputs.verbose }}
-        GITHUB_TOKEN: ${{ github.token }}
-
-    # Upload database artifact for sqlite-artifact storage type
-    # This step runs as a proper JS action and has access to ACTIONS_RUNTIME_TOKEN
-    # which is required by the artifact upload API but not available in shell steps
-    - name: Upload database artifact
-      if: steps.track-metrics.outputs.artifact-upload-required == 'true'
-      uses: actions/upload-artifact@v7
-      with:
-        name: ${{ steps.track-metrics.outputs.artifact-name }}
-        path: ${{ steps.track-metrics.outputs.artifact-path }}
-        overwrite: true
+  using: "node24"
+  main: "dist/track-metrics.mjs"

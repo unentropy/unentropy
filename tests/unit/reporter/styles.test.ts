@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import { buildStyleSheet } from "../../../src/reporter/templates/default/styles";
 import { resolveTheme } from "../../../src/reporter/templates/default/themes";
 

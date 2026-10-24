@@ -1,11 +1,11 @@
-import { describe, test, beforeEach, afterEach, expect } from "bun:test";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const PROJECT_ROOT = new URL("../..", import.meta.url).pathname;
-const CLI = join(PROJECT_ROOT, "src/index.ts");
+const CLI = join(PROJECT_ROOT, "dist/index.js");
 
 const ARTIFACT_CONFIG = JSON.stringify({
   storage: { type: "sqlite-artifact" },
@@ -21,7 +21,7 @@ function runSeedWorkflow(
   cwd: string,
   args: string[]
 ): { code: number; stdout: string; stderr: string } {
-  const r = spawnSync("bun", [CLI, "import", "seed-workflow", ...args], {
+  const r = spawnSync(process.execPath, [CLI, "import", "seed-workflow", ...args], {
     cwd,
     encoding: "utf-8",
   });

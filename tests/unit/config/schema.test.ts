@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import { validateConfig } from "../../../src/config/schema";
 
 describe("Config Schema Validation", () => {

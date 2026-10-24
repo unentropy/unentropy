@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import { resolveMetricReference, validateBuiltInReference } from "../../../src/metrics/resolver.js";
 import type { MetricConfig } from "../../../src/config/schema.js";
 

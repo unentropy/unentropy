@@ -83,6 +83,12 @@ inputs:
     description: 'Enable verbose logging for debugging'
     required: false
     default: 'false'
+
+  # Authentication
+  github-token:
+    description: 'GitHub token used for artifact storage and PR comments'
+    required: false
+    default: '${{ github.token }}'
 ```
 
 ### Output Parameters
@@ -91,37 +97,39 @@ inputs:
 outputs:
   success:
     description: 'Whether the workflow completed successfully'
-    value: ${{ steps.track-metrics.outputs.success }}
 
   storage-type:
     description: 'Storage backend type used'
-    value: ${{ steps.track-metrics.outputs.storage-type }}
 
   database-location:
     description: 'Database storage location identifier'
-    value: ${{ steps.track-metrics.outputs.database-location }}
 
   database-size:
     description: 'Database file size in bytes'
-    value: ${{ steps.track-metrics.outputs.database-size }}
 
   metrics-collected:
     description: 'Number of metrics collected'
-    value: ${{ steps.track-metrics.outputs.metrics-collected }}
 
   duration:
     description: 'Total workflow duration in milliseconds'
-    value: ${{ steps.track-metrics.outputs.duration }}
 
   # Artifact-specific outputs (only set when storage-type is sqlite-artifact)
   source-run-id:
     description: 'Workflow run ID where the previous database artifact was found (artifact storage only)'
-    value: ${{ steps.track-metrics.outputs.source-run-id }}
 
   artifact-id:
     description: 'ID of the uploaded database artifact (artifact storage only)'
-    value: ${{ steps.track-metrics.outputs.artifact-id }}
 ```
+
+### Runtime
+
+```yaml
+runs:
+  using: 'node24'
+  main: 'dist/track-metrics.mjs'
+```
+
+Outputs are set by the action code through `core.setOutput`, so the metadata declares only their descriptions.
 
 ## Configuration Precedence
 
@@ -365,7 +373,7 @@ jobs:
 - Credentials are never logged or exposed in error messages
 - Input validation prevents credential injection
 - Temporary credential storage in memory only
-- `GITHUB_TOKEN` for artifact operations is auto-detected from the environment (not passed as input)
+- The GitHub token for artifact operations is read from the `github-token` input (default `${{ github.token }}`) and falls back to the `GITHUB_TOKEN` environment variable
 
 ### Data Protection
 

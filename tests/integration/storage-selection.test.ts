@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Storage } from "../../src/storage/storage";
 import { createStorageProvider } from "../../src/storage/providers/factory";
 import { SqliteS3StorageProvider } from "../../src/storage/providers/sqlite-s3";
@@ -7,8 +7,8 @@ import type { StorageProviderConfig, SqliteS3Config } from "../../src/storage/pr
 // Mock S3 configuration for testing
 const mockS3Config: SqliteS3Config = {
   type: "sqlite-s3",
-  endpoint: "https://s3.amazonaws.com",
-  bucket: "test-bucket",
+  endpoint: "http://localhost:9000",
+  bucket: "unentropy-test",
   region: "us-east-1",
   accessKeyId: "test-access-key",
   secretAccessKey: "test-secret-key",
@@ -88,7 +88,7 @@ describe("Storage Backend Selection Integration", () => {
 
       const provider = new SqliteS3StorageProvider(incompleteConfig);
 
-      expect(provider.initialize()).rejects.toThrow(
+      await expect(provider.initialize()).rejects.toThrow(
         "S3 configuration is incomplete: endpoint, accessKeyId, and secretAccessKey are required"
       );
     });
@@ -131,7 +131,7 @@ describe("Storage Backend Selection Integration", () => {
         await db.ready();
       };
 
-      expect(create()).rejects.toThrow(
+      await expect(create()).rejects.toThrow(
         "Storage provider type 'invalid-type' is not yet implemented"
       );
     });

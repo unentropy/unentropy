@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S node --import ./scripts/text-import-hooks.mjs --import tsx
 
 import { generateReport } from "../src/reporter/generator";
 import { writeFileSync, mkdirSync } from "fs";

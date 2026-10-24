@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import { resolveTheme, BUILT_IN_THEME_NAMES } from "../../../src/reporter/templates/default/themes";
 
 describe("resolveTheme", () => {

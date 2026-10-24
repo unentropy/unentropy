@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Storage } from "../../src/storage/storage";
 import { createStorageProvider } from "../../src/storage/providers/factory";
 import { SqliteArtifactStorageProvider } from "../../src/storage/providers/sqlite-artifact";
@@ -11,7 +11,7 @@ import type {
 const createMockFetch = (
   handler: (url: string, options?: RequestInit) => Promise<Response>
 ): typeof fetch => {
-  const mockFn = mock(handler) as unknown as typeof fetch;
+  const mockFn = vi.fn(handler) as unknown as typeof fetch;
   return mockFn;
 };
 
@@ -42,20 +42,6 @@ describe("Artifact Storage Integration", () => {
 
   describe("sqlite-artifact provider", () => {
     let provider: SqliteArtifactStorageProvider;
-
-    beforeEach(() => {
-      // Mock artifact upload for all tests
-      const mockUploadArtifact = mock(() =>
-        Promise.resolve({ id: 12345, size: 1024, digest: "test-digest" })
-      );
-      const MockArtifactClient = mock(() => ({
-        uploadArtifact: mockUploadArtifact,
-      }));
-
-      mock.module("@actions/artifact", () => ({
-        DefaultArtifactClient: MockArtifactClient,
-      }));
-    });
 
     afterEach(async () => {
       if (provider) {
@@ -289,18 +275,6 @@ describe("Artifact Storage Integration", () => {
 
     it("should maintain data after persist and reconnect", async () => {
       const uniquePath = `/tmp/artifact-reconnect-${Date.now()}.db`;
-
-      // Mock artifact upload
-      const mockUploadArtifact = mock(() =>
-        Promise.resolve({ id: 12345, size: 1024, digest: "test-digest" })
-      );
-      const MockArtifactClient = mock(() => ({
-        uploadArtifact: mockUploadArtifact,
-      }));
-
-      mock.module("@actions/artifact", () => ({
-        DefaultArtifactClient: MockArtifactClient,
-      }));
 
       const provider1 = new SqliteArtifactStorageProvider({
         type: "sqlite-artifact",
