@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { THEME_VAR_NAMES, BUILT_IN_THEME_NAMES } from "../reporter/templates/default/themes";
 
 export const UnitTypeSchema = z.enum(["percent", "integer", "bytes", "duration", "decimal"], {
