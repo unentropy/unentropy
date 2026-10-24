@@ -40,7 +40,7 @@ Verify changes comply with project principles:
 
 Key points to verify:
 - Serverless architecture (no external servers for core functionality)
-- Technology stack: Bun, TypeScript, SQLite, Chart.js
+- Technology stack: Node.js, TypeScript, SQLite, Chart.js
 - Strict TypeScript, Prettier formatting
 - No logged secrets
 - Comprehensive testing

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { parseMetricValue, collectMetrics } from "../../../src/collector/collector";
 import type { ResolvedMetricConfig } from "../../../src/config/schema";
 import { Storage } from "../../../src/storage/storage";

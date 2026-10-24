@@ -23,6 +23,10 @@ jobs:
           storage-type: sqlite-artifact
 ```
 
+## Runtime
+
+The action runs on Node 24 (`runs.using: node24`) and uploads the database artifact itself. It does not need a separate `actions/upload-artifact` step or a Bun setup step.
+
 ## Inputs
 
 | Input            | Description                                                              | Required | Default                |
@@ -34,6 +38,7 @@ jobs:
 | `timeout`        | Action timeout in seconds                                                | No       | `300`                  |
 | `retry-attempts` | Number of retry attempts for storage operations                          | No       | `3`                    |
 | `verbose`        | Enable verbose logging                                                   | No       | `false`                |
+| `github-token`   | GitHub token used for artifact storage and PR comments                   | No       | `${{ github.token }}`  |
 
 ### S3 Storage Options
 
@@ -64,6 +69,7 @@ jobs:
 | `total-builds`      | Total number of builds in the database                                    |
 | `duration`          | Total workflow duration in milliseconds                                   |
 | `source-run-id`     | Workflow run ID where previous artifact was found (artifact storage only) |
+| `artifact-id`       | ID of the uploaded database artifact (artifact storage only)              |
 | `error-code`        | Error code (if failed)                                                    |
 | `error-message`     | Error message (if failed)                                                 |
 
@@ -104,6 +110,8 @@ Stores the database in an S3-compatible bucket. Best for long-term persistence a
     s3-access-key-id: ${{ secrets.S3_ACCESS_KEY_ID }}
     s3-secret-access-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
 ```
+
+The credentials need `s3:GetObject`, `s3:PutObject` and `s3:ListBucket`. Without `s3:ListBucket`, S3 answers a missing database with 403 instead of 404, and the action fails instead of creating a new database.
 
 ## Configuration File
 

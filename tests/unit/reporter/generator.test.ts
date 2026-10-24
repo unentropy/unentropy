@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import { calculateSummaryStats, normalizeMetricToBuilds } from "../../../src/reporter/generator";
 import { buildReportLayout } from "../../../src/reporter/layout";
 import type { BuildContext } from "../../../src/storage/types";

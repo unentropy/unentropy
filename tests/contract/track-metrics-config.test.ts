@@ -1,4 +1,4 @@
-import { test, expect } from "bun:test";
+import { test, expect } from "vitest";
 import { validateConfig } from "../../src/config/schema";
 
 test("configuration contract: storage.type values and defaults", () => {

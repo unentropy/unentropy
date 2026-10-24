@@ -196,7 +196,7 @@ The system SHALL define a `StorageProvider` interface with `initialize()`, `pers
 #### Scenario: Initialize returns database instance
 - **GIVEN** a storage provider
 - **WHEN** `initialize()` is called successfully
-- **THEN** it returns a ready-to-use bun:sqlite `Database` instance and `isInitialized` returns `true`
+- **THEN** it returns a ready-to-use SQLite database handle (node:sqlite) and `isInitialized` returns `true`
 
 #### Scenario: Persist after initialize
 - **GIVEN** a storage provider with a successfully initialized database

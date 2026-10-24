@@ -1,6 +1,6 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S npx tsx
 
-import { build } from "bun";
+import { build } from "esbuild";
 import { resolve, dirname } from "path";
 import { mkdir } from "fs/promises";
 
@@ -15,13 +15,16 @@ const buildCli = async (): Promise<void> => {
   await mkdir(dirname(outPath), { recursive: true });
 
   await build({
-    entrypoints: [entrypoint],
-    outdir,
-    target: "node",
-    naming: outfile,
+    entryPoints: [entrypoint],
+    outfile: outPath,
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node22",
     minify: true,
-    banner: "#!/usr/bin/env node",
-    external: ["bun:sqlite", "drizzle-orm/bun-sqlite", "node:sqlite", "drizzle-orm/node-sqlite"],
+    banner: {
+      js: '#!/usr/bin/env node\nimport { createRequire as __cr } from "node:module";const require = __cr(import.meta.url);',
+    },
   });
 
   console.log(`✓ Built ${outfile}`);

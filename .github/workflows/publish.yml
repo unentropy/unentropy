@@ -39,22 +39,21 @@ jobs:
           echo "Tag: $TAG"
           echo "Version: $VERSION"
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.4.4"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js for npm publishing
         uses: actions/setup-node@v7
         with:
           node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
+          cache: pnpm
 
       - name: Ensure npm 11.5.1+ for trusted publishing
         run: npm install -g npm@latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Verify version matches tag
         run: |
@@ -68,10 +67,10 @@ jobs:
           echo "Version match confirmed"
 
       - name: Run checks
-        run: bun run check
+        run: pnpm check
 
       - name: Build CLI
-        run: bun run build:cli
+        run: pnpm build:cli
 
       - name: Verify CLI build
         run: |
@@ -82,15 +81,15 @@ jobs:
           echo "CLI build verified"
 
       - name: Build Actions
-        run: bun run build:actions
+        run: pnpm build:actions
 
       - name: Verify Actions build
         run: |
-          if [ ! -f .github/actions/track-metrics/dist/track-metrics.js ]; then
+          if [ ! -f .github/actions/track-metrics/dist/track-metrics.mjs ]; then
             echo "Error: track-metrics action build failed"
             exit 1
           fi
-          if [ ! -f .github/actions/quality-gate/dist/quality-gate.js ]; then
+          if [ ! -f .github/actions/quality-gate/dist/quality-gate.mjs ]; then
             echo "Error: quality-gate action build failed"
             exit 1
           fi

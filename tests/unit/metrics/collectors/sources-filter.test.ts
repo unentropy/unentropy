@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import { matchesSources } from "../../../../src/metrics/collectors/sources-filter";
 
 describe("matchesSources", () => {

@@ -39,6 +39,7 @@ jobs:
 | `enable-pr-comment`      | Post/update PR comment with gate results                              | No       | `true`                            |
 | `pr-comment-marker`      | HTML marker to identify canonical gate comment                        | No       | `<!-- unentropy-quality-gate -->` |
 | `max-pr-comment-metrics` | Maximum metrics to show in PR comment                                 | No       | `30`                              |
+| `github-token`           | GitHub token used for artifact storage and PR comments                | No       | `${{ github.token }}`             |
 
 ### S3 Storage Options
 
@@ -49,6 +50,8 @@ jobs:
 | `s3-region`            | S3 region                                 | No       |
 | `s3-access-key-id`     | S3 access key ID (use GitHub Secrets)     | No       |
 | `s3-secret-access-key` | S3 secret access key (use GitHub Secrets) | No       |
+
+The credentials need `s3:GetObject`, `s3:PutObject` and `s3:ListBucket`. Without `s3:ListBucket`, S3 answers a missing database with 403 instead of 404, and the action fails instead of creating a new database.
 
 ## Outputs
 

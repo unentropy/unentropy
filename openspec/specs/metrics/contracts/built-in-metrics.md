@@ -94,7 +94,7 @@ Commands starting with `@collect` are transformed into CLI invocations:
 ```
 @collect loc ./src
   becomes
-bun src/index.ts collect loc ./src
+node dist/index.js collect loc ./src
 ```
 
 This provides:

@@ -1,5 +1,8 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { SqliteS3StorageProvider } from "../../../../src/storage/providers/sqlite-s3";
+import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import {
+  S3RequestError,
+  SqliteS3StorageProvider,
+} from "../../../../src/storage/providers/sqlite-s3";
 
 describe("SqliteS3StorageProvider", () => {
   let provider: SqliteS3StorageProvider;
@@ -94,12 +97,7 @@ describe("SqliteS3StorageProvider", () => {
     await provider.persist();
 
     // Verify file exists in S3
-    const s3Client = provider.getS3Client();
-    if (!s3Client) {
-      throw new Error("S3 client not initialized");
-    }
-    const s3File = s3Client.file(provider.getDatabaseKey());
-    expect(await s3File.exists()).toBe(true);
+    expect(await provider.objectExists(provider.getDatabaseKey())).toBe(true);
   });
 
   test("should download existing database from S3 on initialization", async () => {
@@ -259,13 +257,95 @@ describe("SqliteS3StorageProvider", () => {
     await customProvider.persist();
 
     // Verify file exists at custom path
-    const s3Client = customProvider.getS3Client();
-    if (!s3Client) {
-      throw new Error("S3 client not initialized");
-    }
-    const s3File = s3Client.file(customKey);
-    expect(await s3File.exists()).toBe(true);
+    expect(await customProvider.objectExists(customKey)).toBe(true);
 
     await customProvider.cleanup();
+
+    const reader = new SqliteS3StorageProvider({
+      type: "sqlite-s3",
+      endpoint: "http://localhost:9000",
+      bucket: "unentropy-test",
+      region: "us-east-1",
+      accessKeyId: "test-access-key",
+      secretAccessKey: "test-secret-key",
+      databaseKey: customKey,
+    });
+
+    const db2 = await reader.initialize();
+    const row = db2.prepare("SELECT value FROM custom_test").get() as { value: string } | undefined;
+    expect(row?.value).toBe("custom_key_test");
+
+    await reader.cleanup();
+  });
+
+  test("should report missing objects as not existing", async () => {
+    await provider.initialize();
+
+    expect(await provider.objectExists(`missing-${Date.now()}.db`)).toBe(false);
+  });
+
+  test("should throw S3RequestError with status 403 for wrong credentials", async () => {
+    const badProvider = new SqliteS3StorageProvider({
+      type: "sqlite-s3",
+      endpoint: "http://localhost:9000",
+      bucket: "unentropy-test",
+      region: "us-east-1",
+      accessKeyId: "test-access-key",
+      secretAccessKey: "wrong",
+      databaseKey: `test-wrong-${Date.now()}.db`,
+    });
+
+    try {
+      const error = await badProvider.initialize().then(
+        () => null,
+        (e: unknown) => e
+      );
+
+      expect(error).toBeInstanceOf(S3RequestError);
+      expect((error as S3RequestError).operation).toBe("GET");
+      expect((error as S3RequestError).status).toBe(403);
+      expect(badProvider.isInitialized()).toBe(false);
+    } finally {
+      await badProvider.cleanup();
+    }
+  });
+
+  test("should throw S3RequestError without status when the endpoint is unreachable", async () => {
+    const unreachableProvider = new SqliteS3StorageProvider({
+      type: "sqlite-s3",
+      endpoint: "http://127.0.0.1:1",
+      bucket: "unentropy-test",
+      region: "us-east-1",
+      accessKeyId: "test-access-key",
+      secretAccessKey: "test-secret-key",
+      databaseKey: `test-unreachable-${Date.now()}.db`,
+    });
+
+    try {
+      const error = await unreachableProvider.initialize().then(
+        () => null,
+        (e: unknown) => e
+      );
+
+      expect(error).toBeInstanceOf(S3RequestError);
+      expect((error as S3RequestError).status).toBeUndefined();
+    } finally {
+      await unreachableProvider.cleanup();
+    }
+  });
+
+  test("should throw when bucket is empty", async () => {
+    const noBucketProvider = new SqliteS3StorageProvider({
+      type: "sqlite-s3",
+      endpoint: "http://localhost:9000",
+      bucket: "",
+      region: "us-east-1",
+      accessKeyId: "test-access-key",
+      secretAccessKey: "test-secret-key",
+    });
+
+    await expect(noBucketProvider.initialize()).rejects.toThrow(
+      "S3 configuration is incomplete: bucket is required"
+    );
   });
 });

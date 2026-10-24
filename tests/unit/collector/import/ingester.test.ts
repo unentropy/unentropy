@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { rm } from "fs/promises";
-import { mkdtempSync, rmSync } from "fs";
+import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { spawnSync } from "child_process";
@@ -23,7 +23,7 @@ function makeRepo(): { dir: string; sha: string; cleanup: () => void } {
   run("git", ["config", "commit.gpgsign", "false"], dir);
 
   const date = "2024-01-01T00:00:00Z";
-  Bun.write(join(dir, "f.txt"), "hello");
+  writeFileSync(join(dir, "f.txt"), "hello");
   run("git", ["add", "."], dir);
   spawnSync("git", ["commit", "-q", "-m", "init", "--date", date], {
     cwd: dir,

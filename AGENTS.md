@@ -5,7 +5,7 @@
 This project follows Specification-Driven Development (SDD) principles as defined in `openspec/config.yaml`:
 
 - **Serverless Architecture**: All components operate within GitHub Actions workflows
-- **Technology Stack Consistency**: Bun runtime with TypeScript, SQLite, Chart.js
+- **Technology Stack Consistency**: Node.js 24 runtime with TypeScript, SQLite, Chart.js
 - **Code Quality Standards**: Strict TypeScript, Prettier formatting, minimal comments
 - **Security Best Practices**: Never log/expose secrets, follow security guidelines
 - **Testing Discipline**: Comprehensive unit, integration, and contract tests
@@ -16,7 +16,7 @@ This project follows Specification-Driven Development (SDD) principles as define
 - DO NOT jump into modifying code when not explicitly instructed to do so - for example, when asked to "plan" or "analyze" or "update the spec", just run the analysis, report the results and wait for further instructions.
 - DO NOT add code comments unless asked.
 - When asked to implement a single task, do not proceed to the next - stop and wait for further instructions.
-- Run "bun check" after making changes to the code
+- Run "pnpm check" after making changes to the code
 - We use jujutsu VCS. Load jujutsu skill before any VCS operations.
 
 ## Project Summary
@@ -31,10 +31,10 @@ Unentropy is a serverless tool for tracking custom code metrics in CI/CD pipelin
 
 ## Lint/Test Commands
 
-- Lint, type checks, format checks: bun check
-- Test: bun test
-- Single test: bun test --testNamePattern="<test name>"
-- Visual review (generate + open in browser): bun visual-review
+- Lint, type checks, format checks: pnpm check
+- Test: pnpm test
+- Single test: pnpm test -t "<test name>"
+- Visual review (generate + open in browser): pnpm visual-review
 
 ## Code Style Guidelines
 
@@ -48,7 +48,7 @@ Unentropy is a serverless tool for tracking custom code metrics in CI/CD pipelin
 
 ## Additional Notes
 
-- Project uses Bun as the package manager and runtime
+- Project uses pnpm as the package manager and Node.js as the runtime
 - Project uses GitHub Actions for CI
 - Follow security best practices
 - Mimic existing code style from src/ and tests/ directories
@@ -57,6 +57,6 @@ Unentropy is a serverless tool for tracking custom code metrics in CI/CD pipelin
 
 ## Active Technologies
 
-- Bun runtime, TypeScript, SQLite (metrics store), GitHub Actions runtime, GitHub REST API client for pull request comments, Chart.js for existing visual reports.
+- Node.js 24 runtime, TypeScript, SQLite (metrics store), GitHub Actions runtime, GitHub REST API client for pull request comments, Chart.js for existing visual reports.
 - SQLite database managed via the storage provider abstraction (local, artifact, or S3-compatible backends).
 - Use yargs (https://yargs.js.org/) for command-line argument parsing

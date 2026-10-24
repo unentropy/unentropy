@@ -15,8 +15,9 @@
     "dist",
     "README.md"
   ],
+  "packageManager": "pnpm@12.14.0",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.13.0"
   },
   "keywords": [
     "metrics",
@@ -24,54 +25,51 @@
     "code-quality",
     "github-actions",
     "npm",
-    "typescript",
-    "bun"
+    "typescript"
   ],
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
   "scripts": {
-    "build:cli": "bun run scripts/build-cli.ts",
-    "build:actions": "bun run scripts/build-actions.ts",
-    "test": "bun test",
-    "test:watch": "bun test --watch",
+    "build:cli": "tsx scripts/build-cli.ts",
+    "build:actions": "tsx scripts/build-actions.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "bun run lint && bun run typecheck && bun run format:check",
-    "dev:report": "bun --watch scripts/dev-report.ts",
-    "generate-fixtures": "bun run scripts/generate-fixtures.ts",
-    "visual-review": "bun run scripts/generate-fixtures.ts && bun run scripts/open-reports.ts",
-    "dev-report": "bun run scripts/dev-report.ts",
-    "version:patch": "bun run scripts/version.ts patch",
-    "version:minor": "bun run scripts/version.ts minor",
-    "version:major": "bun run scripts/version.ts major"
+    "check": "pnpm lint && pnpm typecheck && pnpm format:check",
+    "dev:report": "node --watch-path=src --watch-path=scripts --import ./scripts/text-import-hooks.mjs --import tsx scripts/dev-report.ts",
+    "generate-fixtures": "node --import ./scripts/text-import-hooks.mjs --import tsx scripts/generate-fixtures.ts",
+    "visual-review": "node --import ./scripts/text-import-hooks.mjs --import tsx scripts/generate-fixtures.ts && tsx scripts/open-reports.ts",
+    "dev-report": "node --import ./scripts/text-import-hooks.mjs --import tsx scripts/dev-report.ts",
+    "version:patch": "tsx scripts/version.ts patch",
+    "version:minor": "tsx scripts/version.ts minor",
+    "version:major": "tsx scripts/version.ts major"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/node": "^24",
     "@types/sloc": "^0.2.3",
     "@types/yargs": "^17.0.35",
-    "drizzle-kit": "^1.0.0-rc.3",
+    "@vitest/coverage-v8": "^5",
+    "drizzle-kit": "1.0.0-rc.4-ca0f029",
+    "esbuild": "^0.28.2",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.10",
+    "tsx": "^4",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.0"
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5"
   },
   "dependencies": {
+    "@actions/artifact": "^6.3.1",
     "@actions/core": "^3.0.1",
     "@actions/exec": "^3.0.0",
     "@actions/github": "^9.1.1",
     "@markusberg/lcov-parse": "^3.0.0",
     "@types/serialize-javascript": "^5.0.4",
-    "drizzle-orm": "^1.0.0-rc.3",
+    "aws4fetch": "1.0.20",
+    "drizzle-orm": "1.0.0-rc.4-5d5b77c",
     "fast-glob": "^3.3.3",
     "fast-xml-parser": "^5.11.2",
     "get-folder-size": "^5.0.0",

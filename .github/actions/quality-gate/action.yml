@@ -65,68 +65,39 @@ inputs:
     required: false
     default: ".unentropy/quality-gate-results.json"
 
+  github-token:
+    description: "GitHub token used for artifact storage and PR comments"
+    required: false
+    default: "${{ github.token }}"
+
 outputs:
   quality-gate-status:
     description: "Overall gate status: pass, fail, or unknown"
-    value: ${{ steps.gate.outputs.quality-gate-status }}
 
   quality-gate-mode:
     description: "Gate mode used: off, soft, or hard"
-    value: ${{ steps.gate.outputs.quality-gate-mode }}
 
   quality-gate-failing-metrics:
     description: "Comma-separated list of failing metric names"
-    value: ${{ steps.gate.outputs.quality-gate-failing-metrics }}
 
   quality-gate-comment-url:
     description: "URL of the PR comment (if created)"
-    value: ${{ steps.gate.outputs.quality-gate-comment-url }}
 
   metrics-collected:
     description: "Number of metrics collected from PR"
-    value: ${{ steps.gate.outputs.metrics-collected }}
 
   baseline-builds-considered:
     description: "Number of baseline builds used for comparison"
-    value: ${{ steps.gate.outputs.baseline-builds-considered }}
 
   baseline-reference-branch:
     description: "Reference branch used for baseline"
-    value: ${{ steps.gate.outputs.baseline-reference-branch }}
 
   quality-gate-results-path:
     description: "Absolute path to the written JSON results file"
-    value: ${{ steps.gate.outputs.quality-gate-results-path }}
 
   quality-gate-results-json:
     description: "Full quality gate result as a JSON string (usable with fromJSON() in workflow expressions)"
-    value: ${{ steps.gate.outputs.quality-gate-results-json }}
 
 runs:
-  using: "composite"
-  steps:
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v2
-      with:
-        bun-version: "1.4.4"
-
-    - name: Run quality gate evaluation
-      id: gate
-      shell: bash
-      run: |
-        bun "${{ github.action_path }}/dist/quality-gate.js"
-      env:
-        INPUT_STORAGE-TYPE: ${{ inputs.storage-type }}
-        INPUT_S3-ENDPOINT: ${{ inputs.s3-endpoint }}
-        INPUT_S3-BUCKET: ${{ inputs.s3-bucket }}
-        INPUT_S3-REGION: ${{ inputs.s3-region }}
-        INPUT_S3-ACCESS-KEY-ID: ${{ inputs.s3-access-key-id }}
-        INPUT_S3-SECRET-ACCESS-KEY: ${{ inputs.s3-secret-access-key }}
-        INPUT_DATABASE-KEY: ${{ inputs.database-key }}
-        INPUT_CONFIG-FILE: ${{ inputs.config-file }}
-        INPUT_QUALITY-GATE-MODE: ${{ inputs.quality-gate-mode }}
-        INPUT_ENABLE-PR-COMMENT: ${{ inputs.enable-pr-comment }}
-        INPUT_PR-COMMENT-MARKER: ${{ inputs.pr-comment-marker }}
-        INPUT_MAX-PR-COMMENT-METRICS: ${{ inputs.max-pr-comment-metrics }}
-        INPUT_OUTPUT-FILE: ${{ inputs.output-file }}
-        GITHUB_TOKEN: ${{ github.token }}
+  using: "node24"
+  main: "dist/quality-gate.mjs"

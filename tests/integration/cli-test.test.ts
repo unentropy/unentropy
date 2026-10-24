@@ -1,4 +1,4 @@
-import { describe, test, beforeEach, afterEach, expect } from "bun:test";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { writeFile } from "node:fs/promises";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -27,10 +27,14 @@ describe("test command integration", () => {
 
   function runTestCommand(args: string[]): { code: number; stdout: string; stderr: string } {
     const projectRoot = new URL("../..", import.meta.url).pathname;
-    const result = spawnSync("bun", [join(projectRoot, "src/index.ts"), "test", ...args], {
-      cwd: tempDir,
-      encoding: "utf-8",
-    });
+    const result = spawnSync(
+      process.execPath,
+      [join(projectRoot, "dist/index.js"), "test", ...args],
+      {
+        cwd: tempDir,
+        encoding: "utf-8",
+      }
+    );
 
     const stdout = typeof result.stdout === "string" ? result.stdout : "";
     const stderr = typeof result.stderr === "string" ? result.stderr : "";
@@ -241,9 +245,9 @@ describe("test command integration", () => {
     await writeFile(configPath, JSON.stringify(config, null, 2));
 
     const result = spawnSync(
-      "bun",
+      process.execPath,
       [
-        join(new URL("../..", import.meta.url).pathname, "src/index.ts"),
+        join(new URL("../..", import.meta.url).pathname, "dist/index.js"),
         "test",
         "--config",
         configPath,

@@ -4,12 +4,12 @@ schema: unentropy
 # This is shown to AI when creating artifacts.
 # Add your tech stack, conventions, style guides, domain knowledge, etc.
 context: |
-  Tech stack: TypeScript, Bun runtime, SQLite (metrics store), GitHub Actions runtime
-  Testing: Bun test framework
+  Tech stack: TypeScript, Node.js 24 runtime, SQLite (metrics store), GitHub Actions runtime
+  Testing: Vitest
   Formatting: Prettier
   We use conventional commits
   Domain: Serverless tool for tracking custom code metrics in CI/CD pipelines
-  Lint/Test: bun check
+  Lint/Test: pnpm check
   Project uses GitHub Actions for CI
 
 # Per-artifact rules (optional)

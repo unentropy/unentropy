@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, beforeEach, mock } from "bun:test";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { createStorageProvider } from "../../../../src/storage/providers/factory";
 import type { StorageProviderConfig } from "../../../../src/storage/providers/interface";
 
@@ -22,7 +22,7 @@ describe("createStorageProvider", () => {
     process.env.GITHUB_RUN_ID = "99999";
 
     // Mock fetch for artifact tests
-    global.fetch = mock(async () => {
+    global.fetch = vi.fn(async () => {
       return new Response(JSON.stringify({ workflow_runs: [] }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

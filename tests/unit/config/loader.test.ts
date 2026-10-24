@@ -1,9 +1,9 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import { loadConfig } from "../../../src/config/loader";
 import * as path from "path";
 
 describe("Config Loader", () => {
-  const fixturesDir = path.join(__dirname, "fixtures");
+  const fixturesDir = path.join(import.meta.dirname, "fixtures");
 
   it("should parse valid minimal config", async () => {
     const configPath = path.join(fixturesDir, "valid-minimal.json");

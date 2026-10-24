@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { SqliteArtifactStorageProvider } from "../../../../src/storage/providers/sqlite-artifact";
 import type { SqliteArtifactConfig } from "../../../../src/storage/providers/interface";
 
@@ -6,7 +6,7 @@ import type { SqliteArtifactConfig } from "../../../../src/storage/providers/int
 const createMockFetch = (
   handler: (url: string, options?: RequestInit) => Promise<Response>
 ): typeof fetch => {
-  const mockFn = mock(handler) as unknown as typeof fetch;
+  const mockFn = vi.fn(handler) as unknown as typeof fetch;
   return mockFn;
 };
 

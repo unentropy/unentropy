@@ -1,4 +1,4 @@
-import { describe, test, beforeEach, afterEach } from "bun:test";
+import { describe, test, beforeEach, afterEach } from "vitest";
 import { unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { writeFileSync } from "node:fs";

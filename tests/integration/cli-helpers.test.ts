@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -47,18 +47,18 @@ describe("size parser integration", () => {
     });
 
     it("should handle non-existent path", async () => {
-      expect(parseSize("/non/existent/path")).rejects.toThrow();
+      await expect(parseSize("/non/existent/path")).rejects.toThrow();
     });
 
     it("should handle empty string path", async () => {
-      expect(parseSize("")).rejects.toThrow("Source path must be a non-empty string");
+      await expect(parseSize("")).rejects.toThrow("Source path must be a non-empty string");
     });
 
     it("should handle null/undefined path", async () => {
       // @ts-expect-error - Testing invalid input
-      expect(parseSize(null)).rejects.toThrow();
+      await expect(parseSize(null)).rejects.toThrow();
       // @ts-expect-error - Testing invalid input
-      expect(parseSize(undefined)).rejects.toThrow();
+      await expect(parseSize(undefined)).rejects.toThrow();
     });
 
     it("should handle symlinks without error", async () => {

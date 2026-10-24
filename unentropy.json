@@ -21,7 +21,7 @@
       "$ref": "size",
       "name": "Actions bundle size",
       "description": "Total size of all compiled GitHub Actions",
-      "command": "@collect size .github/actions/*/dist/*.js"
+      "command": "@collect size .github/actions/*/dist/*.mjs"
     },
     "specs-size": {
       "$ref": "loc",

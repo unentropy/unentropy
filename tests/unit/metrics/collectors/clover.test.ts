@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import {
   parseCloverCoverage,
   mergeCloverCoverage,
@@ -69,23 +69,25 @@ describe("parseCloverCoverage", () => {
 
   describe("parse errors", () => {
     it("should throw when coverage data is invalid", async () => {
-      expect(parseCloverCoverage(join(fixturesDir, "malformed.xml"))).rejects.toThrow();
+      await expect(parseCloverCoverage(join(fixturesDir, "malformed.xml"))).rejects.toThrow();
     });
   });
 
   describe("error handling", () => {
     it("should throw error for empty source path", async () => {
-      expect(parseCloverCoverage("")).rejects.toThrow("Source path must be a non-empty string");
+      await expect(parseCloverCoverage("")).rejects.toThrow(
+        "Source path must be a non-empty string"
+      );
     });
 
     it("should throw error for null source path", async () => {
-      expect(parseCloverCoverage(null as unknown as string)).rejects.toThrow(
+      await expect(parseCloverCoverage(null as unknown as string)).rejects.toThrow(
         "Source path must be a non-empty string"
       );
     });
 
     it("should throw error for non-existent file", async () => {
-      expect(parseCloverCoverage("/non/existent/file.xml")).rejects.toThrow();
+      await expect(parseCloverCoverage("/non/existent/file.xml")).rejects.toThrow();
     });
   });
 
@@ -205,15 +207,17 @@ describe("mergeCloverCoverage", () => {
 
   describe("error handling", () => {
     it("should fail with error on missing file", async () => {
-      expect(mergeCloverCoverage([f("sample.xml"), "/nonexistent/file.xml"])).rejects.toThrow();
+      await expect(
+        mergeCloverCoverage([f("sample.xml"), "/nonexistent/file.xml"])
+      ).rejects.toThrow();
     });
 
     it("should fail with error on empty file list", async () => {
-      expect(mergeCloverCoverage([])).rejects.toThrow("At least one source path is required");
+      await expect(mergeCloverCoverage([])).rejects.toThrow("At least one source path is required");
     });
 
     it("should fail with error on malformed XML", async () => {
-      expect(mergeCloverCoverage([f("sample.xml"), f("malformed.xml")])).rejects.toThrow();
+      await expect(mergeCloverCoverage([f("sample.xml"), f("malformed.xml")])).rejects.toThrow();
     });
 
     it("should handle file with no coverage data without throwing", async () => {

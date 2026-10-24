@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -16,7 +16,7 @@ describe("parseSize", () => {
   });
 
   it("throws for empty path", async () => {
-    expect(parseSize("")).rejects.toThrow("Source path must be a non-empty string");
+    await expect(parseSize("")).rejects.toThrow("Source path must be a non-empty string");
   });
 
   it("calculates size of a directory", async () => {
@@ -35,7 +35,7 @@ describe("parseSize", () => {
   });
 
   it("throws for non-existent path", async () => {
-    expect(parseSize(join(testDir, "nonexistent"))).rejects.toThrow();
+    await expect(parseSize(join(testDir, "nonexistent"))).rejects.toThrow();
   });
 
   it("resolves glob patterns", async () => {
@@ -60,7 +60,7 @@ describe("collectSize", () => {
   });
 
   it("throws for empty paths", async () => {
-    expect(collectSize([])).rejects.toThrow("At least one path is required");
+    await expect(collectSize([])).rejects.toThrow("At least one path is required");
   });
 
   it("collects size from glob patterns", async () => {

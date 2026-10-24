@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import { formatSummary } from "../../../../src/collector/import/summary";
 import type { CanonicalImportRecord, IngestSummary } from "../../../../src/collector/import/types";
 

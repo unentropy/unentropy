@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S npx tsx
 
 /**
  * S3 Test Setup
@@ -96,9 +96,9 @@ function printTestConfig() {
   console.log("\n🧪 Test Commands:");
   console.log("===================");
   console.log("# Start s3s-fs:");
-  console.log("bun run scripts/setup-s3.ts start");
+  console.log("pnpm tsx scripts/setup-s3.ts start");
   console.log("\n# Stop s3s-fs:");
-  console.log("bun run scripts/setup-s3.ts stop");
+  console.log("pnpm tsx scripts/setup-s3.ts stop");
   console.log("\n# View logs:");
   console.log(`docker logs -f ${S3_CONTAINER_NAME}`);
 }
@@ -125,7 +125,7 @@ if (command === "start") {
   console.log("✅ s3s-fs container stopped and data removed");
 } else {
   console.log("Usage:");
-  console.log("  bun run scripts/setup-s3.ts start   # Start s3s-fs container");
-  console.log("  bun run scripts/setup-s3.ts stop    # Stop s3s-fs container");
+  console.log("  pnpm tsx scripts/setup-s3.ts start   # Start s3s-fs container");
+  console.log("  pnpm tsx scripts/setup-s3.ts stop    # Stop s3s-fs container");
   process.exit(1);
 }

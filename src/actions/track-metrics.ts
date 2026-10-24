@@ -1,9 +1,13 @@
 import * as core from "@actions/core";
+import { mkdir, stat, writeFile } from "fs/promises";
+import { join, resolve } from "path";
 import { loadConfig } from "../config/loader";
 import { Storage } from "../storage/storage";
 import { createStorageProvider } from "../storage/providers/factory";
 import { collectMetrics } from "../collector/collector";
 import { extractBuildContext } from "../collector/context";
+import { resolveGitHubToken } from "./github-token";
+import { uploadDatabaseArtifact } from "./artifact-upload";
 
 import type { StorageProviderConfig } from "../storage/providers/interface";
 
@@ -133,11 +137,13 @@ function createStorageConfig(inputs: ActionInputs): StorageProviderConfig {
   }
 
   // For sqlite-artifact, use artifact configuration
-  const token = process.env.GITHUB_TOKEN;
+  const token = resolveGitHubToken();
   const repository = process.env.GITHUB_REPOSITORY;
 
   if (!token) {
-    throw new Error("GITHUB_TOKEN environment variable is required for artifact storage");
+    throw new Error(
+      "GitHub token is required for artifact storage (github-token input or GITHUB_TOKEN env)"
+    );
   }
   if (!repository) {
     throw new Error("GITHUB_REPOSITORY environment variable is required for artifact storage");
@@ -210,7 +216,8 @@ export async function runTrackMetricsAction(): Promise<void> {
     );
 
     // Create report directory and write index.html
-    await Bun.write(`${inputs.reportDir}/index.html`, reportHtml);
+    await mkdir(inputs.reportDir, { recursive: true });
+    await writeFile(join(inputs.reportDir, "index.html"), reportHtml);
     core.info(`Report generated: ${inputs.reportDir}/index.html`);
   } catch (error) {
     core.warning(
@@ -227,13 +234,31 @@ export async function runTrackMetricsAction(): Promise<void> {
   core.info("Persisting database to storage...");
   await storage.persist();
 
+  let artifactId: number | undefined;
+  if (inputs.storageType === "sqlite-artifact") {
+    const artifactName = inputs.artifactName ?? "unentropy-metrics";
+    core.info(`Uploading database artifact: ${artifactName}`);
+    try {
+      const result = await uploadDatabaseArtifact(artifactName, resolve(inputs.databaseKey));
+      artifactId = result.id;
+    } catch (error) {
+      core.setFailed(
+        `Artifact upload failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+      await storage.close();
+      return;
+    }
+    if (artifactId === undefined) {
+      core.warning("Artifact uploaded but no id returned");
+    } else {
+      core.info(`Artifact uploaded with id ${artifactId}`);
+    }
+  }
+
   // Get database size after persist
   let databaseSize: number | undefined;
   try {
-    const dbFile = Bun.file(inputs.databaseKey);
-    if (await dbFile.exists()) {
-      databaseSize = dbFile.size;
-    }
+    databaseSize = (await stat(inputs.databaseKey)).size;
   } catch {
     // Ignore errors getting file size
   }
@@ -265,25 +290,17 @@ export async function runTrackMetricsAction(): Promise<void> {
   }
   core.setOutput("duration", outputs.duration.toString());
 
-  // Set artifact upload metadata for composite action step (sqlite-artifact only)
+  core.setOutput("artifact-upload-required", "false");
   if (inputs.storageType === "sqlite-artifact") {
-    core.setOutput("artifact-upload-required", "true");
     core.setOutput("artifact-name", inputs.artifactName);
     core.setOutput("artifact-path", inputs.databaseKey);
-  } else {
-    core.setOutput("artifact-upload-required", "false");
+    if (artifactId !== undefined) {
+      core.setOutput("artifact-id", String(artifactId));
+    }
   }
 
   core.info("Track-metrics action completed successfully");
 
   // Cleanup
   await storage.close();
-}
-
-// Run the action if this file is executed directly
-if (import.meta.main) {
-  runTrackMetricsAction().catch((error) => {
-    core.setFailed(`Unhandled error: ${error instanceof Error ? error.message : String(error)}`);
-    process.exit(1);
-  });
 }

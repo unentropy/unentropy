@@ -1,0 +1,5 @@
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - preact@11.0.2
+  - serialize-javascript@7.1.4

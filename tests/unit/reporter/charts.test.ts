@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import { buildLineChartData, buildBarChartData } from "../../../src/reporter/charts";
 import type { NormalizedDataPoint, TimeSeriesDataPoint } from "../../../src/reporter/types";
 

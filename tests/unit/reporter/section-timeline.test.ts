@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import chartsScript from "../../../src/reporter/templates/default/scripts/charts.js" with { type: "text" };
 
 interface MetadataPoint {

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { mkdtempSync, rmSync } from "fs";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { spawnSync } from "child_process";
@@ -31,7 +31,7 @@ function makeRepo(): {
   const commits: { sha: string; date: string }[] = [];
   const dates = ["2024-01-01T00:00:00Z", "2024-02-01T00:00:00Z", "2024-03-01T00:00:00Z"];
   for (const date of dates) {
-    Bun.write(join(dir, "f.txt"), `content for ${date}`);
+    writeFileSync(join(dir, "f.txt"), `content for ${date}`);
     run("git", ["add", "."], dir);
     spawnSync("git", ["commit", "-q", "-m", `commit at ${date}`, "--date", date], {
       cwd: dir,

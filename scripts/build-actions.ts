@@ -1,22 +1,50 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S npx tsx
 
-import { build } from "bun";
+import { build } from "esbuild";
 import { resolve, dirname } from "path";
 import { mkdir } from "fs/promises";
 
-const buildAction = async (entrypoint: string, outdir: string, outfile: string): Promise<void> => {
-  const outPath = resolve(outdir, outfile);
-  console.log(`Building ${entrypoint} -> ${outPath}`);
+interface ActionBuild {
+  name: string;
+  runner: string;
+  module: string;
+}
+
+const actions: ActionBuild[] = [
+  { name: "track-metrics", runner: "runTrackMetricsAction", module: "./track-metrics" },
+  { name: "quality-gate", runner: "runQualityGateAction", module: "./quality-gate" },
+];
+
+const entryContents = ({ runner, module }: ActionBuild): string =>
+  [
+    `import * as core from "@actions/core";`,
+    `import { ${runner} } from "${module}";`,
+    `${runner}().catch((e) => { core.setFailed(\`Unhandled error: \${e instanceof Error ? e.message : String(e)}\`); process.exit(1); });`,
+  ].join("\n");
+
+const buildAction = async (action: ActionBuild): Promise<void> => {
+  const outfile = `${action.name}.mjs`;
+  const outPath = resolve(`./.github/actions/${action.name}/dist`, outfile);
+  console.log(`Building ${action.name} -> ${outPath}`);
 
   await mkdir(dirname(outPath), { recursive: true });
 
   await build({
-    entrypoints: [entrypoint],
-    outdir,
-    target: "bun",
-    naming: outfile,
+    stdin: {
+      contents: entryContents(action),
+      resolveDir: resolve("./src/actions"),
+      sourcefile: `${action.name}.entry.ts`,
+      loader: "ts",
+    },
+    outfile: outPath,
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node24",
     minify: true,
-    external: ["node:sqlite", "drizzle-orm/node-sqlite"],
+    banner: {
+      js: 'import { createRequire as __cr } from "node:module";const require = __cr(import.meta.url);',
+    },
   });
 
   console.log(`✓ Built ${outfile}`);
@@ -24,17 +52,9 @@ const buildAction = async (entrypoint: string, outdir: string, outfile: string):
 
 const main = async () => {
   try {
-    await buildAction(
-      "./src/actions/track-metrics.ts",
-      "./.github/actions/track-metrics/dist",
-      "track-metrics.js"
-    );
-
-    await buildAction(
-      "./src/actions/quality-gate.ts",
-      "./.github/actions/quality-gate/dist",
-      "quality-gate.js"
-    );
+    for (const action of actions) {
+      await buildAction(action);
+    }
 
     console.log("\n✓ All actions built successfully");
   } catch (error) {

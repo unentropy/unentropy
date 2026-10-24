@@ -19,14 +19,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
         with:
-          bun-version: "1.4.4"
+          node-version-file: .node-version
+          cache: pnpm
       - name: Install dependencies
-        run: bun install
+        run: pnpm install --frozen-lockfile
       - name: Build GitHub Actions
-        run: bun run build:actions
+        run: pnpm build:actions
       - name: Create bucket for tests
         run: mkdir -p "$RUNNER_TEMP/s3-data/unentropy-test"
       - name: Start S3 container
@@ -40,7 +43,7 @@ jobs:
           --access-key test-access-key --secret-key test-secret-key /data \
           && until curl -s -o /dev/null http://localhost:9000; do sleep 1; done
       - name: Run tests with coverage
-        run: bun run test --coverage --coverage-reporter=lcov
+        run: pnpm test --coverage
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v7
         with:
@@ -67,14 +70,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
         with:
-          bun-version: "1.4.4"
+          node-version-file: .node-version
+          cache: pnpm
       - name: Install dependencies
-        run: bun install
+        run: pnpm install --frozen-lockfile
       - name: Build GitHub Actions
-        run: bun run build:actions
+        run: pnpm build:actions
       - name: Download coverage artifact
         uses: actions/download-artifact@v8
         with:

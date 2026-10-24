@@ -2,13 +2,13 @@
 
 ## Purpose
 
-The track-metrics action is a composite GitHub Action that orchestrates the complete metrics workflow. It coordinates storage initialization, metric collection, database persistence, and report generation into a single reusable action — abstracting away the underlying storage backend details from the user.
+The track-metrics action is a JavaScript GitHub Action (runs on Node.js 24) that orchestrates the complete metrics workflow. It coordinates storage initialization, metric collection, database persistence, and report generation into a single reusable action — abstracting away the underlying storage backend details from the user.
 
 ## Requirements
 
 ### Requirement: Unified Workflow Orchestration
 
-The system SHALL provide a single composite GitHub Action that orchestrates the complete metrics workflow: initialize storage, collect metrics, persist database, and generate report.
+The system SHALL provide a single JavaScript GitHub Action (runs on Node.js 24) that orchestrates the complete metrics workflow: initialize storage, collect metrics, persist database, and generate report.
 
 #### Scenario: Complete S3 storage workflow
 - **GIVEN** S3 storage is configured
@@ -127,18 +127,18 @@ The action SHALL prioritize data preservation — the database SHALL be persiste
 
 ---
 
-### Requirement: Composite Action Structure
+### Requirement: Action Structure
 
-The action SHALL be implemented as a composite GitHub Action that sets up the execution environment, runs the entrypoint, and handles report artifact output.
+The action SHALL be implemented as a JavaScript GitHub Action (runs on Node.js 24) that runs the entrypoint and handles report artifact output.
 
-#### Scenario: Set up Bun runtime
+#### Scenario: Run on the runner's Node.js
 - **GIVEN** the action is invoked in a workflow step
 - **WHEN** the action runs
-- **THEN** it sets up the Bun runtime for TypeScript execution
+- **THEN** it runs as a native `node24` JavaScript action with no runtime setup step
 
 #### Scenario: Run entrypoint script
-- **GIVEN** the environment is prepared
-- **WHEN** all dependencies are installed
+- **GIVEN** the action is invoked in a workflow step
+- **WHEN** the action starts
 - **THEN** the action executes the entrypoint script that orchestrates storage, collection, and reporting
 
 #### Scenario: Upload report as artifact
@@ -160,7 +160,7 @@ The action SHALL support both S3 and Artifact storage workflow variants, adaptin
 #### Scenario: Artifact workflow with full artifact lifecycle
 - **GIVEN** `storage-type` is set to `sqlite-artifact`
 - **WHEN** the action runs
-- **THEN** it searches for, downloads, and uploads database artifacts using the GitHub API with auto-detected `GITHUB_TOKEN` and `GITHUB_REPOSITORY`
+- **THEN** it searches for, downloads, and uploads database artifacts using the GitHub API with the `github-token` input (falling back to `GITHUB_TOKEN`) and auto-detected `GITHUB_REPOSITORY`
 
 #### Scenario: Local storage fallback
 - **GIVEN** `storage-type` is set to `sqlite-local` (or omitted)
@@ -173,7 +173,7 @@ The action SHALL support both S3 and Artifact storage workflow variants, adaptin
 
 ### Requirement: (Scenario) Install external tools
 
-**Reason**: The `loc` collector now uses an embedded JavaScript library (`sloc`) and no longer requires the SCC binary. All metric collectors are self-contained within the Bun runtime.
+**Reason**: The `loc` collector now uses an embedded JavaScript library (`sloc`) and no longer requires the SCC binary. All metric collectors are self-contained within the Node.js runtime.
 
 **Migration**: Remove any workflow steps that install SCC (e.g., `brew install scc` or manual binary downloads) before invoking the track-metrics action. No user configuration changes are required.
 
@@ -200,24 +200,24 @@ The action SHALL support both S3 and Artifact storage workflow variants, adaptin
 - Users already have working metric collection configuration (`unentropy.json`)
 - Network connectivity between GitHub Actions runners and remote storage endpoints is generally reliable (99%+ uptime)
 - The `@actions/github` package is available for GitHub API operations
-- Bun runtime is compatible with the GitHub Actions runner environment
+- Node.js runtime is compatible with the GitHub Actions runner environment
 
 ## Dependencies
 
 - GitHub Actions workflow execution environment
-- Bun runtime for TypeScript execution in GitHub Actions
+- Node.js runtime for JavaScript execution in GitHub Actions
 - Existing Unentropy metric collection and report generation functionality (from `metrics/` and `reporting/` specs)
 - Storage Provider interface and implementations (from `storage/` spec)
 - `@actions/github` package for GitHub API client
 - GitHub Secrets for secure S3 credential storage
-- GitHub Token for artifact access (auto-detected from environment)
-- SQLite support via bun:sqlite for database operations
+- GitHub Token for artifact access (`github-token` input, falling back to the `GITHUB_TOKEN` environment variable)
+- SQLite support via node:sqlite for database operations
 
 ## Scope Boundaries
 
 ### In Scope
 
-- Single composite GitHub Action for complete metrics workflow
+- Single JavaScript GitHub Action (runs on Node.js 24) for complete metrics workflow
 - Storage initialization (download or create database) before metric collection
 - Metric collection execution after storage is initialized
 - Database persistence (upload to remote or no-op for local) after collection

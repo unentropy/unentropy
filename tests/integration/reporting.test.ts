@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { Storage } from "../../src/storage/storage";
 import { createStorageProvider } from "../../src/storage/providers/factory";
 import { generateReport } from "../../src/reporter/generator";

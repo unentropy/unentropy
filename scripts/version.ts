@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S npx tsx
 
 import { execSync } from "child_process";
 import { readFileSync, existsSync } from "fs";
@@ -43,17 +43,17 @@ function computeNextVersion(current: string, type: VersionType): string {
 }
 
 function runChecks(): void {
-  execInherit("bun run format", "FORMAT");
-  execInherit("bun run check", "CHECK");
+  execInherit("pnpm format", "FORMAT");
+  execInherit("pnpm check", "CHECK");
 }
 
 function runBuilds(): void {
-  execInherit("bun run build:cli", "BUILD");
-  execInherit("bun run build:actions", "BUILD");
+  execInherit("pnpm build:cli", "BUILD");
+  execInherit("pnpm build:actions", "BUILD");
 }
 
 function bumpVersion(type: VersionType): string {
-  execInherit(`bun pm version ${type} --no-git-tag-version --force`, "BUN");
+  execInherit(`npm version ${type} --no-git-tag-version`, "NPM");
   return getPackageVersion();
 }
 
@@ -129,13 +129,13 @@ function printDryRun(type: VersionType, currentVersion: string, vcs: "jj" | "git
 
   console.log(`\n  Planned actions:`);
 
-  console.log(`    [FORMAT] bun run format`);
-  console.log(`    [CHECK]  bun run check`);
-  console.log(`    [BUILD]  bun run build:cli`);
-  console.log(`    [BUILD]  bun run build:actions`);
+  console.log(`    [FORMAT] pnpm format`);
+  console.log(`    [CHECK]  pnpm check`);
+  console.log(`    [BUILD]  pnpm build:cli`);
+  console.log(`    [BUILD]  pnpm build:actions`);
 
   if (vcs === "jj") {
-    console.log(`    [BUN] bun pm version ${type} --no-git-tag-version --force`);
+    console.log(`    [NPM] npm version ${type} --no-git-tag-version`);
     console.log(`    [JJ]  jj desc -m "v${nextVersion}"`);
     console.log(`    [JJ]  jj new`);
     console.log(`    [GIT] git tag -f v${nextVersion} <@-commit-id>`);
@@ -146,7 +146,7 @@ function printDryRun(type: VersionType, currentVersion: string, vcs: "jj" | "git
     warnings.push("Push to origin/main will be forced");
     warnings.push("Tag push to origin will be forced");
   } else {
-    console.log(`    [BUN] bun pm version ${type} --no-git-tag-version --force`);
+    console.log(`    [NPM] npm version ${type} --no-git-tag-version`);
     console.log(`    [GIT] git add package.json && git commit -m "v${nextVersion}"`);
     console.log(`    [GIT] git tag v${nextVersion}`);
     console.log(`    [GIT] git push`);
@@ -197,7 +197,7 @@ function main(): void {
   const type = filteredArgs[0] as VersionType;
 
   if (!type || !["patch", "minor", "major"].includes(type)) {
-    console.error("Usage: bun run scripts/version.ts <patch|minor|major> [--dry-run]");
+    console.error("Usage: tsx scripts/version.ts <patch|minor|major> [--dry-run]");
     process.exit(1);
   }
 

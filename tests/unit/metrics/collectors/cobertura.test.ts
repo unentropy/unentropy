@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect } from "vitest";
 import {
   parseCoberturaCoerage,
   mergeCoberturaCoerage,
@@ -61,13 +61,13 @@ describe("parseCoberturaCoerage", () => {
     });
 
     it("should throw when no methods exist", async () => {
-      expect(
+      await expect(
         parseCoberturaCoerage(join(fixturesDir, "no-methods.xml"), { type: "function" })
       ).rejects.toThrow("No function coverage data");
     });
 
     it("should throw when no packages exist for function coverage", async () => {
-      expect(
+      await expect(
         parseCoberturaCoerage(join(fixturesDir, "minimal.xml"), { type: "function" })
       ).rejects.toThrow("No function coverage data");
     });
@@ -75,23 +75,25 @@ describe("parseCoberturaCoerage", () => {
 
   describe("parse errors", () => {
     it("should throw when coverage data is invalid", async () => {
-      expect(parseCoberturaCoerage(join(fixturesDir, "malformed.xml"))).rejects.toThrow();
+      await expect(parseCoberturaCoerage(join(fixturesDir, "malformed.xml"))).rejects.toThrow();
     });
   });
 
   describe("error handling", () => {
     it("should throw error for empty source path", async () => {
-      expect(parseCoberturaCoerage("")).rejects.toThrow("Source path must be a non-empty string");
+      await expect(parseCoberturaCoerage("")).rejects.toThrow(
+        "Source path must be a non-empty string"
+      );
     });
 
     it("should throw error for null source path", async () => {
-      expect(parseCoberturaCoerage(null as unknown as string)).rejects.toThrow(
+      await expect(parseCoberturaCoerage(null as unknown as string)).rejects.toThrow(
         "Source path must be a non-empty string"
       );
     });
 
     it("should throw error for non-existent file", async () => {
-      expect(parseCoberturaCoerage("/non/existent/file.xml")).rejects.toThrow();
+      await expect(parseCoberturaCoerage("/non/existent/file.xml")).rejects.toThrow();
     });
   });
 
@@ -201,15 +203,19 @@ describe("mergeCoberturaCoerage", () => {
 
   describe("error handling", () => {
     it("should fail with error on missing file", async () => {
-      expect(mergeCoberturaCoerage([f("sample.xml"), "/nonexistent/file.xml"])).rejects.toThrow();
+      await expect(
+        mergeCoberturaCoerage([f("sample.xml"), "/nonexistent/file.xml"])
+      ).rejects.toThrow();
     });
 
     it("should fail with error on empty file list", async () => {
-      expect(mergeCoberturaCoerage([])).rejects.toThrow("At least one source path is required");
+      await expect(mergeCoberturaCoerage([])).rejects.toThrow(
+        "At least one source path is required"
+      );
     });
 
     it("should fail with error on malformed XML", async () => {
-      expect(mergeCoberturaCoerage([f("sample.xml"), f("malformed.xml")])).rejects.toThrow();
+      await expect(mergeCoberturaCoerage([f("sample.xml"), f("malformed.xml")])).rejects.toThrow();
     });
 
     it("should handle file with no line-level data without throwing", async () => {

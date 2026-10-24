@@ -1,26 +1,25 @@
-#!/usr/bin/env bun
-
 /**
  * Development server for working on HTML report templates.
  *
  * Usage:
- *   bun run dev:report
+ *   pnpm dev:report
  *
  * This script:
  * 1. Generates the full-featured fixture with test data
  * 2. Serves the report at http://localhost:3000
- * 3. Watches for changes via `bun --watch` (restart on file change)
+ * 3. Watches for changes via `node --watch-path=src --watch-path=scripts` (restart on file change)
  *
  * When you edit files in src/reporter/templates/, the script restarts
  * and regenerates the report. Refresh your browser to see changes.
  */
 
+import { createServer } from "node:http";
 import { generateReport } from "../src/reporter/generator";
 import { FIXTURES } from "./fixtures/definitions";
 import { generateFixtureDatabase, createReportConfig } from "./fixtures/generator";
 
 // Import template components to trigger watch on changes
-// These imports ensure bun --watch detects changes to templates
+// These imports keep the template component graph loaded by this script
 import "../src/reporter/templates/default/components/index";
 // charts.js is imported via text import in ChartScripts.tsx, so it's already watched
 
@@ -39,16 +38,12 @@ async function main(): Promise<void> {
 
   console.log(`Generated report (${html.length} bytes)`);
 
-  const server = Bun.serve({
-    port: PORT,
-    fetch() {
-      return new Response(html, {
-        headers: { "Content-Type": "text/html" },
-      });
-    },
-  });
+  createServer((_req, res) => {
+    res.writeHead(200, { "Content-Type": "text/html" });
+    res.end(html);
+  }).listen(PORT);
 
-  console.log(`\nServing at: http://localhost:${server.port}`);
+  console.log(`\nServing at: http://localhost:${PORT}`);
   console.log("\nWatching for changes in src/reporter/templates/");
   console.log("Edit templates and refresh browser to see changes.\n");
   console.log("Press Ctrl+C to stop.\n");

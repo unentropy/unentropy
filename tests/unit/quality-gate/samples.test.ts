@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach } from "vitest";
 import { buildMetricSamples } from "../../../src/quality-gate/samples.js";
 import type { MetricsRepository } from "../../../src/storage/repository.js";
 

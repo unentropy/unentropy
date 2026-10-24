@@ -1,4 +1,4 @@
-import { describe, test, beforeEach, afterEach, expect } from "bun:test";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { existsSync, mkdirSync, rmSync, readFileSync, cpSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 
 describe("init command integration", () => {
   let tempDir: string;
-  const fixturesDir = join(__dirname, "../fixtures/init-projects");
+  const fixturesDir = join(import.meta.dirname, "../fixtures/init-projects");
 
   beforeEach(async () => {
     tempDir = join(tmpdir(), `unentropy-init-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -32,10 +32,14 @@ describe("init command integration", () => {
 
   function runInitCommand(args: string[]): { code: number; stdout: string; stderr: string } {
     const projectRoot = new URL("../..", import.meta.url).pathname;
-    const result = spawnSync("bun", [join(projectRoot, "src/index.ts"), "init", ...args], {
-      cwd: tempDir,
-      encoding: "utf-8",
-    });
+    const result = spawnSync(
+      process.execPath,
+      [join(projectRoot, "dist/index.js"), "init", ...args],
+      {
+        cwd: tempDir,
+        encoding: "utf-8",
+      }
+    );
 
     const stdout = typeof result.stdout === "string" ? result.stdout : "";
     const stderr = typeof result.stderr === "string" ? result.stderr : "";

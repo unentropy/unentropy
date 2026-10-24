@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S npx tsx
 
 import { execSync } from "child_process";
 import { existsSync, readdirSync, statSync } from "fs";
@@ -58,7 +58,7 @@ async function main(): Promise<void> {
   const reports = findReportFiles();
 
   if (reports.length === 0) {
-    console.log("⚠️  No reports found. Run `bun run generate-fixtures` first.");
+    console.log("⚠️  No reports found. Run `pnpm generate-fixtures` first.");
     return;
   }
 

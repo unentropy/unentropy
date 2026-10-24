@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, mock, spyOn } from "bun:test";
+import { describe, test, expect, beforeEach, afterEach, vi, type MockInstance } from "vitest";
 import { rm } from "fs/promises";
 import { SqliteArtifactStorageProvider } from "../../../../src/storage/providers/sqlite-artifact";
 import type { SqliteArtifactConfig } from "../../../../src/storage/providers/interface";
@@ -12,7 +12,7 @@ interface FakeArtifact {
 const createMockFetch = (
   handler: (url: string, options?: RequestInit) => Promise<Response>
 ): typeof fetch => {
-  const mockFn = mock(handler) as unknown as typeof fetch;
+  const mockFn = vi.fn(handler) as unknown as typeof fetch;
   return mockFn;
 };
 
@@ -35,10 +35,10 @@ describe("SqliteArtifactStorageProvider — seed fallback search", () => {
     repository: "owner/repo",
   };
   let provider: SqliteArtifactStorageProvider;
-  let consoleLogSpy: ReturnType<typeof spyOn>;
+  let consoleLogSpy: MockInstance;
 
   beforeEach(() => {
-    consoleLogSpy = spyOn(console, "log").mockImplementation(() => undefined);
+    consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
   });
 
   afterEach(async () => {
