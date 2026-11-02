@@ -225,4 +225,32 @@ describe("mergeCloverCoverage", () => {
       expect(coverage).toBeCloseTo(75, 1);
     });
   });
+
+  describe("glob patterns", () => {
+    it("merges every report matched by an absolute glob", async () => {
+      const coverage = await mergeCloverCoverage([f("{sample,parallel-report}.xml")]);
+      expect(coverage).toBeCloseTo(63.64, 1);
+    });
+
+    it("resolves a relative glob against basePath", async () => {
+      const coverage = await mergeCloverCoverage(
+        ["{sample,parallel-report}.xml"],
+        {},
+        undefined,
+        fixturesDir
+      );
+      expect(coverage).toBeCloseTo(63.64, 1);
+    });
+
+    it("merges globbed reports with explicit paths", async () => {
+      const coverage = await mergeCloverCoverage([f("sample.xml"), f("parallel-*.xml")]);
+      expect(coverage).toBeCloseTo(63.64, 1);
+    });
+
+    it("throws when a glob matches no files", async () => {
+      await expect(mergeCloverCoverage([f("missing-*.xml")])).rejects.toThrow(
+        /No files matched glob pattern/
+      );
+    });
+  });
 });

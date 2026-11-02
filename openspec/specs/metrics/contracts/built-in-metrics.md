@@ -127,9 +127,11 @@ This provides:
 
 #### `coverage-clover` Options
 - `--type <line|branch|function>` — Coverage type to extract (default: `line`)
+- Report paths support glob patterns (e.g., `./results/coverage-*.xml`); all matched reports are merged. A pattern that matches no files fails the collector
 
 #### `coverage-cobertura` Options
 - `--type <line|branch|function>` — Coverage type to extract (default: `line`)
+- Report paths support glob patterns (e.g., `./coverage/*-cobertura.xml`); all matched reports are merged. A pattern that matches no files fails the collector
 
 **Note:** When a collector fails (missing files, parse errors), execution stops with an error rather than returning a fallback value.
 
@@ -194,7 +196,7 @@ Metric templates fall into two categories:
 }
 ```
 
-With glob pattern (shell expands before unentropy sees it):
+With glob pattern (unentropy expands it relative to the config root):
 
 ```json
 {

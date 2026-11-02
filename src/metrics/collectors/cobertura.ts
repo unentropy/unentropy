@@ -3,6 +3,7 @@ import { resolve, isAbsolute } from "path";
 import { XMLParser } from "fast-xml-parser";
 import { matchesSources } from "./sources-filter";
 import type { SourcesConfig } from "../../config/schema";
+import { expandSourcePaths } from "./source-paths";
 
 export type CoverageType = "line" | "branch" | "function";
 
@@ -349,7 +350,7 @@ export async function mergeCoberturaCoerage(
     throw new Error("At least one source path is required");
   }
 
-  const resolvedPaths = sourcePaths.map((p) => resolveSourcePath(p, basePath));
+  const resolvedPaths = await expandSourcePaths(sourcePaths, basePath);
   const coverageType = options.type || "line";
 
   if (coverageType === "function") {
