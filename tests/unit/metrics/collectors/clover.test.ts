@@ -247,6 +247,24 @@ describe("mergeCloverCoverage", () => {
       expect(coverage).toBeCloseTo(63.64, 1);
     });
 
+    it("counts a report once when an explicit path and a glob both match it", async () => {
+      const coverage = await mergeCloverCoverage(
+        [f("sample.xml"), f("{sample,parallel-report}.xml")],
+        { type: "branch" }
+      );
+      expect(coverage).toBeCloseTo(66.67, 1);
+    });
+
+    it("counts a report once when it is listed twice", async () => {
+      const coverage = await mergeCloverCoverage(
+        [f("sample.xml"), "sample.xml", f("parallel-report.xml")],
+        { type: "branch" },
+        undefined,
+        fixturesDir
+      );
+      expect(coverage).toBeCloseTo(66.67, 1);
+    });
+
     it("throws when a glob matches no files", async () => {
       await expect(mergeCloverCoverage([f("missing-*.xml")])).rejects.toThrow(
         /No files matched glob pattern/
