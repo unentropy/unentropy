@@ -104,7 +104,7 @@ describe("init command integration", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.metrics["lines-of-code"].command).toContain("PHP");
-      expect(config.metrics["test-coverage"].command).toContain("coverage-xml");
+      expect(config.metrics["test-coverage"].command).toBe("@collect coverage-clover coverage.xml");
       expect(config.storage.type).toBe("sqlite-artifact");
     });
 
