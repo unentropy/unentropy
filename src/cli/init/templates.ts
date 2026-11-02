@@ -78,7 +78,7 @@ export const CONFIG_TEMPLATES: Record<ProjectType, ConfigTemplate> = {
       "test-coverage": {
         $ref: "coverage",
         name: "Test Coverage",
-        command: "@collect coverage-xml coverage.xml",
+        command: "@collect coverage-clover coverage.xml",
       },
     },
     qualityGate: DEFAULT_QUALITY_GATE,
