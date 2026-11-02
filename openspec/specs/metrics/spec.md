@@ -237,6 +237,13 @@ The system SHALL provide a `coverage-clover` built-in collector that parses Clov
 - **WHEN** a user provides multiple Clover XML file paths to `coverage-clover`
 - **THEN** the system merges coverage: for line type, per-file per-statement-line deduplication via union of covered lines from `<line type="stmt">` elements; for function and branch types, project-level summation of `methods`/`coveredmethods` and `conditionals`/`coveredconditionals` across all files before computing the percentage
 
+#### Scenario: Report paths as glob patterns
+
+- **GIVEN** a test run that splits coverage across a varying number of reports, e.g. `results/coverage-w0.xml` and `results/coverage-w1.xml`
+- **WHEN** a user configures `"command": "@collect coverage-clover ./results/coverage-*.xml"`
+- **THEN** the system expands the pattern relative to the config root and merges every matched report as in a multi-file merge
+- **AND** if the pattern matches no files, the collector fails with `No files matched glob pattern: <pattern>`
+
 #### Scenario: Malformed XML
 
 - **GIVEN** a Clover XML file with invalid XML content

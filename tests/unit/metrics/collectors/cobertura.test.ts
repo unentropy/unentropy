@@ -223,4 +223,32 @@ describe("mergeCoberturaCoerage", () => {
       expect(coverage).toBeCloseTo(75, 0);
     });
   });
+
+  describe("glob patterns", () => {
+    it("merges every report matched by an absolute glob", async () => {
+      const coverage = await mergeCoberturaCoerage([f("{sample,parallel-report}.xml")]);
+      expect(coverage).toBe(82.5);
+    });
+
+    it("resolves a relative glob against basePath", async () => {
+      const coverage = await mergeCoberturaCoerage(
+        ["{sample,parallel-report}.xml"],
+        {},
+        undefined,
+        fixturesDir
+      );
+      expect(coverage).toBe(82.5);
+    });
+
+    it("merges globbed reports with explicit paths", async () => {
+      const coverage = await mergeCoberturaCoerage([f("sample.xml"), f("parallel-*.xml")]);
+      expect(coverage).toBe(82.5);
+    });
+
+    it("throws when a glob matches no files", async () => {
+      await expect(mergeCoberturaCoerage([f("missing-*.xml")])).rejects.toThrow(
+        /No files matched glob pattern/
+      );
+    });
+  });
 });
