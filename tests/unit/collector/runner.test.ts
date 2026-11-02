@@ -59,6 +59,17 @@ describe("runCommand", () => {
     expect(elapsed).toBeLessThan(1000);
   });
 
+  test("leaves no timeout timer behind after the command finishes", async () => {
+    const activeTimeouts = () =>
+      process.getActiveResourcesInfo().filter((resource) => resource === "Timeout").length;
+    const before = activeTimeouts();
+
+    const result = await runCommand('echo "quick"', {}, 60000, true);
+
+    expect(result.success).toBe(true);
+    expect(activeTimeouts()).toBe(before);
+  });
+
   test("passes environment variables to command", async () => {
     const result = await runCommand(
       "echo $CUSTOM_VAR",

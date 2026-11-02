@@ -51,10 +51,11 @@ export async function runCommand(
 
   let stdout = "";
   let stderr = "";
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("Command timed out")), timeoutMs);
+      timeoutId = setTimeout(() => reject(new Error("Command timed out")), timeoutMs);
     });
 
     const execPromise = exec("sh", ["-c", command], {
@@ -98,5 +99,7 @@ export async function runCommand(
       timedOut,
       durationMs,
     };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
